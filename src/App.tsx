@@ -1,0 +1,48 @@
+import { QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { ToastProvider } from '@/components/ui/Toast'
+import { AuthProvider } from '@/features/auth/AuthProvider'
+import { LoginPage } from '@/features/auth/LoginPage'
+import { RotaLideranca } from '@/features/auth/RotaLideranca'
+import { RotaProtegida } from '@/features/auth/RotaProtegida'
+import { EmConstrucao } from '@/features/placeholder/EmConstrucao'
+import { AppLayout } from '@/layouts/AppLayout'
+import { queryClient } from '@/lib/queryClient'
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route element={<RotaProtegida />}>
+                <Route path="/app" element={<AppLayout />}>
+                  <Route index element={<Navigate to="/app/dashboard" replace />} />
+                  <Route path="dashboard" element={<EmConstrucao tela="Dashboard" etapa={2} />} />
+                  <Route path="clientes" element={<EmConstrucao tela="Clientes" etapa={2} />} />
+                  <Route path="demandas" element={<EmConstrucao tela="Demandas" etapa={2} />} />
+                  <Route path="conteudo" element={<EmConstrucao tela="Conteúdo" etapa={2} />} />
+                  <Route path="campanhas" element={<EmConstrucao tela="Campanhas" etapa={2} />} />
+                  <Route path="campanhas/:id" element={<EmConstrucao tela="Campanha" etapa={2} />} />
+                  <Route element={<RotaLideranca />}>
+                    <Route
+                      path="financeiro/:aba?"
+                      element={<EmConstrucao tela="Financeiro" etapa={3} />}
+                    />
+                  </Route>
+                  <Route
+                    path="configuracoes"
+                    element={<EmConstrucao tela="Configurações" etapa={2} />}
+                  />
+                </Route>
+              </Route>
+              <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
+    </QueryClientProvider>
+  )
+}

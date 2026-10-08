@@ -1,0 +1,99 @@
+/* Telas de página inteira: login, configuração pendente, perfil ausente */
+.tela {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 0%, rgba(230, 48, 48, 0.2), transparent 70%),
+    var(--bg);
+}
+
+.cartao {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.marca {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.marcaNome {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.marcaNome::first-letter {
+  color: var(--accent);
+}
+
+.marcaSub {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.campos {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.erro {
+  padding: 10px 14px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(230, 48, 48, 0.4);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+
+.titulo {
+  font-size: 22px;
+}
+
+.texto {
+  color: var(--text-muted);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.variavel {
+  display: block;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.carregando {
+  width: min(320px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .cartao {
+    padding: 24px 20px;
+  }
+}

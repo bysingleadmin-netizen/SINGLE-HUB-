@@ -1,0 +1,148 @@
+// Espelha supabase/migrations/0001_schema.sql.
+// Datas são strings 'AAAA-MM-DD'; timestamps são ISO 8601.
+
+import type { Cargo } from '@/lib/permissoes'
+
+export type ClientStatus = 'ativo' | 'pausado' | 'churn'
+export type PaymentStatus = 'pendente' | 'pago' | 'atrasado'
+export type TaskTipo = 'conteudo' | 'trafego' | 'estrategia' | 'audiovisual'
+export type TaskStatus =
+  | 'a_fazer'
+  | 'em_andamento'
+  | 'aguardando_aprovacao'
+  | 'concluido'
+  | 'arquivado'
+export type TipoConteudo = 'reels' | 'carrossel' | 'post' | 'stories' | 'video'
+export type ContentEtapa =
+  | 'captar_material'
+  | 'editar'
+  | 'aguardando_aprovacao'
+  | 'publicado'
+  | 'arquivado'
+export type CampaignStatus = 'planejamento' | 'em_execucao' | 'pausada' | 'finalizada'
+export type CampaignFuncao = 'copy' | 'criativos' | 'captacao_material' | 'trafego' | 'estrategia'
+export type CampaignTaskStatus = 'pendente' | 'em_andamento' | 'concluido'
+
+export interface Profile {
+  id: string
+  nome: string
+  email: string
+  cargo: Cargo
+  avatar_url: string | null
+  created_at: string
+}
+
+export interface Client {
+  id: string
+  nome: string
+  logo_url: string | null
+  status: ClientStatus
+  mrr: number
+  data_inicio_contrato: string | null
+  instagram: string | null
+  link_conta_anuncios: string | null
+  contato_nome: string | null
+  contato_email: string | null
+  contato_telefone: string | null
+  observacoes: string | null
+  created_at: string
+}
+
+export interface ClientPayment {
+  id: string
+  client_id: string
+  mes_referencia: string
+  valor: number
+  data_vencimento: string
+  data_pagamento: string | null
+  status: PaymentStatus
+  created_at: string
+}
+
+export interface Task {
+  id: string
+  titulo: string
+  descricao: string | null
+  client_id: string | null
+  responsavel_id: string | null
+  tipo: TaskTipo
+  status: TaskStatus
+  data_entrega: string | null
+  posicao: number
+  created_by: string | null
+  created_at: string
+}
+
+export interface ContentCard {
+  id: string
+  titulo: string
+  tipo_conteudo: TipoConteudo
+  client_id: string | null
+  responsavel_id: string | null
+  etapa: ContentEtapa
+  data_entrega: string | null
+  observacoes: string | null
+  posicao: number
+  created_at: string
+}
+
+export interface Campaign {
+  id: string
+  nome: string
+  client_id: string
+  status: CampaignStatus
+  data_inicio: string | null
+  data_fim: string | null
+  orcamento: number
+  estrategia: string | null
+  proxima_otimizacao: string | null
+  created_at: string
+}
+
+export interface CampaignTask {
+  id: string
+  campaign_id: string
+  funcao: CampaignFuncao
+  titulo: string
+  status: CampaignTaskStatus
+  responsavel_id: string | null
+  created_at: string
+}
+
+export interface Expense {
+  id: string
+  descricao: string
+  categoria: string
+  valor: number
+  data: string
+  forma_pagamento: string
+  created_by: string | null
+  created_at: string
+}
+
+export interface MonthlyGoal {
+  id: string
+  mes: string
+  meta: number
+  created_at: string
+}
+
+export interface TrafficMetric {
+  id: string
+  mes: string
+  investimento: number
+  leads_instagram: number
+  leads_whatsapp: number
+  convertidos: number
+  created_at: string
+}
+
+export interface ActivityLog {
+  id: string
+  user_id: string | null
+  acao: string
+  descricao: string
+  entidade: string | null
+  entidade_id: string | null
+  created_at: string
+}

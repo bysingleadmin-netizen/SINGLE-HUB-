@@ -20,7 +20,6 @@ export function Logotipo({ altura = 16, classeDoRestante }: LogotipoProps) {
   return (
     <span role="img" aria-label="SINGLE" className={styles.logotipo}>
       <svg
-        className={styles.logotipoInicial}
         width={INICIAL.largura * escala}
         height={altura}
         viewBox={`${INICIAL.x} ${TOPO} ${INICIAL.largura} ${ALTURA}`}

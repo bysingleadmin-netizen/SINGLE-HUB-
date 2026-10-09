@@ -28,13 +28,17 @@ describe('Toast', () => {
     vi.useRealTimers()
   })
 
-  it('mostra a mensagem e some sozinho depois de 4 segundos', () => {
+  it('mostra a mensagem e some sozinho depois de 3 segundos', () => {
     montar()
     fireEvent.click(screen.getByText('sucesso'))
     expect(screen.getByRole('status')).toHaveTextContent('Cliente salvo.')
 
     act(() => {
-      vi.advanceTimersByTime(4000)
+      vi.advanceTimersByTime(2999)
+    })
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    act(() => {
+      vi.advanceTimersByTime(1)
     })
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })

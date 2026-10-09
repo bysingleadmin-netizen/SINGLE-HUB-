@@ -15,8 +15,11 @@ import { DemandasPage } from '@/features/demandas/DemandasPage'
 import { EmConstrucao } from '@/features/placeholder/EmConstrucao'
 import { AppLayout } from '@/layouts/AppLayout'
 import { queryClient } from '@/lib/queryClient'
+import { useRastroDoMouse } from '@/lib/rastroDoMouse'
 
 export default function App() {
+  useRastroDoMouse()
+
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>

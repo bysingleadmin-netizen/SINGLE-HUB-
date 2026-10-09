@@ -15,8 +15,9 @@
   flex-direction: column;
   gap: 24px;
   padding: 32px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  backdrop-filter: blur(12px);
   border-radius: 16px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
 }

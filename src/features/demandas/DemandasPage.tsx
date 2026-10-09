@@ -95,11 +95,11 @@ export function DemandasPage() {
         <>
           {noQuadro.length === 0 ? (
             <EstadoVazio
-              titulo="Nenhuma demanda ainda."
+              ilustracao="quadro" titulo="Nenhuma demanda ainda."
               texto="Use Nova demanda ou o botão de adicionar de uma coluna para criar a primeira."
             />
           ) : (
-            visiveis.length === 0 && <EstadoVazio titulo="Nenhuma demanda com esses filtros." />
+            visiveis.length === 0 && <EstadoVazio ilustracao="busca" titulo="Nenhuma demanda com esses filtros." />
           )}
           <Quadro
             colunas={COLUNAS_TAREFA}

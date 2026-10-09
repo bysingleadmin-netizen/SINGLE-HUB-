@@ -17,8 +17,9 @@
   flex-direction: column;
   gap: 16px;
   padding: 16px 10px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  background: rgba(20, 20, 23, 0.72);
+  border-right: 1px solid var(--vidro-borda);
+  backdrop-filter: blur(12px);
   transition: width 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
   overflow: hidden;
 }
@@ -75,6 +76,7 @@
   gap: 12px;
   min-height: 42px;
   padding: 0 10px;
+  border-left: 2px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
   font-weight: 500;
@@ -89,18 +91,26 @@
 }
 
 .item:hover {
-  background: var(--surface-2);
+  background: var(--vidro-hover);
   color: var(--text);
 }
 
 .itemAtivo,
 .itemAtivo:hover {
-  background: var(--accent-soft);
+  background: rgba(230, 48, 48, 0.15);
+  border-left-color: #e63030;
   color: var(--text);
+}
+
+/* Ícones preenchidos: o traço continua e o miolo ganha a mesma cor, mais fraca */
+.item svg {
+  fill: currentColor;
+  fill-opacity: 0.12;
 }
 
 .itemAtivo svg {
   color: var(--accent);
+  fill-opacity: 0.28;
 }
 
 .rodape {
@@ -108,7 +118,7 @@
   align-items: center;
   gap: 10px;
   padding: 12px 2px 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--vidro-borda);
 }
 
 .usuario {
@@ -172,9 +182,9 @@
   gap: 12px;
   height: var(--header-h);
   padding: 0 28px;
-  background: rgba(11, 11, 13, 0.82);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--border);
+  background: rgba(11, 11, 13, 0.72);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--vidro-borda);
 }
 
 .tituloPagina {

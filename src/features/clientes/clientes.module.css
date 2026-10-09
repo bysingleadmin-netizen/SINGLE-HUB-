@@ -28,19 +28,22 @@
   gap: 6px;
   min-width: 0;
   padding: 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  backdrop-filter: blur(12px);
   border-radius: var(--radius);
   text-align: left;
   cursor: pointer;
   transition:
+    background-color 0.18s ease,
     border-color 0.18s ease,
     transform 0.18s ease;
 }
 
 .card:hover {
-  border-color: var(--text-muted);
-  transform: translateY(-2px);
+  background: var(--vidro-hover);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateX(2px);
 }
 
 .cardTopo {
@@ -150,8 +153,8 @@
   flex-direction: column;
   gap: 4px;
   padding: 14px;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
   border-radius: var(--radius-sm);
 }
 

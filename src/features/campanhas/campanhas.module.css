@@ -25,14 +25,20 @@
   align-items: center;
   gap: 12px 20px;
   padding: 16px 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  backdrop-filter: blur(12px);
   border-radius: var(--radius);
-  transition: border-color 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
 }
 
 .item:hover {
-  border-color: var(--text-muted);
+  background: var(--vidro-hover);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateX(2px);
 }
 
 .itemNome {
@@ -154,8 +160,9 @@
   gap: 12px;
   min-width: 0;
   padding: 18px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  backdrop-filter: blur(12px);
   border-radius: var(--radius);
 }
 

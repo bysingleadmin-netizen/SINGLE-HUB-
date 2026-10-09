@@ -80,7 +80,7 @@ export function CampanhaPage() {
   if (!campanha) {
     return (
       <EstadoVazio
-        titulo="Campanha não encontrada."
+        ilustracao="busca" titulo="Campanha não encontrada."
         texto="Ela pode ter sido removida ou o endereço está incorreto."
         acao={
           <Link to="/app/campanhas" className={ui.linkAcao}>

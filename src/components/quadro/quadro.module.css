@@ -14,8 +14,9 @@
   gap: 12px;
   min-width: 0;
   padding: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  backdrop-filter: blur(12px);
   border-radius: var(--radius);
   transition:
     border-color 0.18s ease,
@@ -89,17 +90,22 @@
 
 .card {
   position: relative;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--vidro-borda);
   border-radius: var(--radius-sm);
   cursor: grab;
   user-select: none;
   animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  transition: border-color 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
 }
 
 .card:hover {
-  border-color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.075);
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateX(2px);
 }
 
 .card[data-atrasado] {
@@ -114,6 +120,7 @@
 }
 
 .cardFlutuante {
+  background: var(--surface-2);
   cursor: grabbing;
   animation: none;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);

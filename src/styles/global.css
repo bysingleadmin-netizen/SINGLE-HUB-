@@ -9,6 +9,10 @@
   --accent-hover: #f04444;
   --accent-soft: rgba(230, 48, 48, 0.14);
   --success: #3ecf8e;
+  --vidro: rgba(255, 255, 255, 0.03);
+  --vidro-hover: rgba(255, 255, 255, 0.055);
+  --vidro-borda: rgba(255, 255, 255, 0.06);
+  --campo-borda: rgba(255, 255, 255, 0.08);
   --radius: 12px;
   --radius-sm: 8px;
   --sidebar-w: 220px;
@@ -33,7 +37,14 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* Brilho que acompanha o cursor; as coordenadas vêm de useRastroDoMouse */
+  background-color: var(--bg);
+  background-image: radial-gradient(
+    circle 600px at var(--mouse-x, 50%) var(--mouse-y, -300px),
+    rgba(230, 48, 48, 0.06),
+    transparent
+  );
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font-body);
   font-size: 15px;
@@ -74,7 +85,7 @@ textarea {
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -116,13 +127,42 @@ textarea {
   animation: fadeUp 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 .stagger > *:nth-child(1) { animation-delay: 0ms; }
-.stagger > *:nth-child(2) { animation-delay: 60ms; }
-.stagger > *:nth-child(3) { animation-delay: 120ms; }
-.stagger > *:nth-child(4) { animation-delay: 180ms; }
-.stagger > *:nth-child(5) { animation-delay: 240ms; }
-.stagger > *:nth-child(6) { animation-delay: 300ms; }
-.stagger > *:nth-child(7) { animation-delay: 360ms; }
-.stagger > *:nth-child(n + 8) { animation-delay: 420ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+.stagger > *:nth-child(7) { animation-delay: 300ms; }
+.stagger > *:nth-child(8) { animation-delay: 350ms; }
+.stagger > *:nth-child(9) { animation-delay: 400ms; }
+.stagger > *:nth-child(10) { animation-delay: 450ms; }
+.stagger > *:nth-child(11) { animation-delay: 500ms; }
+.stagger > *:nth-child(n + 12) { animation-delay: 550ms; }
+
+/* Barra de rolagem fina em toda a aplicação */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+option {
+  background: var(--surface-2);
+  color: var(--text);
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -13,6 +13,7 @@
   transition:
     background-color 0.18s ease,
     border-color 0.18s ease,
+    box-shadow 0.18s ease,
     transform 0.12s ease;
 }
 
@@ -26,17 +27,18 @@
 }
 
 .botao_primario {
-  background: var(--accent);
+  background: linear-gradient(135deg, #e63030, #c01010);
   color: #fff;
 }
 
 .botao_primario:hover:not(:disabled) {
-  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(230, 48, 48, 0.35);
 }
 
 .botao_secundario {
-  background: var(--surface-2);
-  border-color: var(--border);
+  background: var(--vidro-hover);
+  border-color: var(--campo-borda);
 }
 
 .botao_secundario:hover:not(:disabled) {
@@ -78,10 +80,13 @@
 .campoInput {
   min-height: 44px;
   padding: 0 14px;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  appearance: none;
+  background: var(--vidro);
+  border: 1px solid var(--campo-borda);
   border-radius: var(--radius-sm);
-  transition: border-color 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .campoInput::placeholder {
@@ -89,13 +94,13 @@
 }
 
 .campoInput:hover {
-  border-color: #3a3a42;
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .campoInput:focus-visible {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: #e63030;
+  box-shadow: 0 0 0 3px rgba(230, 48, 48, 0.15);
 }
 
 .campoInput[aria-invalid='true'] {
@@ -161,7 +166,11 @@
   border-radius: var(--radius);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   pointer-events: auto;
-  animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: subir 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.toast_sucesso {
+  border-color: rgba(62, 207, 142, 0.5);
 }
 
 .toastMarca {
@@ -257,7 +266,7 @@
   line-height: 1.5;
 }
 
-/* Logotipo: a inicial segue em destaque, como já era no texto */
+/* Logotipo em cor única: herda a cor do texto de onde é usado */
 .logotipo {
   display: inline-flex;
   align-items: center;
@@ -266,10 +275,6 @@
 
 .logotipo svg {
   display: block;
-}
-
-.logotipoInicial {
-  color: var(--accent);
 }
 
 .logotipoRestante {
@@ -349,8 +354,9 @@
   gap: 16px;
   min-width: 0;
   padding: 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  backdrop-filter: blur(12px);
   border-radius: var(--radius);
 }
 
@@ -380,12 +386,22 @@
   align-items: center;
   gap: 12px;
   min-height: 56px;
-  padding: 10px 0;
-  border-top: 1px solid var(--border);
+  margin: 0 -8px;
+  padding: 10px 8px;
+  border-top: 1px solid var(--vidro-borda);
+  border-radius: var(--radius-sm);
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
 }
 
 .linha:first-child {
   border-top: 0;
+}
+
+.linha:hover {
+  background: var(--vidro-hover);
+  transform: translateX(2px);
 }
 
 .linhaTexto {
@@ -429,8 +445,9 @@ a.linhaTitulo:hover {
   gap: 8px;
   min-width: 0;
   padding: 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  backdrop-filter: blur(12px);
   border-radius: var(--radius);
 }
 
@@ -456,9 +473,18 @@ a.linhaTitulo:hover {
   align-items: flex-start;
   gap: 10px;
   padding: 24px;
-  background: var(--surface);
-  border: 1px dashed var(--border);
+  background: var(--vidro);
+  border: 1px dashed var(--campo-borda);
   border-radius: var(--radius);
+  backdrop-filter: blur(12px);
+}
+
+.ilustracao {
+  color: #5d5d68;
+}
+
+.ilustracaoDestaque {
+  stroke: var(--accent);
 }
 
 .estadoTitulo {
@@ -542,6 +568,17 @@ a.linhaTitulo:hover {
   gap: 10px;
   padding: 16px 20px;
   border-top: 1px solid var(--border);
+}
+
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes surgir {

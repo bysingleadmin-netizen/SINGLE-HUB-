@@ -108,7 +108,7 @@ export function DashboardPage() {
             <Carregando />
           ) : entregas.length === 0 ? (
             <EstadoVazio
-              titulo="Nenhuma entrega nos próximos 7 dias."
+              ilustracao="quadro" titulo="Nenhuma entrega nos próximos 7 dias."
               acao={
                 <Link to="/app/demandas" className={ui.linkAcao}>
                   Criar demanda
@@ -154,7 +154,7 @@ export function DashboardPage() {
             <Carregando />
           ) : otimizacoes.length === 0 ? (
             <EstadoVazio
-              titulo="Nenhuma otimização nos próximos 3 dias."
+              ilustracao="campanhas" titulo="Nenhuma otimização nos próximos 3 dias."
               acao={
                 <Link to="/app/campanhas" className={ui.linkAcao}>
                   Criar campanha
@@ -197,7 +197,7 @@ export function DashboardPage() {
           <Carregando />
         ) : registros.length === 0 ? (
           <EstadoVazio
-            titulo="Nada registrado ainda."
+            ilustracao="atividade" titulo="Nada registrado ainda."
             texto="Clientes, demandas, conteúdos e campanhas criados pela equipe aparecem aqui."
           />
         ) : (

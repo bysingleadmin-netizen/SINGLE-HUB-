@@ -108,6 +108,7 @@ describe('Estado', () => {
       />,
     )
     expect(screen.getByText('Nenhum cliente ainda')).toBeInTheDocument()
+    expect(screen.getByTestId('ilustracao')).toBeInTheDocument()
     expect(screen.getByText('Cadastre o primeiro.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Novo cliente' })).toBeInTheDocument()
   })

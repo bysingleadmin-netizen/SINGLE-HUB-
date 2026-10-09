@@ -46,7 +46,7 @@ export function CampanhasPage() {
         </div>
       ) : lista.length === 0 ? (
         <EstadoVazio
-          titulo="Nenhuma campanha ainda."
+          ilustracao="campanhas" titulo="Nenhuma campanha ainda."
           texto="Crie a primeira para acompanhar estratégia, tarefas e otimizações."
           acao={botaoNova}
         />

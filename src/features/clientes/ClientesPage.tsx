@@ -51,7 +51,7 @@ export function ClientesPage() {
         </div>
       ) : lista.length === 0 ? (
         <EstadoVazio
-          titulo="Nenhum cliente cadastrado."
+          ilustracao="clientes" titulo="Nenhum cliente cadastrado."
           texto="Cadastre o primeiro cliente para começar a organizar demandas e campanhas."
           acao={botaoNovo}
         />

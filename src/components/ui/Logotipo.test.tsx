@@ -9,6 +9,14 @@ describe('Logotipo', () => {
     expect(logo).toHaveTextContent('')
   })
 
+  it('tem uma cor só: nenhuma letra recebe destaque próprio', () => {
+    render(<Logotipo />)
+    for (const parte of screen.getByRole('img', { name: 'SINGLE' }).querySelectorAll('svg')) {
+      expect(parte).not.toHaveAttribute('class')
+      expect(parte).toHaveAttribute('fill', 'currentColor')
+    }
+  })
+
   it('usa a altura pedida nas duas partes', () => {
     render(<Logotipo altura={24} />)
     const partes = screen.getByRole('img', { name: 'SINGLE' }).querySelectorAll('svg')

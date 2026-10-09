@@ -74,7 +74,7 @@ export function ConteudoPage() {
         <>
           {noQuadro.length === 0 && (
             <EstadoVazio
-              titulo="Nenhum conteúdo ainda."
+              ilustracao="quadro" titulo="Nenhum conteúdo ainda."
               texto="Use Novo conteúdo ou o botão de adicionar de uma etapa para criar o primeiro."
             />
           )}

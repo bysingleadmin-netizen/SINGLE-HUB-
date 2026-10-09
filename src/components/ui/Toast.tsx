@@ -16,7 +16,7 @@ interface ToastApi {
   erro: (mensagem: string) => void
 }
 
-const DURACAO_MS = 4000
+const DURACAO_MS = 3000
 
 const ToastContext = createContext<ToastApi | null>(null)
 

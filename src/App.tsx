@@ -5,6 +5,7 @@ import { AuthProvider } from '@/features/auth/AuthProvider'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RotaLideranca } from '@/features/auth/RotaLideranca'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
+import { CalendarioPage } from '@/features/calendario/CalendarioPage'
 import { CampanhaPage } from '@/features/campanhas/CampanhaPage'
 import { CampanhasPage } from '@/features/campanhas/CampanhasPage'
 import { ClientesPage } from '@/features/clientes/ClientesPage'
@@ -36,6 +37,7 @@ export default function App() {
                   <Route path="conteudo" element={<ConteudoPage />} />
                   <Route path="campanhas" element={<CampanhasPage />} />
                   <Route path="campanhas/:id" element={<CampanhaPage />} />
+                  <Route path="calendario" element={<CalendarioPage />} />
                   <Route element={<RotaLideranca />}>
                     <Route
                       path="financeiro/:aba?"

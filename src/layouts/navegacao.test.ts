@@ -8,6 +8,7 @@ describe('itensVisiveis', () => {
       'Demandas',
       'Conteúdo',
       'Campanhas',
+      'Calendário',
       'Configurações',
     ])
   })
@@ -19,6 +20,7 @@ describe('itensVisiveis', () => {
       'Demandas',
       'Conteúdo',
       'Campanhas',
+      'Calendário',
       'Financeiro',
       'Configurações',
     ])

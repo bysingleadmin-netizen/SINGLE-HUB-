@@ -10,6 +10,8 @@ export type Tabela =
   | 'content_cards'
   | 'campaigns'
   | 'campaign_tasks'
+  | 'calendar_events'
+  | 'event_participants'
 
 interface ComId {
   id: string
@@ -17,19 +19,26 @@ interface ComId {
 
 export type Valores<T> = Partial<Omit<T, 'id' | 'created_at'>>
 
-/**
- * Lista a tabela inteira, da linha mais antiga para a mais nova.
- * `ativo: false` adia a consulta (tabelas que só a liderança pode ler).
- */
-export function useLista<T>(tabela: Tabela, { ativo = true }: { ativo?: boolean } = {}) {
+interface OpcoesDeLista {
+  /** false adia a consulta (tabelas que só a liderança pode ler) */
+  ativo?: boolean
+  /** Coluna de ordenação; null para tabelas sem created_at */
+  ordenarPor?: string | null
+}
+
+/** Lista a tabela inteira, por padrão da linha mais antiga para a mais nova. */
+export function useLista<T>(
+  tabela: Tabela,
+  { ativo = true, ordenarPor = 'created_at' }: OpcoesDeLista = {},
+) {
   return useQuery({
     queryKey: [tabela],
     enabled: ativo,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from(tabela)
-        .select('*')
-        .order('created_at', { ascending: true })
+      const consulta = supabase.from(tabela).select('*')
+      const { data, error } = await (ordenarPor
+        ? consulta.order(ordenarPor, { ascending: true })
+        : consulta)
       if (error) throw error
       return (data ?? []) as T[]
     },

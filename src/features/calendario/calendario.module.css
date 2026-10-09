@@ -1,0 +1,234 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.navegacao {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mes {
+  min-width: 190px;
+  font-size: 18px;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.calendario {
+  padding: 12px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius);
+  backdrop-filter: blur(12px);
+  animation: fadeUp 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.semana,
+.grade {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.semana {
+  padding: 4px 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.dia {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  min-height: 108px;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.dia:hover {
+  background: var(--vidro-hover);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.dia[data-fora] {
+  opacity: 0.4;
+}
+
+.diaNumero {
+  align-self: flex-start;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 26px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.dia[aria-current] .diaNumero {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Chip do evento: a cor vem do tipo */
+.chip,
+.evento {
+  --tom: #9a9aa5;
+}
+
+.chip[data-tom='azul'],
+.evento[data-tom='azul'] {
+  --tom: #4a9eff;
+}
+
+.chip[data-tom='roxo'],
+.evento[data-tom='roxo'] {
+  --tom: #a855f7;
+}
+
+.chip[data-tom='vermelho'],
+.evento[data-tom='vermelho'] {
+  --tom: #f04444;
+}
+
+.chip[data-tom='laranja'],
+.evento[data-tom='laranja'] {
+  --tom: #f08a3c;
+}
+
+.chip {
+  display: block;
+  padding: 2px 7px;
+  border-left: 2px solid var(--tom);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--tom) 16%, transparent);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mais {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Painel do dia */
+.painel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
+}
+
+.eventos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.evento {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-left: 2px solid var(--tom);
+  border-radius: var(--radius-sm);
+}
+
+.eventoTopo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eventoTopo > :last-child {
+  margin-left: auto;
+}
+
+.eventoTitulo {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.marcar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  cursor: pointer;
+}
+
+.marcar input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 767px) {
+  .calendario {
+    padding: 8px;
+  }
+
+  .semana,
+  .grade {
+    gap: 3px;
+  }
+
+  .dia {
+    min-height: 64px;
+    padding: 4px;
+  }
+
+  /* No celular o dia mostra só uma marca por evento; o painel traz os detalhes */
+  .chip {
+    width: 100%;
+    height: 5px;
+    padding: 0;
+    border-left: 0;
+    background: var(--tom);
+    font-size: 0;
+  }
+
+  .mais {
+    display: none;
+  }
+
+  .mes {
+    min-width: 0;
+    font-size: 16px;
+  }
+}

@@ -334,6 +334,10 @@
   --tom: #e6a630;
 }
 
+.pill[data-tom='laranja'] {
+  --tom: #f08a3c;
+}
+
 .pill[data-tom='vermelho'] {
   --tom: #f04444;
   background: color-mix(in srgb, #e63030 18%, transparent);
@@ -613,4 +617,75 @@ a.linhaTitulo:hover {
   .camada_modal {
     max-height: calc(100vh - 24px);
   }
+}
+
+/* Seletor de pessoas: escolhidas em cima, busca e sugestões embaixo */
+.pessoas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pessoa {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 4px;
+  background: var(--vidro-hover);
+  border: 1px solid var(--campo-borda);
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.pessoaRemover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.pessoaRemover:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.sugestoes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--campo-borda);
+  border-radius: var(--radius-sm);
+  list-style: none;
+}
+
+.sugestao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.sugestao:hover {
+  background: var(--vidro-hover);
+}
+
+.sugestaoVazia {
+  padding: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
 }

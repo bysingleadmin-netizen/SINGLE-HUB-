@@ -8,9 +8,10 @@ import type {
   TaskStatus,
   TaskTipo,
   TipoConteudo,
+  TipoEvento,
 } from '@/types/database'
 
-export type Tom = 'verde' | 'amarelo' | 'vermelho' | 'cinza' | 'azul' | 'roxo'
+export type Tom = 'verde' | 'amarelo' | 'laranja' | 'vermelho' | 'cinza' | 'azul' | 'roxo'
 
 interface Opcao<T extends string> {
   valor: T
@@ -80,6 +81,15 @@ export const STATUS_TAREFA_CAMPANHA: readonly Opcao<CampaignTaskStatus>[] = [
   { valor: 'pendente', rotulo: 'Pendente', tom: 'cinza' },
   { valor: 'em_andamento', rotulo: 'Em andamento', tom: 'amarelo' },
   { valor: 'concluido', rotulo: 'Concluído', tom: 'verde' },
+]
+
+// Cores pedidas: reunião azul, gravação roxo, entrega vermelho, otimização laranja, outro cinza
+export const TIPOS_EVENTO: readonly Opcao<TipoEvento>[] = [
+  { valor: 'reuniao', rotulo: 'Reunião', tom: 'azul' },
+  { valor: 'gravacao', rotulo: 'Gravação', tom: 'roxo' },
+  { valor: 'entrega', rotulo: 'Entrega', tom: 'vermelho' },
+  { valor: 'otimizacao', rotulo: 'Otimização', tom: 'laranja' },
+  { valor: 'outro', rotulo: 'Outro', tom: 'cinza' },
 ]
 
 export function opcao<T extends string>(lista: readonly Opcao<T>[], valor: T): Opcao<T> {

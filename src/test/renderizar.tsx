@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { ToastProvider } from '@/components/ui/Toast'
 import { AuthContext } from '@/features/auth/AuthContext'
 import type { AuthValor } from '@/features/auth/AuthContext'
+import { CriacaoProvider } from '@/features/criar/CriacaoProvider'
 import type { Cargo } from '@/lib/permissoes'
 import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/types/database'
@@ -48,7 +49,9 @@ export function criarEnvolucro({ cargo = 'CEO', rota = '/' }: Opcoes = {}) {
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <AuthContext.Provider value={auth}>
-            <MemoryRouter initialEntries={[rota]}>{children}</MemoryRouter>
+            <MemoryRouter initialEntries={[rota]}>
+              <CriacaoProvider>{children}</CriacaoProvider>
+            </MemoryRouter>
           </AuthContext.Provider>
         </ToastProvider>
       </QueryClientProvider>

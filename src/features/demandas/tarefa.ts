@@ -1,6 +1,11 @@
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
+import { COLUNAS_TAREFA } from '@/lib/rotulos'
 import type { Task, TaskStatus, TaskTipo } from '@/types/database'
+
+export function tituloDoStatus(status: string): string {
+  return COLUNAS_TAREFA.find((coluna) => coluna.id === status)?.titulo ?? status
+}
 
 export interface FormTarefa {
   titulo: string

@@ -4,31 +4,27 @@ import { CardInfo } from '@/components/quadro/CardInfo'
 import { Quadro } from '@/components/quadro/Quadro'
 import quadro from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
-import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
-import { Icone } from '@/components/ui/Icone'
 import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
+import { useCriar } from '@/features/criar/CriacaoContext'
 import { hojeISO } from '@/lib/datas'
 import { situacaoDoPrazo, tarefaAberta, tarefaAtrasada } from '@/lib/regras'
 import { COLUNAS_TAREFA, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
 import type { Task, TaskStatus, TaskTipo } from '@/types/database'
 import { TarefaDrawer } from './TarefaDrawer'
-import { TarefaModal, tituloDoStatus } from './TarefaModal'
-import { filtrarTarefas } from './tarefa'
-
+import { filtrarTarefas, tituloDoStatus } from './tarefa'
 
 export function DemandasPage() {
   const tarefas = useTarefas()
   const clientes = useClientes()
   const perfis = usePerfis()
+  const criar = useCriar()
   const [tipo, setTipo] = useState<TaskTipo | ''>('')
   const [responsavel, setResponsavel] = useState('')
-  /** Coluna em que o modal de nova demanda abre; undefined quando fechado */
-  const [criandoEm, setCriandoEm] = useState<TaskStatus>()
   // A demanda aberta fica no endereço, para a busca e as notificações levarem direto a ela
   const [parametros, setParametros] = useSearchParams()
   const abertaId = parametros.get('abrir')
@@ -60,7 +56,6 @@ export function DemandasPage() {
   const perfilPorId = porId(perfis.data)
   const hoje = hojeISO()
   const aberta = todas.find((t) => t.id === abertaId)
-  const fecharPainel = () => setParametros({}, { replace: true })
 
   return (
     <div className={quadro.pagina}>
@@ -81,10 +76,6 @@ export function DemandasPage() {
             onChange={(evento) => setResponsavel(evento.target.value)}
           />
         </div>
-        <Button onClick={() => setCriandoEm('a_fazer')}>
-          <Icone nome="mais" tamanho={16} />
-          Nova demanda
-        </Button>
       </div>
 
       {consultas.erro ? (
@@ -99,11 +90,14 @@ export function DemandasPage() {
         <>
           {noQuadro.length === 0 ? (
             <EstadoVazio
-              ilustracao="quadro" titulo="Nenhuma demanda ainda."
-              texto="Use Nova demanda ou o botão de adicionar de uma coluna para criar a primeira."
+              ilustracao="quadro"
+              titulo="Nenhuma demanda ainda."
+              texto="Use o botão Criar, no topo, ou o + de uma coluna para criar a primeira."
             />
           ) : (
-            visiveis.length === 0 && <EstadoVazio ilustracao="busca" titulo="Nenhuma demanda com esses filtros." />
+            visiveis.length === 0 && (
+              <EstadoVazio ilustracao="busca" titulo="Nenhuma demanda com esses filtros." />
+            )
           )}
           <Quadro
             colunas={COLUNAS_TAREFA}
@@ -128,21 +122,12 @@ export function DemandasPage() {
             }}
             onMover={(tarefa, destino) => mover(tarefa, destino, todas)}
             onArquivar={(tarefa) => mover(tarefa, 'arquivado', todas)}
-            onCriar={(status) => setCriandoEm(status as TaskStatus)}
+            onCriar={(status) => criar({ categoria: 'demanda', status: status as TaskStatus })}
             onAbrir={(tarefa) => setParametros({ abrir: tarefa.id }, { replace: true })}
           />
         </>
       )}
 
-      {criandoEm && (
-        <TarefaModal
-          statusInicial={criandoEm}
-          tarefas={todas}
-          clientes={clientes.data ?? []}
-          perfis={perfis.data ?? []}
-          onFechar={() => setCriandoEm(undefined)}
-        />
-      )}
       {aberta && (
         <TarefaDrawer
           key={aberta.id}
@@ -150,7 +135,7 @@ export function DemandasPage() {
           clientes={clientes.data ?? []}
           perfis={perfis.data ?? []}
           onMover={(destino) => mover(aberta, destino, todas)}
-          onFechar={fecharPainel}
+          onFechar={() => setParametros({}, { replace: true })}
         />
       )}
     </div>

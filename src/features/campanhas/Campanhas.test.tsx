@@ -95,6 +95,18 @@ describe('CampanhasPage', () => {
     expect(outra.queryByText('Otimização pendente')).not.toBeInTheDocument()
   })
 
+  it('filtra por status', async () => {
+    popular()
+    renderizar(<CampanhasPage />)
+    await screen.findByRole('link', { name: 'Black Friday' })
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'planejamento' } })
+    expect(screen.queryByRole('link', { name: 'Black Friday' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Institucional' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'finalizada' } })
+    expect(screen.getByText('Nenhuma campanha com esse status.')).toBeInTheDocument()
+  })
+
   it('cria a campanha, aceita orçamento com vírgula e registra a atividade', async () => {
     bancoFalso().reiniciar({ clients: [CLIENTE] })
     renderizar(<CampanhasPage />)

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
 import { Pill } from '@/components/ui/Pill'
+import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
 import ui from '@/components/ui/ui.module.css'
 import { juntarConsultas, porId } from '@/dados/base'
@@ -12,6 +13,7 @@ import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
 import { otimizacaoPendente } from '@/lib/regras'
 import { STATUS_CAMPANHA, opcao } from '@/lib/rotulos'
+import type { CampaignStatus } from '@/types/database'
 import { CampanhaModal } from './CampanhaModal'
 import { periodoDaCampanha } from './campanha'
 import styles from './campanhas.module.css'
@@ -20,9 +22,11 @@ export function CampanhasPage() {
   const campanhas = useCampanhas()
   const clientes = useClientes()
   const [criando, setCriando] = useState(false)
+  const [status, setStatus] = useState<CampaignStatus | ''>('')
 
   const consultas = juntarConsultas(campanhas, clientes)
   const lista = campanhas.data ?? []
+  const visiveis = lista.filter((campanha) => status === '' || campanha.status === status)
   const clientePorId = porId(clientes.data)
   const hoje = hojeISO()
 
@@ -35,7 +39,17 @@ export function CampanhasPage() {
 
   return (
     <div className={styles.pagina}>
-      <div className={styles.barra}>{botaoNova}</div>
+      <div className={styles.barra}>
+        <Selecao
+          className={styles.filtro}
+          rotulo="Status"
+          vazio="Todos os status"
+          opcoes={STATUS_CAMPANHA}
+          value={status}
+          onChange={(evento) => setStatus(evento.target.value as CampaignStatus | '')}
+        />
+        {botaoNova}
+      </div>
 
       {consultas.erro ? (
         <EstadoErro onTentar={consultas.tentar} />
@@ -50,10 +64,12 @@ export function CampanhasPage() {
           texto="Crie a primeira para acompanhar estratégia, tarefas e otimizações."
           acao={botaoNova}
         />
+      ) : visiveis.length === 0 ? (
+        <EstadoVazio ilustracao="busca" titulo="Nenhuma campanha com esse status." />
       ) : (
         <ul className={`${styles.lista} stagger`}>
-          {lista.map((campanha) => {
-            const status = opcao(STATUS_CAMPANHA, campanha.status)
+          {visiveis.map((campanha) => {
+            const situacao = opcao(STATUS_CAMPANHA, campanha.status)
             return (
               <li key={campanha.id} className={styles.item}>
                 <div className={ui.linhaTexto}>
@@ -69,7 +85,7 @@ export function CampanhasPage() {
                   {otimizacaoPendente(campanha, hoje) && (
                     <Pill tom="vermelho">Otimização pendente</Pill>
                   )}
-                  <Pill tom={status.tom}>{status.rotulo}</Pill>
+                  <Pill tom={situacao.tom}>{situacao.rotulo}</Pill>
                   <span className={styles.itemValor}>{formatarMoeda(Number(campanha.orcamento))}</span>
                 </div>
               </li>

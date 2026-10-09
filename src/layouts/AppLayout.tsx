@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useAvisarPrazosDeAmanha } from '@/dados/notificacoes'
+import { CriacaoProvider } from '@/features/criar/CriacaoProvider'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import styles from './layout.module.css'
@@ -45,24 +46,26 @@ export function AppLayout() {
   }, [menuAberto])
 
   return (
-    <div className={styles.shell} data-colapsada={colapsada || undefined}>
-      <Sidebar
-        colapsada={colapsada}
-        onAlternar={alternar}
-        abertaMobile={menuAberto}
-        onFecharMobile={fecharMenu}
-      />
-      {menuAberto && <div className={styles.fundo} onClick={fecharMenu} aria-hidden="true" />}
-      <div className={styles.conteudo}>
-        <Header onAbrirMenu={() => setMenuAberto(true)} />
-        {/* key reinicia a animação de entrada a cada troca de tela, mas não de aba ou subrota */}
-        <main
-          key={pathname.split('/').slice(0, 3).join('/')}
-          className={`${styles.principal} fade-up`}
-        >
-          <Outlet />
-        </main>
+    <CriacaoProvider>
+      <div className={styles.shell} data-colapsada={colapsada || undefined}>
+        <Sidebar
+          colapsada={colapsada}
+          onAlternar={alternar}
+          abertaMobile={menuAberto}
+          onFecharMobile={fecharMenu}
+        />
+        {menuAberto && <div className={styles.fundo} onClick={fecharMenu} aria-hidden="true" />}
+        <div className={styles.conteudo}>
+          <Header onAbrirMenu={() => setMenuAberto(true)} />
+          {/* key reinicia a animação de entrada a cada troca de tela, mas não de aba ou subrota */}
+          <main
+            key={pathname.split('/').slice(0, 3).join('/')}
+            className={`${styles.principal} fade-up`}
+          >
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </CriacaoProvider>
   )
 }

@@ -1,0 +1,13 @@
+.botao {
+  min-height: 36px;
+}
+
+@media (max-width: 767px) {
+  .botao {
+    padding: 0 10px;
+  }
+
+  .botaoTexto {
+    display: none;
+  }
+}

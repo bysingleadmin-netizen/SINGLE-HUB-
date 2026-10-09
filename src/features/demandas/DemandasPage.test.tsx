@@ -67,7 +67,7 @@ describe('DemandasPage', () => {
       expect(screen.getByRole('region', { name: nome })).toBeInTheDocument()
     }
     expect(screen.queryByRole('region', { name: 'Arquivado' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Nova demanda' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Adicionar em A Fazer' })).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
@@ -98,7 +98,7 @@ describe('DemandasPage', () => {
     await screen.findByText('Roteiro de reels')
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar em Em Andamento' }))
 
-    const modal = within(screen.getByRole('dialog', { name: 'Nova demanda' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Nova tarefa' }))
     expect(modal.getByLabelText('Status')).toHaveValue('em_andamento')
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Relatório mensal' } })
     fireEvent.change(modal.getByLabelText('Cliente'), { target: { value: 'c1' } })
@@ -126,8 +126,8 @@ describe('DemandasPage', () => {
     popular()
     renderizar(<DemandasPage />)
     await screen.findByText('Roteiro de reels')
-    fireEvent.click(screen.getByRole('button', { name: 'Nova demanda' }))
-    const modal = within(screen.getByRole('dialog', { name: 'Nova demanda' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar em A Fazer' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Nova tarefa' }))
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Banner da campanha' } })
     fireEvent.change(modal.getByLabelText('Responsável'), { target: { value: 'u2' } })
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
@@ -150,8 +150,8 @@ describe('DemandasPage', () => {
     popular()
     renderizar(<DemandasPage />)
     await screen.findByText('Roteiro de reels')
-    fireEvent.click(screen.getByRole('button', { name: 'Nova demanda' }))
-    const modal = within(screen.getByRole('dialog', { name: 'Nova demanda' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar em A Fazer' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Nova tarefa' }))
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Minha tarefa' } })
     fireEvent.change(modal.getByLabelText('Responsável'), { target: { value: 'u1' } })
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
@@ -168,7 +168,7 @@ describe('DemandasPage', () => {
   it('não salva sem título', async () => {
     bancoFalso().reiniciar()
     renderizar(<DemandasPage />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Nova demanda' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar em A Fazer' }))
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
     expect(await screen.findByText('Informe o título da demanda.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.tasks ?? []).toHaveLength(0)

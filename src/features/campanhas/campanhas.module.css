@@ -6,7 +6,14 @@
 
 .barra {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.filtro {
+  min-width: 200px;
 }
 
 /* Lista */

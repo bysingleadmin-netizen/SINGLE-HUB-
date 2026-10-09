@@ -47,7 +47,7 @@ describe('ConteudoPage', () => {
       expect(screen.getByRole('region', { name: nome })).toBeInTheDocument()
     }
     expect(screen.queryByRole('region', { name: 'Arquivado' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Novo conteúdo' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Adicionar em Captar Material' })).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
@@ -71,7 +71,7 @@ describe('ConteudoPage', () => {
     await screen.findByText('Reels de lançamento')
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar em Editar' }))
 
-    const modal = within(screen.getByRole('dialog', { name: 'Novo conteúdo' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Nova tarefa' }))
     expect(modal.getByLabelText('Etapa')).toHaveValue('editar')
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Stories de bastidores' } })
     fireEvent.change(modal.getByLabelText('Tipo de conteúdo'), { target: { value: 'stories' } })
@@ -91,10 +91,31 @@ describe('ConteudoPage', () => {
     )
   })
 
+  it('filtra por tipo de conteúdo e por responsável', async () => {
+    popular()
+    renderizar(<ConteudoPage />)
+    await screen.findByText('Reels de lançamento')
+
+    fireEvent.change(screen.getByLabelText('Tipo de conteúdo'), { target: { value: 'carrossel' } })
+    expect(screen.queryByText('Reels de lançamento')).not.toBeInTheDocument()
+    expect(screen.getByText('Carrossel de dicas')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Responsável'), { target: { value: 'u1' } })
+    expect(screen.getByText('Nenhum conteúdo com esses filtros.')).toBeInTheDocument()
+  })
+
+  it('a tela não tem botão próprio de criar: só o + das etapas e o Criar do topo', async () => {
+    popular()
+    renderizar(<ConteudoPage />)
+    await screen.findByText('Reels de lançamento')
+    expect(screen.queryByRole('button', { name: 'Novo conteúdo' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /^Adicionar em/ })).toHaveLength(4)
+  })
+
   it('não salva sem título', async () => {
     bancoFalso().reiniciar()
     renderizar(<ConteudoPage />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Novo conteúdo' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar em Captar Material' }))
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
     expect(await screen.findByText('Informe o título do conteúdo.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.content_cards ?? []).toHaveLength(0)

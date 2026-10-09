@@ -4,19 +4,18 @@ import { CardInfo } from '@/components/quadro/CardInfo'
 import { Quadro } from '@/components/quadro/Quadro'
 import quadro from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
-import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
-import { Icone } from '@/components/ui/Icone'
 import { Pill } from '@/components/ui/Pill'
+import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useCards, useClientes, usePerfis } from '@/dados/tabelas'
+import { useCriar } from '@/features/criar/CriacaoContext'
 import { hojeISO } from '@/lib/datas'
 import { situacaoDoPrazo } from '@/lib/regras'
 import { COLUNAS_CONTEUDO, TIPOS_CONTEUDO, opcao } from '@/lib/rotulos'
-import type { ContentCard, ContentEtapa } from '@/types/database'
+import type { ContentCard, ContentEtapa, TipoConteudo } from '@/types/database'
 import { CardDrawer } from './CardDrawer'
-import { CardModal } from './CardModal'
 import { atividadeDoMovimento, tituloDaEtapa } from './card'
 
 /** Passou do prazo sem ter sido publicado. */
@@ -28,8 +27,9 @@ export function ConteudoPage() {
   const cards = useCards()
   const clientes = useClientes()
   const perfis = usePerfis()
-  /** Etapa em que o modal de novo conteúdo abre; undefined quando fechado */
-  const [criandoEm, setCriandoEm] = useState<ContentEtapa>()
+  const criar = useCriar()
+  const [tipo, setTipo] = useState<TipoConteudo | ''>('')
+  const [responsavel, setResponsavel] = useState('')
   // O card aberto fica no endereço, para a busca levar direto a ele
   const [parametros, setParametros] = useSearchParams()
   const abertoId = parametros.get('abrir')
@@ -50,6 +50,11 @@ export function ConteudoPage() {
   const consultas = juntarConsultas(cards, clientes, perfis)
   const todos = cards.data ?? []
   const noQuadro = todos.filter((card) => card.etapa !== 'arquivado')
+  const visiveis = noQuadro.filter(
+    (card) =>
+      (tipo === '' || card.tipo_conteudo === tipo) &&
+      (responsavel === '' || card.responsavel_id === responsavel),
+  )
   const clientePorId = porId(clientes.data)
   const perfilPorId = porId(perfis.data)
   const hoje = hojeISO()
@@ -58,11 +63,22 @@ export function ConteudoPage() {
   return (
     <div className={quadro.pagina}>
       <div className={quadro.barra}>
-        <span />
-        <Button onClick={() => setCriandoEm('captar_material')}>
-          <Icone nome="mais" tamanho={16} />
-          Novo conteúdo
-        </Button>
+        <div className={quadro.filtros}>
+          <Selecao
+            rotulo="Tipo de conteúdo"
+            vazio="Todos os tipos"
+            opcoes={TIPOS_CONTEUDO}
+            value={tipo}
+            onChange={(evento) => setTipo(evento.target.value as TipoConteudo | '')}
+          />
+          <Selecao
+            rotulo="Responsável"
+            vazio="Toda a equipe"
+            opcoes={(perfis.data ?? []).map((p) => ({ valor: p.id, rotulo: p.nome }))}
+            value={responsavel}
+            onChange={(evento) => setResponsavel(evento.target.value)}
+          />
+        </div>
       </div>
 
       {consultas.erro ? (
@@ -75,24 +91,29 @@ export function ConteudoPage() {
         </div>
       ) : (
         <>
-          {noQuadro.length === 0 && (
+          {noQuadro.length === 0 ? (
             <EstadoVazio
-              ilustracao="quadro" titulo="Nenhum conteúdo ainda."
-              texto="Use Novo conteúdo ou o botão de adicionar de uma etapa para criar o primeiro."
+              ilustracao="quadro"
+              titulo="Nenhum conteúdo ainda."
+              texto="Use o botão Criar, no topo, ou o + de uma etapa para criar o primeiro."
             />
+          ) : (
+            visiveis.length === 0 && (
+              <EstadoVazio ilustracao="busca" titulo="Nenhum conteúdo com esses filtros." />
+            )
           )}
           <Quadro
             colunas={COLUNAS_CONTEUDO}
-            itens={noQuadro}
+            itens={visiveis}
             colunaDe={(card) => card.etapa}
             tituloDe={(card) => card.titulo}
             atrasado={(card) => cardAtrasado(card, hoje)}
             renderCard={(card) => {
-              const tipo = opcao(TIPOS_CONTEUDO, card.tipo_conteudo)
+              const tipoDoCard = opcao(TIPOS_CONTEUDO, card.tipo_conteudo)
               return (
                 <CardInfo
                   titulo={card.titulo}
-                  etiqueta={<Pill tom={tipo.tom}>{tipo.rotulo}</Pill>}
+                  etiqueta={<Pill tom={tipoDoCard.tom}>{tipoDoCard.rotulo}</Pill>}
                   cliente={card.client_id ? clientePorId.get(card.client_id) : undefined}
                   responsavel={
                     card.responsavel_id ? perfilPorId.get(card.responsavel_id) : undefined
@@ -104,21 +125,12 @@ export function ConteudoPage() {
             }}
             onMover={(card, destino) => mover(card, destino, todos)}
             onArquivar={(card) => mover(card, 'arquivado', todos)}
-            onCriar={(etapa) => setCriandoEm(etapa as ContentEtapa)}
+            onCriar={(etapa) => criar({ categoria: 'conteudo', etapa: etapa as ContentEtapa })}
             onAbrir={(card) => setParametros({ abrir: card.id }, { replace: true })}
           />
         </>
       )}
 
-      {criandoEm && (
-        <CardModal
-          etapaInicial={criandoEm}
-          cards={todos}
-          clientes={clientes.data ?? []}
-          perfis={perfis.data ?? []}
-          onFechar={() => setCriandoEm(undefined)}
-        />
-      )}
       {aberto && (
         <CardDrawer
           key={aberto.id}

@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom'
 import { Icone } from '@/components/ui/Icone'
+import { BotaoCriar } from '@/features/criar/BotaoCriar'
 import { BuscaGlobal } from './BuscaGlobal'
 import { tituloDaRota } from './navegacao'
 import { Sino } from './Sino'
@@ -25,6 +26,7 @@ export function Header({ onAbrirMenu }: HeaderProps) {
       <h1 className={styles.tituloPagina}>{tituloDaRota(pathname)}</h1>
       <div className={styles.headerAcoes}>
         <BuscaGlobal />
+        <BotaoCriar />
         <Sino />
       </div>
     </header>

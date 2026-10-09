@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
@@ -9,8 +10,8 @@ import { useClientes } from '@/dados/tabelas'
 import { formatarMoeda } from '@/lib/formato'
 import { plural } from '@/lib/regras'
 import { STATUS_CLIENTE, opcao } from '@/lib/rotulos'
-import { ClienteDrawer, fidelidadeDoCliente } from './ClienteDrawer'
 import { ClienteModal } from './ClienteModal'
+import { fidelidadeDoCliente, linkInstagram } from './cliente'
 import styles from './clientes.module.css'
 
 /** undefined: fechado. 'novo': cadastro. Um id: edição daquele cliente. */
@@ -18,11 +19,9 @@ type Formulario = undefined | 'novo' | string
 
 export function ClientesPage() {
   const clientes = useClientes()
-  const [abertoId, setAbertoId] = useState<string>()
   const [formulario, setFormulario] = useState<Formulario>()
 
   const lista = clientes.data ?? []
-  const aberto = lista.find((c) => c.id === abertoId)
   const emEdicao = lista.find((c) => c.id === formulario)
 
   const botaoNovo = (
@@ -51,7 +50,8 @@ export function ClientesPage() {
         </div>
       ) : lista.length === 0 ? (
         <EstadoVazio
-          ilustracao="clientes" titulo="Nenhum cliente cadastrado."
+          ilustracao="clientes"
+          titulo="Nenhum cliente cadastrado."
           texto="Cadastre o primeiro cliente para começar a organizar demandas e campanhas."
           acao={botaoNovo}
         />
@@ -59,33 +59,59 @@ export function ClientesPage() {
         <div className={`${styles.grade} stagger`}>
           {lista.map((cliente) => {
             const status = opcao(STATUS_CLIENTE, cliente.status)
+            const instagram = linkInstagram(cliente.instagram)
             return (
-              <button
-                key={cliente.id}
-                type="button"
-                className={styles.card}
-                onClick={() => setAbertoId(cliente.id)}
-              >
-                <span className={styles.cardTopo}>
+              <article key={cliente.id} className={styles.card}>
+                <div className={styles.cardTopo}>
                   <Avatar nome={cliente.nome} url={cliente.logo_url} tamanho={40} />
-                  <span className={styles.cardNome}>{cliente.nome}</span>
+                  {/* O link cobre o card inteiro; as ações rápidas ficam por cima dele */}
+                  <Link to={`/app/clientes/${cliente.id}`} className={styles.cardNome}>
+                    {cliente.nome}
+                  </Link>
                   <Pill tom={status.tom}>{status.rotulo}</Pill>
-                </span>
+                </div>
                 <span className={styles.cardValor}>{formatarMoeda(Number(cliente.mrr))}</span>
                 <span className={styles.cardFidelidade}>{fidelidadeDoCliente(cliente)}</span>
-              </button>
+
+                <div className={styles.cardAcoes}>
+                  <button
+                    type="button"
+                    className={styles.cardAcao}
+                    aria-label={`Editar ${cliente.nome}`}
+                    title="Editar"
+                    onClick={() => setFormulario(cliente.id)}
+                  >
+                    <Icone nome="editar" tamanho={16} />
+                  </button>
+                  {cliente.link_conta_anuncios && (
+                    <a
+                      className={styles.cardAcao}
+                      href={cliente.link_conta_anuncios}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Conta de anúncios de ${cliente.nome}`}
+                      title="Abrir conta de anúncios"
+                    >
+                      <Icone nome="externo" tamanho={16} />
+                    </a>
+                  )}
+                  {instagram && (
+                    <a
+                      className={styles.cardAcao}
+                      href={instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Instagram de ${cliente.nome}`}
+                      title="Abrir Instagram"
+                    >
+                      <Icone nome="instagram" tamanho={16} />
+                    </a>
+                  )}
+                </div>
+              </article>
             )
           })}
         </div>
-      )}
-
-      {aberto && (
-        <ClienteDrawer
-          key={aberto.id}
-          cliente={aberto}
-          onEditar={() => setFormulario(aberto.id)}
-          onFechar={() => setAbertoId(undefined)}
-        />
       )}
 
       {formulario === 'novo' && <ClienteModal onFechar={() => setFormulario(undefined)} />}

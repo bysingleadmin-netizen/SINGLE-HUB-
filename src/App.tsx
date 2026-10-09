@@ -8,6 +8,7 @@ import { RotaProtegida } from '@/features/auth/RotaProtegida'
 import { CalendarioPage } from '@/features/calendario/CalendarioPage'
 import { CampanhaPage } from '@/features/campanhas/CampanhaPage'
 import { CampanhasPage } from '@/features/campanhas/CampanhasPage'
+import { ClientePage } from '@/features/clientes/ClientePage'
 import { ClientesPage } from '@/features/clientes/ClientesPage'
 import { ConfiguracoesPage } from '@/features/configuracoes/ConfiguracoesPage'
 import { ConteudoPage } from '@/features/conteudo/ConteudoPage'
@@ -33,6 +34,7 @@ export default function App() {
                   <Route index element={<Navigate to="/app/dashboard" replace />} />
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="clientes" element={<ClientesPage />} />
+                  <Route path="clientes/:id" element={<ClientePage />} />
                   <Route path="demandas" element={<DemandasPage />} />
                   <Route path="conteudo" element={<ConteudoPage />} />
                   <Route path="campanhas" element={<CampanhasPage />} />

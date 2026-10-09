@@ -23,6 +23,7 @@
 }
 
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -32,8 +33,6 @@
   border: 1px solid var(--vidro-borda);
   backdrop-filter: blur(12px);
   border-radius: var(--radius);
-  text-align: left;
-  cursor: pointer;
   transition:
     background-color 0.18s ease,
     border-color 0.18s ease,
@@ -61,6 +60,72 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Estica o link do nome sobre o card todo */
+.cardNome::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+}
+
+.cardNome:focus-visible {
+  outline: none;
+}
+
+.cardNome:focus-visible::after {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Ações rápidas: aparecem ao passar o mouse ou ao focar pelo teclado */
+.cardAcoes {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.card:hover .cardAcoes,
+.cardAcoes:focus-within {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cardAcao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--surface-2);
+  border: 1px solid var(--campo-borda);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.cardAcao:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+@media (hover: none) {
+  .cardAcoes {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .cardValor {
@@ -196,6 +261,57 @@
 @media (max-width: 767px) {
   .grade,
   .numeros {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Página do cliente */
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.voltar:hover {
+  color: var(--text);
+}
+
+.cabecalho {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.cabecalhoTexto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.cabecalhoTexto h2 {
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
+
+.duasColunas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.status {
+  max-width: 240px;
+}
+
+@media (max-width: 767px) {
+  .duasColunas {
     grid-template-columns: minmax(0, 1fr);
   }
 }

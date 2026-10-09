@@ -84,6 +84,13 @@ const DESENHOS = {
     </>
   ),
   seta: <path d="m9 6 6 6-6 6" />,
+  instagram: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="4.5" />
+      <circle cx="12" cy="12" r="3.6" />
+      <path d="M16.6 7.4v.01" />
+    </>
+  ),
   setaEsquerda: <path d="m15 6-6 6 6 6" />,
   arquivar: (
     <>

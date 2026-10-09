@@ -1,6 +1,7 @@
+import { hojeISO, mesesCompletos } from '@/lib/datas'
 import { emailValido, normalizarLink, textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
-import { pagamentoAtrasado, parseMoeda } from '@/lib/regras'
+import { formatarFidelidade, pagamentoAtrasado, parseMoeda } from '@/lib/regras'
 import type { Client, ClientPayment, ClientStatus, PaymentStatus } from '@/types/database'
 
 const VALOR_INVALIDO = 'Informe um valor como 1.500,00.'
@@ -92,6 +93,12 @@ export function linkInstagram(valor: string | null | undefined): string | null {
     .replace(/^@/, '')
     .replace(/\/+$/, '')
   return /^[A-Za-z0-9._]+$/.test(usuario) ? `https://instagram.com/${usuario}` : null
+}
+
+export function fidelidadeDoCliente(cliente: Pick<Client, 'data_inicio_contrato'>): string {
+  return cliente.data_inicio_contrato
+    ? formatarFidelidade(mesesCompletos(cliente.data_inicio_contrato, hojeISO()))
+    : 'Sem data de início'
 }
 
 export interface FormPagamento {

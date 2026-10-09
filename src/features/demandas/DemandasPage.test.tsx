@@ -404,3 +404,193 @@ describe('DemandasPage', () => {
     expect(await screen.findByText('Nenhuma demanda ainda.')).toBeInTheDocument()
   })
 })
+
+describe('status do card', () => {
+  async function abrirQuadro() {
+    popular()
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+  }
+
+  const menu = (titulo: string) => screen.getByLabelText(`Status de ${titulo}`) as HTMLSelectElement
+
+  it('marcar como Travado grava no banco e pinta o selo do card', async () => {
+    await abrirQuadro()
+    expect(menu('Roteiro de reels')).toHaveValue('')
+    fireEvent.change(menu('Roteiro de reels'), { target: { value: 'travado' } })
+
+    expect(await screen.findByText('Status atualizado.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.tasks[0]).toMatchObject({ situacao: 'travado', status: 'a_fazer' })
+    await waitFor(() => expect(menu('Roteiro de reels')).toHaveAttribute('data-situacao', 'travado'))
+    expect(coluna('A Fazer').getByText('Roteiro de reels')).toBeInTheDocument()
+  })
+
+  it('Feito leva o card para a coluna seguinte, onde ele chega sem status', async () => {
+    await abrirQuadro()
+    fireEvent.change(menu('Roteiro de reels'), { target: { value: 'em_andamento' } })
+    await screen.findByText('Status atualizado.')
+
+    fireEvent.change(menu('Roteiro de reels'), { target: { value: 'feito' } })
+    expect(await screen.findByText('Demanda movida para Em Andamento.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.tasks[0]).toMatchObject({ status: 'em_andamento', situacao: null })
+    expect(await coluna('Em Andamento').findByText('Roteiro de reels')).toBeInTheDocument()
+    expect(menu('Roteiro de reels')).toHaveValue('')
+  })
+
+  it('na última coluna não há para onde andar: o card fica marcado como Feito', async () => {
+    bancoFalso().reiniciar({
+      profiles: [perfilDeTeste()],
+      tasks: [tarefa({ id: 't9', titulo: 'Entregue', status: 'concluido' })],
+    })
+    renderizar(<DemandasPage />)
+    await screen.findByText('Entregue')
+    fireEvent.change(menu('Entregue'), { target: { value: 'feito' } })
+
+    expect(await screen.findByText('Status atualizado.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.tasks[0]).toMatchObject({ status: 'concluido', situacao: 'feito' })
+  })
+
+  it('avisa e desfaz quando o banco recusa', async () => {
+    await abrirQuadro()
+    bancoFalso().erroEscrita = { message: 'negado' }
+    fireEvent.change(menu('Roteiro de reels'), { target: { value: 'travado' } })
+    expect(await screen.findByText('Não foi possível atualizar o status.')).toBeInTheDocument()
+    await waitFor(() => expect(menu('Roteiro de reels')).toHaveValue(''))
+  })
+
+  it('sem a coluna no banco, só Feito funciona, e ele move o card do mesmo jeito', async () => {
+    popular()
+    bancoFalso().colunasAusentes = ['tasks.situacao']
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+
+    await waitFor(() =>
+      expect(within(menu('Roteiro de reels')).getByRole('option', { name: 'Feito' })).toBeEnabled(),
+    )
+    expect(within(menu('Roteiro de reels')).getByRole('option', { name: 'Travado' })).toBeDisabled()
+
+    fireEvent.change(menu('Roteiro de reels'), { target: { value: 'feito' } })
+    expect(await screen.findByText('Demanda movida para Em Andamento.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.tasks[0]).not.toHaveProperty('situacao')
+  })
+})
+
+describe('anexos do card', () => {
+  const ANEXOS = [
+    { id: 'a1', quadro: 'demandas', card_id: 't1', tipo: 'link', url: 'https://www.figma.com/file/abc', nome: null, created_at: '2026-10-01T10:00:00Z' },
+    { id: 'a2', quadro: 'demandas', card_id: 't1', tipo: 'imagem', url: 'https://falso.test/anexos/demandas/t1/ref.png', nome: 'ref.png', created_at: '2026-10-01T11:00:00Z' },
+    // Mesmo id de card em outro quadro: não é desta demanda
+    { id: 'a3', quadro: 'conteudo', card_id: 't1', tipo: 'link', url: 'https://outro.com', nome: null, created_at: '2026-10-01T12:00:00Z' },
+  ]
+
+  async function abrirQuadro(anexos: object[] = ANEXOS) {
+    popular()
+    bancoFalso().tabelas.card_attachments = structuredClone(anexos) as never
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+  }
+
+  async function abrirAnexos(titulo = 'Roteiro de reels') {
+    fireEvent.click(await screen.findByRole('button', { name: `Anexar em ${titulo}` }))
+    return within(screen.getByRole('dialog', { name: `Anexos de ${titulo}` }))
+  }
+
+  it('mostra as miniaturas no rodapé do card, cada uma abrindo o anexo', async () => {
+    await abrirQuadro()
+    const link = await screen.findByRole('link', { name: 'Abrir anexo figma.com' })
+    expect(link).toHaveAttribute('href', 'https://www.figma.com/file/abc')
+    expect(link).toHaveAttribute('target', '_blank')
+    const imagem = screen.getByRole('link', { name: 'Abrir anexo ref.png' })
+    expect(imagem.querySelector('img')).toHaveAttribute('src', ANEXOS[1].url)
+    expect(screen.queryByRole('link', { name: 'Abrir anexo outro.com' })).not.toBeInTheDocument()
+  })
+
+  it('anexa um link digitado, completando o https', async () => {
+    await abrirQuadro([])
+    const modal = await abrirAnexos()
+    expect(modal.getByText('Nenhum anexo ainda.')).toBeInTheDocument()
+    fireEvent.change(modal.getByLabelText('Link'), { target: { value: 'drive.google.com/pasta' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Anexar link' }))
+
+    expect(await screen.findByText('Link anexado.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.card_attachments).toEqual([
+      expect.objectContaining({
+        quadro: 'demandas',
+        card_id: 't1',
+        tipo: 'link',
+        url: 'https://drive.google.com/pasta',
+        created_by: 'u1',
+      }),
+    ])
+    expect(await screen.findByRole('link', { name: 'Abrir anexo drive.google.com' })).toBeInTheDocument()
+  })
+
+  it('recusa o que não é link', async () => {
+    await abrirQuadro([])
+    const modal = await abrirAnexos()
+    fireEvent.change(modal.getByLabelText('Link'), { target: { value: 'não é link' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Anexar link' }))
+    expect(await modal.findByText('Informe um link válido.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.card_attachments).toHaveLength(0)
+  })
+
+  it('envia a imagem para o Storage, na pasta do card, e guarda a URL', async () => {
+    await abrirQuadro([])
+    const modal = await abrirAnexos()
+    const imagem = new File(['x'], 'layout.png', { type: 'image/png' })
+    fireEvent.change(modal.getByLabelText('Enviar imagem'), { target: { files: [imagem] } })
+
+    expect(await screen.findByText('Imagem anexada.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.card_attachments[0]).toMatchObject({ tipo: 'imagem', nome: 'layout.png' })
+    expect(bancoFalso().tabelas.card_attachments[0].url).toMatch(
+      /^https:\/\/falso\.test\/anexos\/demandas\/t1\//,
+    )
+  })
+
+  it('recusa arquivo que não é imagem ou é grande demais', async () => {
+    await abrirQuadro([])
+    const modal = await abrirAnexos()
+    const pdf = new File(['x'], 'contrato.pdf', { type: 'application/pdf' })
+    fireEvent.change(modal.getByLabelText('Enviar imagem'), { target: { files: [pdf] } })
+    expect(await screen.findByText('Envie uma imagem PNG, JPG, WEBP ou SVG.')).toBeInTheDocument()
+
+    const grande = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'foto.png', { type: 'image/png' })
+    fireEvent.change(modal.getByLabelText('Enviar imagem'), { target: { files: [grande] } })
+    expect(await screen.findByText('A imagem deve ter no máximo 5 MB.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.card_attachments).toHaveLength(0)
+  })
+
+  it('remove um anexo', async () => {
+    await abrirQuadro()
+    const modal = await abrirAnexos()
+    fireEvent.click(modal.getByRole('button', { name: 'Remover anexo figma.com' }))
+    expect(await screen.findByText('Anexo removido.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.card_attachments.map((a) => a.id)).toEqual(['a2', 'a3'])
+  })
+
+  it('o painel da demanda também mostra e recebe anexos', async () => {
+    await abrirQuadro()
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir Roteiro de reels' }))
+    const painel = within(await screen.findByRole('dialog', { name: 'Roteiro de reels' }))
+    const anexos = within(painel.getByRole('region', { name: 'Anexos' }))
+    expect(anexos.getByText('figma.com')).toBeInTheDocument()
+    expect(anexos.getByText('ref.png')).toBeInTheDocument()
+  })
+
+  it('sem as tabelas da migration, não oferece anexos e avisa a liderança do que falta', async () => {
+    popular()
+    bancoFalso().tabelasAusentes = ['board_columns', 'card_attachments']
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+    expect(await screen.findByRole('note')).toHaveTextContent('0003_revisao.sql')
+    expect(screen.queryByRole('button', { name: /^Anexar em/ })).not.toBeInTheDocument()
+  })
+
+  it('quem não é da liderança não vê o aviso da migration', async () => {
+    popular()
+    bancoFalso().tabelasAusentes = ['board_columns', 'card_attachments']
+    renderizar(<DemandasPage />, { cargo: 'Designer' })
+    await screen.findByText('Roteiro de reels')
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
+})

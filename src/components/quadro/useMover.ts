@@ -19,7 +19,7 @@ interface ConfigMover<T> {
 
 /**
  * Move um card para o fim de outra coluna. A tela muda na hora e volta atrás
- * se o banco recusar.
+ * se o banco recusar. `extras` são outros campos gravados junto, na mesma operação.
  */
 export function useMover<T extends ItemQuadro>(config: ConfigMover<T>) {
   const { mutate } = useAtualizarOtimista<T>(config.tabela)
@@ -29,10 +29,10 @@ export function useMover<T extends ItemQuadro>(config: ConfigMover<T>) {
   atual.current = config
 
   return useCallback(
-    (item: T, destino: string, itens: T[]) => {
+    (item: T, destino: string, itens: T[], extras?: Valores<T>) => {
       const { campo, sucesso, erro, atividade } = atual.current
       const vizinhos = itens.filter((outro) => outro[campo] === destino && outro.id !== item.id)
-      const valores = { [campo]: destino, posicao: proximaPosicao(vizinhos) } as Valores<T>
+      const valores = { ...extras, [campo]: destino, posicao: proximaPosicao(vizinhos) } as Valores<T>
       mutate(
         { id: item.id, valores },
         {

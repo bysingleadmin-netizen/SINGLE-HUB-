@@ -149,6 +149,49 @@ create table if not exists public.task_comments (
 );
 
 -- ---------------------------------------------------------------------------
+-- 4b. Status do card e anexos
+-- ---------------------------------------------------------------------------
+-- `situacao` é como o card está dentro da coluna: travado, em andamento ou feito.
+-- É diferente da coluna do quadro (tasks.status, content_cards.etapa). Sem valor = sem status.
+
+alter table public.tasks
+  add column if not exists situacao text
+  check (situacao in ('travado', 'em_andamento', 'feito'));
+
+alter table public.content_cards
+  add column if not exists situacao text
+  check (situacao in ('travado', 'em_andamento', 'feito'));
+
+-- Links e imagens anexados aos cards. Uma tabela só para os dois quadros; `quadro` diz de
+-- qual deles é o card. As imagens ficam no bucket `anexos`, e aqui fica a URL pública.
+create table if not exists public.card_attachments (
+  id uuid primary key default gen_random_uuid(),
+  quadro text not null check (quadro in ('demandas', 'conteudo')),
+  card_id uuid not null,
+  tipo text not null check (tipo in ('link', 'imagem')),
+  url text not null,
+  nome text,
+  created_by uuid references public.profiles (id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+insert into storage.buckets (id, name, public)
+values ('anexos', 'anexos', true)
+on conflict (id) do nothing;
+
+drop policy if exists "anexos: equipe le" on storage.objects;
+create policy "anexos: equipe le" on storage.objects
+  for select to authenticated using (bucket_id = 'anexos');
+
+drop policy if exists "anexos: equipe envia" on storage.objects;
+create policy "anexos: equipe envia" on storage.objects
+  for insert to authenticated with check (bucket_id = 'anexos');
+
+drop policy if exists "anexos: equipe remove" on storage.objects;
+create policy "anexos: equipe remove" on storage.objects
+  for delete to authenticated using (bucket_id = 'anexos');
+
+-- ---------------------------------------------------------------------------
 -- 5. Permissões e RLS
 -- ---------------------------------------------------------------------------
 -- calendar_events, event_participants, notifications e task_comments foram criadas pelo
@@ -157,6 +200,7 @@ create table if not exists public.task_comments (
 
 grant select, insert, update, delete on
   public.board_columns,
+  public.card_attachments,
   public.task_comments,
   public.calendar_events,
   public.event_participants
@@ -175,6 +219,7 @@ alter table public.monthly_goals enable row level security;
 alter table public.traffic_metrics enable row level security;
 alter table public.activity_log enable row level security;
 alter table public.board_columns enable row level security;
+alter table public.card_attachments enable row level security;
 alter table public.task_comments enable row level security;
 alter table public.calendar_events enable row level security;
 alter table public.event_participants enable row level security;
@@ -182,6 +227,10 @@ alter table public.notifications enable row level security;
 
 drop policy if exists "colunas do quadro: equipe" on public.board_columns;
 create policy "colunas do quadro: equipe" on public.board_columns
+  for all to authenticated using (true) with check (true);
+
+drop policy if exists "anexos dos cards: equipe" on public.card_attachments;
+create policy "anexos dos cards: equipe" on public.card_attachments
   for all to authenticated using (true) with check (true);
 
 drop policy if exists "eventos: equipe" on public.calendar_events;
@@ -243,5 +292,7 @@ create index if not exists event_participants_profile_id_idx
 create index if not exists task_comments_task_id_idx
   on public.task_comments (task_id, created_at);
 create index if not exists board_columns_quadro_idx on public.board_columns (quadro, posicao);
+create index if not exists card_attachments_card_idx
+  on public.card_attachments (quadro, card_id, created_at);
 
 commit;

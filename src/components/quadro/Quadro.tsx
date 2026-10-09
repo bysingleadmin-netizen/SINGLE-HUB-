@@ -44,6 +44,8 @@ interface QuadroProps<T extends ItemQuadro> {
   onAbrir: (item: T) => void
   onArquivar: (item: T) => void
   edicao?: EdicaoDeColunas
+  /** Faixa de baixo do card, fora do botão de abrir: menu de status e anexos */
+  renderRodape?: (item: T) => ReactNode
 }
 
 // O arraste de uma coluna usa o mesmo contexto dos cards; o prefixo separa os dois
@@ -54,11 +56,12 @@ interface CardProps {
   titulo: string
   atrasado: boolean
   children: ReactNode
+  rodape?: ReactNode
   onAbrir: () => void
   onArquivar: () => void
 }
 
-function Card({ id, titulo, atrasado, children, onAbrir, onArquivar }: CardProps) {
+function Card({ id, titulo, atrasado, children, rodape, onAbrir, onArquivar }: CardProps) {
   const { setNodeRef, listeners, isDragging } = useDraggable({ id })
   return (
     <div
@@ -72,6 +75,15 @@ function Card({ id, titulo, atrasado, children, onAbrir, onArquivar }: CardProps
       <button type="button" className={styles.cardAbrir} aria-label={`Abrir ${titulo}`} onClick={onAbrir}>
         {children}
       </button>
+      {rodape && (
+        // Mexer no menu de status ou nos anexos não pode começar um arraste do card
+        <div
+          onMouseDown={(evento) => evento.stopPropagation()}
+          onTouchStart={(evento) => evento.stopPropagation()}
+        >
+          {rodape}
+        </div>
+      )}
       <button
         type="button"
         className={styles.cardArquivar}
@@ -218,6 +230,7 @@ export function Quadro<T extends ItemQuadro>({
   onAbrir,
   onArquivar,
   edicao,
+  renderRodape,
 }: QuadroProps<T>) {
   const [arrastandoId, setArrastandoId] = useState<string | null>(null)
   const sensores = useSensors(
@@ -291,6 +304,7 @@ export function Quadro<T extends ItemQuadro>({
                   id={item.id}
                   titulo={tituloDe(item)}
                   atrasado={atrasado?.(item) ?? false}
+                  rodape={renderRodape?.(item)}
                   onAbrir={() => onAbrir(item)}
                   onArquivar={() => onArquivar(item)}
                 >

@@ -7,6 +7,8 @@ export type ClientStatus = 'ativo' | 'pausado' | 'churn'
 /** 'cancelado' só é aceito pelo banco depois da migration 0003 */
 export type PaymentStatus = 'pendente' | 'pago' | 'atrasado' | 'cancelado'
 export type Prioridade = 'baixa' | 'media' | 'alta' | 'urgente'
+/** Como o card está dentro da coluna em que se encontra. Só existe depois da migration 0003 */
+export type SituacaoDoCard = 'travado' | 'em_andamento' | 'feito'
 export type FormaDePagamento = 'pix' | 'dinheiro'
 export type TaskTipo = 'conteudo' | 'trafego' | 'estrategia' | 'audiovisual'
 export type TaskStatus =
@@ -79,6 +81,7 @@ export interface Task {
   data_entrega: string | null
   /** Sem valor conta como 'media' */
   prioridade?: Prioridade | null
+  situacao?: SituacaoDoCard | null
   posicao: number
   created_by: string | null
   created_at: string
@@ -94,6 +97,7 @@ export interface ContentCard {
   data_entrega: string | null
   /** Só existe depois da migration 0003; sem valor conta como 'media' */
   prioridade?: Prioridade | null
+  situacao?: SituacaoDoCard | null
   observacoes: string | null
   posicao: number
   created_at: string
@@ -204,6 +208,18 @@ export interface TaskComment {
 }
 
 export type QuadroId = 'demandas' | 'conteudo'
+
+/** Link ou imagem anexados a um card de Demandas ou de Conteúdo (migration 0003). */
+export interface CardAttachment {
+  id: string
+  quadro: QuadroId
+  card_id: string
+  tipo: 'link' | 'imagem'
+  url: string
+  nome: string | null
+  created_by: string | null
+  created_at: string
+}
 
 /** Coluna de um quadro Kanban com nome e ordem definidos pela equipe (migration 0003). */
 export interface BoardColumn {

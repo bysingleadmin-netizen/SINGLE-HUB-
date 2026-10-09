@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
+import { AvisoDeMigracao } from '@/components/quadro/AvisoDeMigracao'
 import { CardInfo } from '@/components/quadro/CardInfo'
 import { FiltroDeColaboradores } from '@/components/quadro/FiltroDeColaboradores'
 import { Quadro } from '@/components/quadro/Quadro'
+import { RodapeDoCard } from '@/components/quadro/RodapeDoCard'
 import { TabelaDeTarefas } from '@/components/quadro/TabelaDeTarefas'
 import type { ColunaDaTabela } from '@/components/quadro/TabelaDeTarefas'
 import {
@@ -16,10 +18,12 @@ import {
 import { progressoNoQuadro } from '@/components/quadro/colunas'
 import quadro from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
+import { useSituacao } from '@/components/quadro/useSituacao'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useAnexos } from '@/dados/anexos'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useColunasDoQuadro } from '@/dados/colunas'
 import { useComentarios } from '@/dados/comentarios'
@@ -40,7 +44,13 @@ export function DemandasPage() {
   const criar = useCriar()
   const esquema = useColunasOpcionais()
   const comentarios = useComentarios()
-  const { colunas, titulo: tituloDoStatus, edicao } = useColunasDoQuadro('demandas', COLUNAS_TAREFA)
+  const anexos = useAnexos('demandas')
+  const {
+    colunas,
+    titulo: tituloDoStatus,
+    edicao,
+    carregando: carregandoColunas,
+  } = useColunasDoQuadro('demandas', COLUNAS_TAREFA)
   const [visao, setVisao] = useVisao('demandas')
   const [tipo, setTipo] = useState<TaskTipo | ''>('')
   const [responsaveis, setResponsaveis] = useState<string[]>([])
@@ -68,6 +78,14 @@ export function DemandasPage() {
             entidade: 'tasks',
             entidadeId: tarefa.id,
           },
+  })
+
+  const mudarSituacao = useSituacao<Task>({
+    tabela: 'tasks',
+    colunaDe: (tarefa) => tarefa.status,
+    colunas,
+    mover,
+    disponivel: esquema.situacaoTarefa,
   })
 
   const consultas = juntarConsultas(tarefas, clientes, perfis)
@@ -149,6 +167,8 @@ export function DemandasPage() {
         <AlternarVisao visao={visao} onMudar={setVisao} />
       </div>
 
+      {!edicao && !carregandoColunas && <AvisoDeMigracao />}
+
       {consultas.erro ? (
         <EstadoErro onTentar={consultas.tentar} />
       ) : consultas.carregando ? (
@@ -205,6 +225,17 @@ export function DemandasPage() {
                   />
                 )
               }}
+              renderRodape={(tarefa) => (
+                <RodapeDoCard
+                  quadro="demandas"
+                  cardId={tarefa.id}
+                  titulo={tarefa.titulo}
+                  situacao={tarefa.situacao}
+                  situacaoDisponivel={esquema.situacaoTarefa}
+                  onSituacao={(situacao) => mudarSituacao(tarefa, situacao, todas)}
+                  anexos={anexos.disponivel ? (anexos.porCard.get(tarefa.id) ?? []) : undefined}
+                />
+              )}
               onMover={(tarefa, destino) => mover(tarefa, destino, todas)}
               onArquivar={(tarefa) => mover(tarefa, 'arquivado', todas)}
               onCriar={(status) => criar({ categoria: 'demanda', status: status as TaskStatus })}
@@ -221,6 +252,7 @@ export function DemandasPage() {
           clientes={clientes.data ?? []}
           perfis={perfis.data ?? []}
           colunas={colunas}
+          anexos={anexos.disponivel ? (anexos.porCard.get(aberta.id) ?? []) : undefined}
           onMover={(destino) => mover(aberta, destino, todas)}
           onFechar={() => setParametros({}, { replace: true })}
         />

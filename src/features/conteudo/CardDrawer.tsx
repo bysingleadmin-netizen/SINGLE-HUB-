@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Anexos } from '@/components/quadro/Anexos'
 import styles from '@/components/quadro/detalhe.module.css'
 import { useEdicaoInline } from '@/components/quadro/useEdicaoInline'
 import { AreaTexto } from '@/components/ui/AreaTexto'
@@ -16,6 +17,7 @@ import { opcoesDePessoas } from '@/lib/pessoas'
 import { cardAberto, descreverPrazo, situacaoDoPrazo } from '@/lib/regras'
 import { PRIORIDADES, TIPOS_CONTEUDO, opcao } from '@/lib/rotulos'
 import type {
+  CardAttachment,
   Client,
   ContentCard,
   ContentEtapa,
@@ -30,13 +32,23 @@ interface CardDrawerProps {
   perfis: Profile[]
   /** Etapas do quadro, com os nomes que a equipe deu */
   colunas: readonly ColunaDoQuadro[]
+  /** undefined quando o banco ainda não tem a tabela de anexos */
+  anexos?: CardAttachment[]
   /** Trocar a etapa é mover o card: quem sabe a posição e registra a atividade é a página */
   onMover: (destino: ContentEtapa) => void
   onFechar: () => void
 }
 
 /** Painel lateral do conteúdo. Cada campo salva sozinho: textos ao sair, seleções ao escolher. */
-export function CardDrawer({ card, clientes, perfis, colunas, onMover, onFechar }: CardDrawerProps) {
+export function CardDrawer({
+  card,
+  clientes,
+  perfis,
+  colunas,
+  anexos,
+  onMover,
+  onFechar,
+}: CardDrawerProps) {
   const [titulo, setTitulo] = useState(card.titulo)
   const [observacoes, setObservacoes] = useState(card.observacoes ?? '')
   const [erroTitulo, setErroTitulo] = useState<string>()
@@ -154,6 +166,13 @@ export function CardDrawer({ card, clientes, perfis, colunas, onMover, onFechar 
             onBlur={salvarObservacoes}
           />
         </section>
+
+        {anexos && (
+          <section className={styles.bloco} aria-label="Anexos">
+            <h3 className={styles.blocoTitulo}>Anexos</h3>
+            <Anexos quadro="conteudo" cardId={card.id} anexos={anexos} />
+          </section>
+        )}
 
         <p className={styles.rodape}>Criado em {formatarData(card.created_at)}</p>
       </div>

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
+import { AvisoDeMigracao } from '@/components/quadro/AvisoDeMigracao'
 import { CardInfo } from '@/components/quadro/CardInfo'
 import { FiltroDeColaboradores } from '@/components/quadro/FiltroDeColaboradores'
 import { Quadro } from '@/components/quadro/Quadro'
+import { RodapeDoCard } from '@/components/quadro/RodapeDoCard'
 import { TabelaDeTarefas } from '@/components/quadro/TabelaDeTarefas'
 import type { ColunaDaTabela } from '@/components/quadro/TabelaDeTarefas'
 import {
@@ -16,10 +18,12 @@ import {
 import { doColaborador, progressoNoQuadro } from '@/components/quadro/colunas'
 import quadro from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
+import { useSituacao } from '@/components/quadro/useSituacao'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useAnexos } from '@/dados/anexos'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useColunasDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
@@ -43,7 +47,13 @@ export function ConteudoPage() {
   const perfis = usePerfis()
   const criar = useCriar()
   const esquema = useColunasOpcionais()
-  const { colunas, titulo: tituloDaEtapa, edicao } = useColunasDoQuadro('conteudo', COLUNAS_CONTEUDO)
+  const anexos = useAnexos('conteudo')
+  const {
+    colunas,
+    titulo: tituloDaEtapa,
+    edicao,
+    carregando: carregandoColunas,
+  } = useColunasDoQuadro('conteudo', COLUNAS_CONTEUDO)
   const [visao, setVisao] = useVisao('conteudo')
   const [tipo, setTipo] = useState<TipoConteudo | ''>('')
   const [responsaveis, setResponsaveis] = useState<string[]>([])
@@ -62,6 +72,14 @@ export function ConteudoPage() {
           : `Conteúdo movido para ${tituloDaEtapa(destino)}.`,
     erro: 'Não foi possível mover o conteúdo.',
     atividade: (card, destino) => atividadeDoMovimento(card, destino, tituloDaEtapa(destino)),
+  })
+
+  const mudarSituacao = useSituacao<ContentCard>({
+    tabela: 'content_cards',
+    colunaDe: (card) => card.etapa,
+    colunas,
+    mover,
+    disponivel: esquema.situacaoConteudo,
   })
 
   const consultas = juntarConsultas(cards, clientes, perfis)
@@ -145,6 +163,8 @@ export function ConteudoPage() {
         <AlternarVisao visao={visao} onMudar={setVisao} />
       </div>
 
+      {!edicao && !carregandoColunas && <AvisoDeMigracao />}
+
       {consultas.erro ? (
         <EstadoErro onTentar={consultas.tentar} />
       ) : consultas.carregando ? (
@@ -200,6 +220,17 @@ export function ConteudoPage() {
                   />
                 )
               }}
+              renderRodape={(card) => (
+                <RodapeDoCard
+                  quadro="conteudo"
+                  cardId={card.id}
+                  titulo={card.titulo}
+                  situacao={card.situacao}
+                  situacaoDisponivel={esquema.situacaoConteudo}
+                  onSituacao={(situacao) => mudarSituacao(card, situacao, todos)}
+                  anexos={anexos.disponivel ? (anexos.porCard.get(card.id) ?? []) : undefined}
+                />
+              )}
               onMover={(card, destino) => mover(card, destino, todos)}
               onArquivar={(card) => mover(card, 'arquivado', todos)}
               onCriar={(etapa) => criar({ categoria: 'conteudo', etapa: etapa as ContentEtapa })}
@@ -216,6 +247,7 @@ export function ConteudoPage() {
           clientes={clientes.data ?? []}
           perfis={perfis.data ?? []}
           colunas={colunas}
+          anexos={anexos.disponivel ? (anexos.porCard.get(aberto.id) ?? []) : undefined}
           onMover={(destino) => mover(aberto, destino, todos)}
           onFechar={() => setParametros({}, { replace: true })}
         />

@@ -152,6 +152,7 @@ const DESENHOS = {
     </>
   ),
   comentario: <path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-6l-4.5 3.5V17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />,
+  anexo: <path d="M19.5 11.5 12 19a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7.5-7.5" />,
   lista: <path d="M8 6.5h12M8 12h12M8 17.5h12M4 6.5v.01M4 12v.01M4 17.5v.01" />,
   colunas: (
     <>

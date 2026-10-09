@@ -20,6 +20,7 @@ async function existe(tabela: TabelaSondada, coluna: string): Promise<boolean> {
  *   arquivado                      -> migration 0003: histórico de pagamentos e status "cancelado"
  *   prioridadeTarefa               -> já existe no banco do SINGLE, criada pelo painel
  *   prioridadeConteudo             -> migration 0003
+ *   situacaoTarefa, situacaoConteudo -> migration 0003: Travado, Em andamento e Feito no card
  * Enquanto a checagem não termina, `pronto` vem false e tudo conta como ausente.
  */
 export function useColunasOpcionais() {
@@ -27,15 +28,32 @@ export function useColunasOpcionais() {
     queryKey: ['esquema'],
     staleTime: Infinity,
     queryFn: async () => {
-      const [diaVencimento, formaPagamento, arquivado, prioridadeTarefa, prioridadeConteudo] =
-        await Promise.all([
-          existe('clients', 'dia_vencimento'),
-          existe('client_payments', 'forma_pagamento'),
-          existe('client_payments', 'arquivado'),
-          existe('tasks', 'prioridade'),
-          existe('content_cards', 'prioridade'),
-        ])
-      return { diaVencimento, formaPagamento, arquivado, prioridadeTarefa, prioridadeConteudo }
+      const [
+        diaVencimento,
+        formaPagamento,
+        arquivado,
+        prioridadeTarefa,
+        prioridadeConteudo,
+        situacaoTarefa,
+        situacaoConteudo,
+      ] = await Promise.all([
+        existe('clients', 'dia_vencimento'),
+        existe('client_payments', 'forma_pagamento'),
+        existe('client_payments', 'arquivado'),
+        existe('tasks', 'prioridade'),
+        existe('content_cards', 'prioridade'),
+        existe('tasks', 'situacao'),
+        existe('content_cards', 'situacao'),
+      ])
+      return {
+        diaVencimento,
+        formaPagamento,
+        arquivado,
+        prioridadeTarefa,
+        prioridadeConteudo,
+        situacaoTarefa,
+        situacaoConteudo,
+      }
     },
   })
   return {
@@ -44,6 +62,8 @@ export function useColunasOpcionais() {
     arquivado: consulta.data?.arquivado ?? false,
     prioridadeTarefa: consulta.data?.prioridadeTarefa ?? false,
     prioridadeConteudo: consulta.data?.prioridadeConteudo ?? false,
+    situacaoTarefa: consulta.data?.situacaoTarefa ?? false,
+    situacaoConteudo: consulta.data?.situacaoConteudo ?? false,
     pronto: !consulta.isPending,
   }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Anexos } from '@/components/quadro/Anexos'
 import styles from '@/components/quadro/detalhe.module.css'
 import { useEdicaoInline } from '@/components/quadro/useEdicaoInline'
 import { AreaTexto } from '@/components/ui/AreaTexto'
@@ -15,7 +16,15 @@ import { textoOuNull } from '@/lib/formulario'
 import { opcoesDePessoas } from '@/lib/pessoas'
 import { descreverPrazo, situacaoDoPrazo, tarefaAberta } from '@/lib/regras'
 import { PRIORIDADES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
-import type { Client, Prioridade, Profile, Task, TaskStatus, TaskTipo } from '@/types/database'
+import type {
+  CardAttachment,
+  Client,
+  Prioridade,
+  Profile,
+  Task,
+  TaskStatus,
+  TaskTipo,
+} from '@/types/database'
 import { Comentarios } from './Comentarios'
 
 interface TarefaDrawerProps {
@@ -24,13 +33,23 @@ interface TarefaDrawerProps {
   perfis: Profile[]
   /** Colunas do quadro, com os nomes que a equipe deu */
   colunas: readonly ColunaDoQuadro[]
+  /** undefined quando o banco ainda não tem a tabela de anexos */
+  anexos?: CardAttachment[]
   /** Trocar o status é mover o card: quem sabe a posição e registra a atividade é a página */
   onMover: (destino: TaskStatus) => void
   onFechar: () => void
 }
 
 /** Painel lateral da demanda. Cada campo salva sozinho: textos ao sair, seleções ao escolher. */
-export function TarefaDrawer({ tarefa, clientes, perfis, colunas, onMover, onFechar }: TarefaDrawerProps) {
+export function TarefaDrawer({
+  tarefa,
+  clientes,
+  perfis,
+  colunas,
+  anexos,
+  onMover,
+  onFechar,
+}: TarefaDrawerProps) {
   const [titulo, setTitulo] = useState(tarefa.titulo)
   const [descricao, setDescricao] = useState(tarefa.descricao ?? '')
   const [erroTitulo, setErroTitulo] = useState<string>()
@@ -147,6 +166,13 @@ export function TarefaDrawer({ tarefa, clientes, perfis, colunas, onMover, onFec
             onBlur={salvarDescricao}
           />
         </section>
+
+        {anexos && (
+          <section className={styles.bloco} aria-label="Anexos">
+            <h3 className={styles.blocoTitulo}>Anexos</h3>
+            <Anexos quadro="demandas" cardId={tarefa.id} anexos={anexos} />
+          </section>
+        )}
 
         <Comentarios tarefaId={tarefa.id} perfis={perfis} />
 

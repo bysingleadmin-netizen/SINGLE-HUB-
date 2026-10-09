@@ -212,3 +212,28 @@
   color: #f04444;
   font-weight: 600;
 }
+
+/* Aviso de recurso desligado por falta de migration */
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(230, 166, 48, 0.08);
+  border: 1px solid rgba(230, 166, 48, 0.35);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.aviso svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #e6a630;
+}
+
+.aviso strong {
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

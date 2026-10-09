@@ -69,6 +69,8 @@ O que ela faz e o que o app faz enquanto ela não roda:
 | Cobrança de cliente pausado ou em churn | as cobranças em aberto são apagadas | ficam com status "cancelado" |
 | Prioridade | funciona nas demandas, com os valores que já estiverem no banco | padronizada (baixa, média, alta, urgente) em demandas e conteúdos |
 | Colunas dos quadros | fixas | renomear com dois cliques, criar, remover e reordenar arrastando |
+| Status do card | só "Feito" funciona (move o card para a coluna seguinte) | Travado, Em andamento e Feito, com selo colorido no card |
+| Anexos do card | não aparecem | link ou imagem por card, com miniaturas no rodapé; imagens no bucket `anexos` do Storage |
 | RLS e índices | como estiverem no painel | RLS ligado em todas as tabelas, políticas das tabelas criadas pelo painel e índices nas colunas de filtro |
 
 Tabelas criadas direto no painel, fora de `supabase/migrations`, que a 0003 passa a cobrir: `calendar_events`, `event_participants`, `notifications`, `task_comments` e a coluna `tasks.prioridade`. Nenhuma tem restrição de `tipo` garantida: o app grava `reuniao`, `gravacao`, `entrega`, `otimizacao` e `outro` nos eventos, e `tarefa`, `evento` e `prazo` nas notificações.

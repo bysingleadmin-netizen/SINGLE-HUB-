@@ -1,0 +1,207 @@
+/* Faixa de baixo do card: status à esquerda, anexos à direita */
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px 10px;
+}
+
+/* O menu de status é o próprio selo: a cor acompanha a situação escolhida */
+.situacao {
+  --tom: var(--text-muted);
+  appearance: none;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 22px 0 9px;
+  background-color: color-mix(in srgb, var(--tom) 14%, transparent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23b4b4be' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m1 1 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  border: 1px solid color-mix(in srgb, var(--tom) 30%, transparent);
+  border-radius: 999px;
+  color: var(--tom);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.situacao:hover {
+  border-color: color-mix(in srgb, var(--tom) 60%, transparent);
+}
+
+.situacao[data-situacao='travado'] {
+  --tom: #f04444;
+}
+
+.situacao[data-situacao='em_andamento'] {
+  --tom: #e6a630;
+}
+
+.situacao[data-situacao='feito'] {
+  --tom: #3ecf8e;
+}
+
+.miniaturas {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.miniatura {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--vidro-borda);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.miniatura:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.miniatura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.miniatura[data-acao] {
+  border-style: dashed;
+}
+
+.resto {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bloco de anexos no painel de detalhe e no modal aberto pelo card */
+.anexos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.itemLink {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.18s ease;
+}
+
+.itemLink:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.itemImagem,
+.itemIcone {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+
+.itemImagem {
+  object-fit: cover;
+}
+
+.itemIcone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+.itemNome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.novoLink {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.novoLink > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.enviar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  background: var(--vidro-hover);
+  border: 1px solid var(--campo-borda);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.18s ease;
+}
+
+.enviar:hover {
+  border-color: var(--text-muted);
+}
+
+.enviar:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.enviar[aria-busy='true'] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+@media (max-width: 520px) {
+  .novoLink {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

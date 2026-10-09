@@ -17,6 +17,7 @@ export type Tabela =
   | 'traffic_metrics'
   | 'task_comments'
   | 'board_columns'
+  | 'card_attachments'
 
 interface ComId {
   id: string

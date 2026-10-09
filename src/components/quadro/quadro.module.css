@@ -1,0 +1,199 @@
+.quadro {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 1fr);
+  gap: 16px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.coluna[data-sobre] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.colunaTopo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.colunaTitulo {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.colunaTotal {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.colunaCriar,
+.cardArquivar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.colunaCriar:hover,
+.cardArquivar:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 72px;
+}
+
+.colunaVazia {
+  padding: 22px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.card {
+  position: relative;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: grab;
+  animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  transition: border-color 0.18s ease;
+}
+
+.card:hover {
+  border-color: var(--text-muted);
+}
+
+.card[data-atrasado] {
+  border-color: var(--accent);
+  animation:
+    fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both,
+    pulse 2.4s ease-in-out 0.3s infinite;
+}
+
+.card[data-arrastando] {
+  opacity: 0.35;
+}
+
+.cardFlutuante {
+  cursor: grabbing;
+  animation: none;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  transform: rotate(1.5deg);
+}
+
+.cardAbrir {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: inherit;
+}
+
+.cardArquivar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+}
+
+.card:hover .cardArquivar,
+.cardArquivar:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .cardArquivar {
+    opacity: 1;
+  }
+}
+
+/* Miolo do card */
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.infoTopo {
+  display: flex;
+  padding-right: 32px;
+}
+
+.infoTitulo {
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.infoLinha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.infoTexto {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.infoData {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.infoData[data-atrasado] {
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .quadro {
+    grid-auto-columns: minmax(240px, 82vw);
+  }
+}

@@ -15,7 +15,7 @@ interface ComId {
   id: string
 }
 
-type Valores<T> = Partial<Omit<T, 'id' | 'created_at'>>
+export type Valores<T> = Partial<Omit<T, 'id' | 'created_at'>>
 
 /**
  * Lista a tabela inteira, da linha mais antiga para a mais nova.

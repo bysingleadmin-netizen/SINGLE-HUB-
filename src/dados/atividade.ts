@@ -14,7 +14,7 @@ export type AcaoAtividade =
   | 'campanha_criada'
   | 'otimizacao_registrada'
 
-interface Registro {
+export interface Registro {
   acao: AcaoAtividade
   descricao: string
   entidade: string

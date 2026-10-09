@@ -7,6 +7,7 @@ import { RotaLideranca } from '@/features/auth/RotaLideranca'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
 import { ClientesPage } from '@/features/clientes/ClientesPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
+import { DemandasPage } from '@/features/demandas/DemandasPage'
 import { EmConstrucao } from '@/features/placeholder/EmConstrucao'
 import { AppLayout } from '@/layouts/AppLayout'
 import { queryClient } from '@/lib/queryClient'
@@ -24,7 +25,7 @@ export default function App() {
                   <Route index element={<Navigate to="/app/dashboard" replace />} />
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="clientes" element={<ClientesPage />} />
-                  <Route path="demandas" element={<EmConstrucao tela="Demandas" etapa={2} />} />
+                  <Route path="demandas" element={<DemandasPage />} />
                   <Route path="conteudo" element={<EmConstrucao tela="Conteúdo" etapa={2} />} />
                   <Route path="campanhas" element={<EmConstrucao tela="Campanhas" etapa={2} />} />
                   <Route path="campanhas/:id" element={<EmConstrucao tela="Campanha" etapa={2} />} />

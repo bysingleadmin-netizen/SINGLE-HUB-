@@ -1,0 +1,41 @@
+/* Moldura das telas que mostram um quadro: Demandas e Conteúdo */
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.filtros > * {
+  min-width: 190px;
+}
+
+.carregando {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 767px) {
+  .filtros,
+  .filtros > * {
+    width: 100%;
+  }
+
+  .carregando {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

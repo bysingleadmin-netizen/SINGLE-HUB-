@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useAvisarPrazosDeAmanha } from '@/dados/notificacoes'
+import { useSincronizarCobrancas } from '@/dados/pagamentos'
 import { useCampanhas, useTarefas } from '@/dados/tabelas'
 import { CriacaoProvider } from '@/features/criar/CriacaoProvider'
 import { hojeISO } from '@/lib/datas'
@@ -24,6 +25,8 @@ export function AppLayout() {
   const [colapsada, setColapsada] = useState(lerColapsada)
   const [menuAberto, setMenuAberto] = useState(false)
   useAvisarPrazosDeAmanha()
+  // Cobranças mensais dos clientes: geradas e ajustadas sozinhas enquanto a liderança usa o sistema
+  useSincronizarCobrancas()
   // As mesmas listas das telas, então a contagem do menu acompanha o que se vê nelas
   const tarefas = useTarefas()
   const campanhas = useCampanhas()

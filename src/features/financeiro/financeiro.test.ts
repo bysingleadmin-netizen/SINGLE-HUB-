@@ -6,9 +6,11 @@ import {
   faturamentoPorMes,
   filtrarDespesas,
   formatarPercentual,
-  maisFieis,
+  inadimplencia,
   pagamentosEmAtraso,
+  pendenteNoMes,
   progressoDaMeta,
+  proximosVencimentos,
   receitaDoMes,
   taxaDeConversao,
   totalDasDespesas,
@@ -118,55 +120,53 @@ describe('receita, despesa e DRE do mês', () => {
   })
 })
 
-describe('pagamentosEmAtraso', () => {
-  it('lista os meses vencidos e não pagos, do mais atrasado para o menos', () => {
-    const atrasos = pagamentosEmAtraso(
-      [cliente({})],
-      [pagamento({ mes_referencia: '2026-08-01', data_pagamento: '2026-08-05' })],
-      HOJE,
-    )
-    expect(atrasos).toEqual([
-      {
-        cliente: { id: 'c1', nome: 'Clínica Aurora' },
-        mes: '2026-09-01',
-        valor: 1500,
-        vencimento: '2026-09-05',
-        dias: 34,
-      },
-      {
-        cliente: { id: 'c1', nome: 'Clínica Aurora' },
-        mes: '2026-10-01',
-        valor: 1500,
-        vencimento: '2026-10-05',
-        dias: 4,
-      },
+describe('cobranças em aberto', () => {
+  const clientes = [cliente({}), cliente({ id: 'c2', nome: 'Padaria Sol' })]
+  const cobranca = (parcial: Partial<ClientPayment>) =>
+    pagamento({ status: 'pendente', data_pagamento: null, ...parcial })
+  const pagamentos = [
+    cobranca({ id: 'a', mes_referencia: '2026-09-01', data_vencimento: '2026-09-05', valor: 1500 }),
+    cobranca({ id: 'b', mes_referencia: '2026-10-01', data_vencimento: '2026-10-08', valor: 1500 }),
+    cobranca({ id: 'c', client_id: 'c2', mes_referencia: '2026-10-01', data_vencimento: '2026-10-09', valor: 800 }),
+    cobranca({ id: 'd', client_id: 'c2', mes_referencia: '2026-11-01', data_vencimento: '2026-10-16', valor: 800 }),
+    cobranca({ id: 'e', client_id: 'c2', mes_referencia: '2026-12-01', data_vencimento: '2026-10-17', valor: 800 }),
+    pagamento({ id: 'f', mes_referencia: '2026-08-01', data_vencimento: '2026-08-05' }),
+    cobranca({ id: 'g', mes_referencia: '2026-07-01', data_vencimento: '2026-07-05', status: 'cancelado' }),
+  ]
+
+  it('lista o que venceu e não foi pago, do mais atrasado para o menos', () => {
+    expect(pagamentosEmAtraso(clientes, pagamentos, HOJE)).toEqual([
+      { cliente: { id: 'c1', nome: 'Clínica Aurora' }, mes: '2026-09-01', valor: 1500, vencimento: '2026-09-05', dias: -34 },
+      { cliente: { id: 'c1', nome: 'Clínica Aurora' }, mes: '2026-10-01', valor: 1500, vencimento: '2026-10-08', dias: -1 },
     ])
   })
 
-  it('não conta mês que vence hoje ou depois, nem cliente sem início de contrato', () => {
-    expect(pagamentosEmAtraso([cliente({ data_inicio_contrato: '2026-10-09' })], [], HOJE)).toEqual([])
-    expect(pagamentosEmAtraso([cliente({ data_inicio_contrato: null })], [], HOJE)).toEqual([])
+  it('resume a inadimplência em valor, cobranças e clientes', () => {
+    expect(inadimplencia(pagamentosEmAtraso(clientes, pagamentos, HOJE))).toEqual({
+      total: 3000,
+      cobrancas: 2,
+      clientes: 1,
+    })
+  })
+
+  it('próximos vencimentos vão de hoje até daqui a sete dias', () => {
+    const proximos = proximosVencimentos(clientes, pagamentos, HOJE)
+    expect(proximos.map((v) => [v.vencimento, v.dias])).toEqual([
+      ['2026-10-09', 0],
+      ['2026-10-16', 7],
+    ])
+    expect(proximos[0].cliente.nome).toBe('Padaria Sol')
+  })
+
+  it('pendente no mês soma as cobranças em aberto daquele mês de referência', () => {
+    expect(pendenteNoMes(pagamentos, '2026-10')).toBe(2300)
+    expect(pendenteNoMes(pagamentos, '2026-08')).toBe(0)
+  })
+
+  it('cliente apagado ainda aparece, com nome de reserva', () => {
+    expect(pagamentosEmAtraso([], pagamentos, HOJE)[0].cliente.nome).toBe('Cliente removido')
   })
 })
-
-describe('maisFieis', () => {
-  it('ordena os ativos pelo tempo de contrato e corta em cinco', () => {
-    const clientes = [
-      cliente({ id: 'a', data_inicio_contrato: '2026-09-01' }),
-      cliente({ id: 'b', data_inicio_contrato: '2024-10-09' }),
-      cliente({ id: 'c', data_inicio_contrato: '2020-01-01', status: 'churn' }),
-      cliente({ id: 'd', data_inicio_contrato: null }),
-      ...['e', 'f', 'g', 'h'].map((id) => cliente({ id, data_inicio_contrato: '2026-01-15' })),
-    ]
-    const fieis = maisFieis(clientes, HOJE)
-    expect(fieis).toHaveLength(5)
-    expect(fieis[0]).toMatchObject({ cliente: { id: 'b' }, meses: 24 })
-    expect(fieis.map((f) => f.cliente.id)).not.toContain('c')
-    expect(fieis.map((f) => f.cliente.id)).not.toContain('d')
-    expect(fieis.map((f) => f.cliente.id)).not.toContain('a')
-  })
-})
-
 describe('métricas de tráfego', () => {
   const metrica = { investimento: 1500, leads_instagram: 20, leads_whatsapp: 10, convertidos: 6 }
 

@@ -1,24 +1,24 @@
 import type { Client, ClientPayment, FormaDePagamento, PaymentStatus } from '@/types/database'
 
-// Os pagamentos mensais não são cadastrados à mão. Os cartões são calculados a partir do
-// cadastro do cliente (início do contrato, valor mensal e dia de vencimento); no banco só
-// ficam os meses pagos e o cartão seguinte ao último pagamento.
+// Pagamentos recorrentes.
+//
+// Ninguém cadastra pagamento à mão. A partir do cadastro do cliente (valor mensal e dia de
+// vencimento), o sistema grava em `client_payments` uma cobrança por mês: a do mês atual e as
+// dos próximos MESES_A_FRENTE. Meses anteriores ao atual nunca são criados depois do fato.
+//
+// Decisões:
+//   * As cobranças ficam gravadas, e não calculadas na tela, para que o Financeiro, o cliente e
+//     os relatórios leiam a mesma coisa e para o que venceu continuar existindo depois que o
+//     mês vira.
+//   * Mudar o valor ou o dia no cadastro reescreve só as cobranças em aberto do mês atual em
+//     diante. Cobrança paga é histórico e não muda; cobrança em aberto de mês passado também
+//     fica como estava, porque é o que era devido naquele mês.
+//   * Cliente pausado ou em churn deixa de gerar cobrança, e as em aberto do mês atual em
+//     diante são canceladas.
+//   * "Atrasado" não é gravado: é uma cobrança pendente cujo vencimento passou.
 
-/** Limite de meses gerados para um contrato muito antigo */
-const MAXIMO_DE_MESES = 120
-
-export interface CartaoDePagamento {
-  /** Primeiro dia do mês de referência, 'AAAA-MM-01' */
-  mes: string
-  valor: number
-  vencimento: string
-  /** 'pendente' com vencimento passado aparece como 'atrasado' */
-  status: PaymentStatus
-  dataPagamento: string | null
-  forma: FormaDePagamento | null
-  /** id da linha em client_payments; null enquanto o cartão só existe na tela */
-  id: string | null
-}
+/** Quantos meses além do atual já ficam com cobrança criada */
+export const MESES_A_FRENTE = 3
 
 const doisDigitos = (n: number) => String(n).padStart(2, '0')
 
@@ -42,61 +42,124 @@ export function vencimentoNoMes(mes: string, dia: number): string {
   return `${ano}-${doisDigitos(numero)}-${doisDigitos(Math.min(dia, ultimoDia))}`
 }
 
+const emAberto = (pagamento: Pick<ClientPayment, 'status'>) =>
+  pagamento.status === 'pendente' || pagamento.status === 'atrasado'
+
+export interface NovaCobranca {
+  client_id: string
+  mes_referencia: string
+  valor: number
+  data_vencimento: string
+  status: 'pendente'
+}
+
+export interface PlanoDeCobrancas {
+  inserir: NovaCobranca[]
+  /** Cobranças em aberto cujo valor ou vencimento ficou diferente do cadastro */
+  atualizar: { id: string; valor: number; data_vencimento: string }[]
+  /** Cobranças em aberto de clientes que deixaram de ser ativos */
+  cancelar: string[]
+}
+
+type ClienteCobravel = Pick<
+  Client,
+  'id' | 'status' | 'mrr' | 'data_inicio_contrato' | 'dia_vencimento'
+>
+
 /**
- * Cartões do cliente em ordem cronológica: um por mês, do início do contrato até o mês atual,
- * mais o mês seguinte quando tudo até aqui já foi pago.
- * Mês pago mostra o que foi pago; mês em aberto usa o valor e o dia atuais do cadastro.
+ * O que falta gravar para as cobranças baterem com o cadastro dos clientes.
+ * Com tudo em dia, as três listas vêm vazias; rodar de novo não muda nada.
  */
-export function gerarCartoes(
-  cliente: Pick<Client, 'id' | 'status' | 'mrr' | 'data_inicio_contrato' | 'dia_vencimento'>,
+export function planoDeCobrancas(
+  clientes: ClienteCobravel[],
   pagamentos: ClientPayment[],
   hoje: string,
-): CartaoDePagamento[] {
-  const linhas = new Map(
-    pagamentos.filter((p) => p.client_id === cliente.id).map((p) => [p.mes_referencia, p]),
-  )
-  const dia = diaDeVencimento(cliente)
+): PlanoDeCobrancas {
+  const plano: PlanoDeCobrancas = { inserir: [], atualizar: [], cancelar: [] }
   const mesAtual = `${hoje.slice(0, 7)}-01`
-  const meses = new Set(linhas.keys())
 
-  if (cliente.data_inicio_contrato && cliente.status === 'ativo') {
-    let mes = `${cliente.data_inicio_contrato.slice(0, 7)}-01`
-    // Contrato muito antigo: fica com os meses mais recentes
-    const gerados: string[] = []
-    for (; mes <= mesAtual; mes = proximoMes(mes)) gerados.push(mes)
-    for (const gerado of gerados.slice(-MAXIMO_DE_MESES)) meses.add(gerado)
-    // Enquanto o último mês da lista estiver pago, o cartão do mês seguinte já fica à vista
-    if (gerados.length > 0) {
-      let fim = [...meses].sort().pop() as string
-      for (let passos = 0; passos < 24 && linhas.get(fim)?.status === 'pago'; passos++) {
-        fim = proximoMes(fim)
-        meses.add(fim)
+  for (const cliente of clientes) {
+    const doCliente = pagamentos.filter((p) => p.client_id === cliente.id)
+    const futuras = doCliente.filter((p) => emAberto(p) && p.mes_referencia >= mesAtual)
+
+    if (cliente.status !== 'ativo') {
+      plano.cancelar.push(...futuras.map((p) => p.id))
+      continue
+    }
+
+    const dia = diaDeVencimento(cliente)
+    const valor = Number(cliente.mrr)
+    // Sem dia de vencimento ou sem valor não há o que cobrar
+    if (!dia || valor <= 0) continue
+
+    const existentes = new Set(doCliente.map((p) => p.mes_referencia))
+    // Contrato que começa no futuro só gera cobrança a partir do mês em que começa
+    const inicio = cliente.data_inicio_contrato
+      ? `${cliente.data_inicio_contrato.slice(0, 7)}-01`
+      : mesAtual
+    let mes = mesAtual
+    for (let i = 0; i <= MESES_A_FRENTE; i++, mes = proximoMes(mes)) {
+      if (mes < inicio || existentes.has(mes)) continue
+      plano.inserir.push({
+        client_id: cliente.id,
+        mes_referencia: mes,
+        valor,
+        data_vencimento: vencimentoNoMes(mes, dia),
+        status: 'pendente',
+      })
+    }
+
+    for (const cobranca of futuras) {
+      const vencimento = vencimentoNoMes(cobranca.mes_referencia, dia)
+      if (Number(cobranca.valor) !== valor || cobranca.data_vencimento !== vencimento) {
+        plano.atualizar.push({ id: cobranca.id, valor, data_vencimento: vencimento })
       }
     }
   }
+  return plano
+}
 
-  return [...meses].sort().map((mes) => {
-    const linha = linhas.get(mes)
-    if (linha?.status === 'pago') {
-      return {
-        mes,
-        valor: Number(linha.valor),
-        vencimento: linha.data_vencimento,
-        status: 'pago' as const,
-        dataPagamento: linha.data_pagamento,
-        forma: linha.forma_pagamento ?? null,
-        id: linha.id,
-      }
-    }
-    const vencimento = dia ? vencimentoNoMes(mes, dia) : (linha?.data_vencimento ?? mes)
-    return {
-      mes,
-      valor: Number(cliente.mrr),
-      vencimento,
-      status: vencimento < hoje ? ('atrasado' as const) : ('pendente' as const),
-      dataPagamento: null,
-      forma: null,
-      id: linha?.id ?? null,
-    }
-  })
+export function planoVazio(plano: PlanoDeCobrancas): boolean {
+  return plano.inserir.length + plano.atualizar.length + plano.cancelar.length === 0
+}
+
+/** Uma cobrança mensal como a tela mostra. */
+export interface CartaoDePagamento {
+  id: string
+  clienteId: string
+  /** Primeiro dia do mês de referência, 'AAAA-MM-01' */
+  mes: string
+  valor: number
+  vencimento: string
+  /** 'pendente' com vencimento passado aparece como 'atrasado' */
+  status: PaymentStatus
+  dataPagamento: string | null
+  forma: FormaDePagamento | null
+}
+
+/** As cobranças em ordem de mês, com o atraso calculado pela data de hoje. */
+export function cartoesDe(pagamentos: ClientPayment[], hoje: string): CartaoDePagamento[] {
+  return [...pagamentos]
+    .sort(
+      (a, b) =>
+        a.mes_referencia.localeCompare(b.mes_referencia) || a.client_id.localeCompare(b.client_id),
+    )
+    .map((p) => ({
+      id: p.id,
+      clienteId: p.client_id,
+      mes: p.mes_referencia,
+      valor: Number(p.valor),
+      vencimento: p.data_vencimento,
+      status: emAberto(p) && p.data_vencimento < hoje ? 'atrasado' : p.status,
+      dataPagamento: p.data_pagamento,
+      forma: p.forma_pagamento ?? null,
+    }))
+}
+
+/** Separa o que ainda se espera receber do que já foi pago (o histórico, do mais recente ao mais antigo). */
+export function separarCartoes(cartoes: CartaoDePagamento[]) {
+  return {
+    abertos: cartoes.filter((c) => c.status === 'pendente' || c.status === 'atrasado'),
+    historico: cartoes.filter((c) => c.status === 'pago').reverse(),
+  }
 }

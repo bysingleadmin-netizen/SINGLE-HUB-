@@ -358,6 +358,13 @@
   font-weight: 600;
 }
 
+.cartaoCliente {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .cartaoValor {
   font-weight: 600;
   font-variant-numeric: tabular-nums;

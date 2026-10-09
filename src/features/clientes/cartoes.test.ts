@@ -1,5 +1,13 @@
 import type { Client, ClientPayment } from '@/types/database'
-import { diaDeVencimento, gerarCartoes, proximoMes, vencimentoNoMes } from './cartoes'
+import {
+  cartoesDe,
+  diaDeVencimento,
+  planoDeCobrancas,
+  planoVazio,
+  proximoMes,
+  separarCartoes,
+  vencimentoNoMes,
+} from './cartoes'
 
 const HOJE = '2026-10-09'
 
@@ -38,100 +46,122 @@ describe('vencimento', () => {
   })
 
   it('cai no último dia quando o mês é mais curto', () => {
-    expect(vencimentoNoMes('2026-10-01', 31)).toBe('2026-10-31')
-    expect(vencimentoNoMes('2026-11-01', 31)).toBe('2026-11-30')
     expect(vencimentoNoMes('2026-02-01', 31)).toBe('2026-02-28')
-    expect(vencimentoNoMes('2028-02-01', 30)).toBe('2028-02-29')
+    expect(vencimentoNoMes('2028-02-01', 31)).toBe('2028-02-29')
+    expect(vencimentoNoMes('2026-10-01', 5)).toBe('2026-10-05')
   })
 
-  it('proximoMes vira o ano', () => {
+  it('vira o ano ao passar de dezembro', () => {
     expect(proximoMes('2026-12-01')).toBe('2027-01-01')
-    expect(proximoMes('2026-01-01')).toBe('2026-02-01')
+    expect(proximoMes('2026-09-01')).toBe('2026-10-01')
   })
 })
 
-describe('gerarCartoes', () => {
-  it('cria um cartão por mês, do início do contrato até o mês atual, sem nada no banco', () => {
-    expect(gerarCartoes(cliente(), [], HOJE)).toEqual([
-      { mes: '2026-08-01', valor: 1500, vencimento: '2026-08-10', status: 'atrasado', dataPagamento: null, forma: null, id: null },
-      { mes: '2026-09-01', valor: 1500, vencimento: '2026-09-10', status: 'atrasado', dataPagamento: null, forma: null, id: null },
-      { mes: '2026-10-01', valor: 1500, vencimento: '2026-10-10', status: 'pendente', dataPagamento: null, forma: null, id: null },
+describe('planoDeCobrancas', () => {
+  it('cria a cobrança do mês atual e dos três seguintes, sem voltar no tempo', () => {
+    const plano = planoDeCobrancas([cliente()], [], HOJE)
+    // O contrato começou em agosto, mas agosto e setembro não são criados depois do fato
+    expect(plano.inserir).toEqual([
+      { client_id: 'c1', mes_referencia: '2026-10-01', valor: 1500, data_vencimento: '2026-10-10', status: 'pendente' },
+      { client_id: 'c1', mes_referencia: '2026-11-01', valor: 1500, data_vencimento: '2026-11-10', status: 'pendente' },
+      { client_id: 'c1', mes_referencia: '2026-12-01', valor: 1500, data_vencimento: '2026-12-10', status: 'pendente' },
+      { client_id: 'c1', mes_referencia: '2027-01-01', valor: 1500, data_vencimento: '2027-01-10', status: 'pendente' },
+    ])
+    expect(plano.atualizar).toEqual([])
+    expect(plano.cancelar).toEqual([])
+  })
+
+  it('com tudo em dia não há nada a fazer, por mais que rode', () => {
+    const existentes = ['2026-10-01', '2026-11-01', '2026-12-01', '2027-01-01'].map((mes) => pagamento(mes))
+    expect(planoVazio(planoDeCobrancas([cliente()], existentes, HOJE))).toBe(true)
+  })
+
+  it('não repete o mês que já tem cobrança, paga ou não', () => {
+    const plano = planoDeCobrancas([cliente()], [pago('2026-10-01'), pagamento('2026-11-01')], HOJE)
+    expect(plano.inserir.map((c) => c.mes_referencia)).toEqual(['2026-12-01', '2027-01-01'])
+  })
+
+  it('contrato que começa no futuro só gera cobrança a partir do mês de início', () => {
+    const plano = planoDeCobrancas([cliente({ data_inicio_contrato: '2026-12-15' })], [], HOJE)
+    expect(plano.inserir.map((c) => c.data_vencimento)).toEqual(['2026-12-15', '2027-01-15'])
+  })
+
+  it('mudar o valor ou o dia reescreve só as cobranças em aberto do mês atual em diante', () => {
+    const plano = planoDeCobrancas(
+      [cliente({ mrr: 2000, dia_vencimento: 20 })],
+      [
+        // Em aberto de mês passado: fica como era devido naquele mês
+        pagamento('2026-09-01'),
+        // Paga: é histórico
+        pago('2026-10-01'),
+        pagamento('2026-11-01'),
+        pagamento('2026-12-01'),
+        pagamento('2027-01-01'),
+      ],
+      HOJE,
+    )
+    expect(plano.inserir).toEqual([])
+    expect(plano.atualizar).toEqual([
+      { id: 'p-2026-11-01', valor: 2000, data_vencimento: '2026-11-20' },
+      { id: 'p-2026-12-01', valor: 2000, data_vencimento: '2026-12-20' },
+      { id: 'p-2027-01-01', valor: 2000, data_vencimento: '2027-01-20' },
     ])
   })
 
-  it('mês pago vira histórico com o que foi pago de fato', () => {
-    const cartoes = gerarCartoes(
-      cliente(),
-      [pago('2026-08-01', { valor: 1200, forma_pagamento: 'pix' })],
+  it('cliente pausado ou em churn para de gerar e tem as cobranças futuras canceladas', () => {
+    const plano = planoDeCobrancas(
+      [cliente({ status: 'churn' })],
+      [pagamento('2026-09-01'), pago('2026-10-01'), pagamento('2026-11-01'), pagamento('2026-12-01')],
       HOJE,
     )
-    expect(cartoes[0]).toEqual({
-      mes: '2026-08-01',
-      valor: 1200,
-      vencimento: '2026-08-10',
-      status: 'pago',
-      dataPagamento: '2026-08-09',
-      forma: 'pix',
-      id: 'p-2026-08-01',
-    })
+    expect(plano.inserir).toEqual([])
+    expect(plano.cancelar).toEqual(['p-2026-11-01', 'p-2026-12-01'])
   })
 
-  it('quando tudo está pago até o mês atual, já aparece o cartão do mês seguinte', () => {
-    const cartoes = gerarCartoes(
-      cliente(),
-      [pago('2026-08-01'), pago('2026-09-01'), pago('2026-10-01')],
+  it('sem dia de vencimento ou sem valor mensal não cobra nada', () => {
+    expect(planoVazio(planoDeCobrancas([cliente({ data_inicio_contrato: null })], [], HOJE))).toBe(true)
+    expect(planoVazio(planoDeCobrancas([cliente({ mrr: 0 })], [], HOJE))).toBe(true)
+  })
+
+  it('cada cliente só enxerga as próprias cobranças', () => {
+    const plano = planoDeCobrancas(
+      [cliente(), cliente({ id: 'c2', mrr: 800, dia_vencimento: 5 })],
+      ['2026-10-01', '2026-11-01', '2026-12-01', '2027-01-01'].map((mes) => pagamento(mes)),
+      HOJE,
+    )
+    expect(plano.inserir).toHaveLength(4)
+    expect(plano.inserir.every((c) => c.client_id === 'c2' && c.valor === 800)).toBe(true)
+  })
+})
+
+describe('cartoesDe', () => {
+  it('ordena por mês, marca como atrasado o que venceu e separa o histórico', () => {
+    const cartoes = cartoesDe(
+      [
+        pagamento('2026-11-01'),
+        pagamento('2026-10-01', { data_vencimento: '2026-10-05' }),
+        pago('2026-09-01', { forma_pagamento: 'pix' }),
+        pago('2026-08-01'),
+        pagamento('2026-07-01', { status: 'cancelado' }),
+      ],
       HOJE,
     )
     expect(cartoes.map((c) => [c.mes, c.status])).toEqual([
+      ['2026-07-01', 'cancelado'],
       ['2026-08-01', 'pago'],
       ['2026-09-01', 'pago'],
-      ['2026-10-01', 'pago'],
+      ['2026-10-01', 'atrasado'],
       ['2026-11-01', 'pendente'],
     ])
-    expect(cartoes[3].vencimento).toBe('2026-11-10')
+
+    const { abertos, historico } = separarCartoes(cartoes)
+    expect(abertos.map((c) => c.mes)).toEqual(['2026-10-01', '2026-11-01'])
+    // O histórico vem do mais recente para o mais antigo, e o cancelado não entra em lugar nenhum
+    expect(historico.map((c) => c.mes)).toEqual(['2026-09-01', '2026-08-01'])
+    expect(historico[0]).toMatchObject({ forma: 'pix', dataPagamento: '2026-09-09' })
   })
 
-  it('mudar valor ou dia no cadastro vale para os meses em aberto, não para os pagos', () => {
-    const cartoes = gerarCartoes(
-      cliente({ mrr: 2000, dia_vencimento: 20 }),
-      [pago('2026-08-01'), pagamento('2026-09-01')],
-      HOJE,
-    )
-    expect(cartoes[0]).toMatchObject({ valor: 1500, vencimento: '2026-08-10', status: 'pago' })
-    expect(cartoes[1]).toMatchObject({
-      valor: 2000,
-      vencimento: '2026-09-20',
-      status: 'atrasado',
-      id: 'p-2026-09-01',
-    })
-    expect(cartoes[2]).toMatchObject({ valor: 2000, vencimento: '2026-10-20', status: 'pendente' })
-  })
-
-  it('só olha os pagamentos do próprio cliente', () => {
-    const cartoes = gerarCartoes(cliente(), [pago('2026-08-01', { client_id: 'outro' })], HOJE)
-    expect(cartoes[0].status).toBe('atrasado')
-  })
-
-  it('cliente pausado ou em churn não ganha cartões novos, só mantém o que já existe', () => {
-    const cartoes = gerarCartoes(cliente({ status: 'churn' }), [pago('2026-08-01')], HOJE)
-    expect(cartoes.map((c) => c.mes)).toEqual(['2026-08-01'])
-  })
-
-  it('sem data de início não há o que gerar, mas o que está no banco aparece', () => {
-    const semInicio = cliente({ data_inicio_contrato: null })
-    expect(gerarCartoes(semInicio, [], HOJE)).toEqual([])
-    expect(gerarCartoes(semInicio, [pagamento('2026-09-01')], HOJE)).toEqual([
-      expect.objectContaining({ mes: '2026-09-01', vencimento: '2026-09-10', status: 'atrasado' }),
-    ])
-  })
-
-  it('contrato que começa no futuro ainda não tem cartões', () => {
-    expect(gerarCartoes(cliente({ data_inicio_contrato: '2026-12-01' }), [], HOJE)).toEqual([])
-  })
-
-  it('contrato muito antigo não gera uma lista sem fim', () => {
-    const cartoes = gerarCartoes(cliente({ data_inicio_contrato: '1990-01-01' }), [], HOJE)
-    expect(cartoes.length).toBeLessThanOrEqual(120)
-    expect(cartoes[cartoes.length - 1].mes).toBe('2026-10-01')
+  it('cobrança que vence hoje ainda não está atrasada', () => {
+    expect(cartoesDe([pagamento('2026-10-01', { data_vencimento: HOJE })], HOJE)[0].status).toBe('pendente')
   })
 })

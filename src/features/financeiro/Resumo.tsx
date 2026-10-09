@@ -10,14 +10,17 @@ import { useClientes, usePagamentos } from '@/dados/tabelas'
 import { formatarMes } from '@/features/clientes/cliente'
 import { GraficoMRR } from '@/features/dashboard/GraficoMRR'
 import { hojeISO } from '@/lib/datas'
-import { formatarMoeda } from '@/lib/formato'
-import { formatarFidelidade, plural } from '@/lib/regras'
+import { formatarData, formatarMoeda } from '@/lib/formato'
+import { plural } from '@/lib/regras'
 import {
   faturamentoPorMes,
-  maisFieis,
+  inadimplencia,
   pagamentosEmAtraso,
+  pendenteNoMes,
+  proximosVencimentos,
   receitaDoMes,
 } from './financeiro'
+import type { Vencimento } from './financeiro'
 import styles from './financeiro.module.css'
 
 function Carregando() {
@@ -30,7 +33,37 @@ function Carregando() {
   )
 }
 
-/** Visão geral do Financeiro: quanto entra por mês, quanto já entrou e quem está devendo. */
+function quandoVence(dias: number): string {
+  if (dias === 0) return 'Vence hoje'
+  return dias === 1 ? 'Vence amanhã' : `Vence em ${dias} dias`
+}
+
+function Vencimentos({ itens, atrasados = false }: { itens: Vencimento[]; atrasados?: boolean }) {
+  return (
+    <ul className={`${ui.lista} stagger`}>
+      {itens.map((item) => (
+        <li key={`${item.cliente.id}-${item.mes}`} className={`${ui.linha} ${ui.linhaClicavel}`}>
+          <div className={ui.linhaTexto}>
+            <Link to={`/app/clientes/${item.cliente.id}`} className={ui.linhaTitulo}>
+              {item.cliente.nome}
+            </Link>
+            <span className={ui.mudo}>
+              Referente a {formatarMes(item.mes)}, vencimento em {formatarData(item.vencimento)}
+            </span>
+          </div>
+          <span className={styles.valor}>{formatarMoeda(item.valor)}</span>
+          {atrasados ? (
+            <Pill tom="vermelho">{plural(-item.dias, 'dia', 'dias')} de atraso</Pill>
+          ) : (
+            <Pill tom={item.dias <= 1 ? 'amarelo' : 'cinza'}>{quandoVence(item.dias)}</Pill>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/** Visão geral do Financeiro: quanto entra por mês, quanto já entrou, quanto falta e quem deve. */
 export function Resumo() {
   const clientes = useClientes()
   const pagamentos = usePagamentos()
@@ -39,88 +72,80 @@ export function Resumo() {
   if (estado.erro) return <EstadoErro onTentar={estado.tentar} />
 
   const hoje = hojeISO()
+  const mes = hoje.slice(0, 7)
   const listaDeClientes = clientes.data ?? []
   const listaDePagamentos = pagamentos.data ?? []
   const mrr = listaDeClientes
     .filter((c) => c.status === 'ativo')
     .reduce((soma, c) => soma + Number(c.mrr), 0)
   const atrasos = pagamentosEmAtraso(listaDeClientes, listaDePagamentos, hoje)
-  const fieis = maisFieis(listaDeClientes, hoje)
+  const proximos = proximosVencimentos(listaDeClientes, listaDePagamentos, hoje)
+  const devido = inadimplencia(atrasos)
 
   return (
     <>
       <div className={`${styles.kpis} stagger`}>
-        <KpiCard rotulo="MRR total" valor={mrr} formatar={formatarMoeda} carregando={estado.carregando} />
-        <KpiCard rotulo="ARR" valor={mrr * 12} formatar={formatarMoeda} carregando={estado.carregando} />
+        <KpiCard
+          rotulo="MRR ativo"
+          valor={mrr}
+          formatar={formatarMoeda}
+          carregando={estado.carregando}
+        />
         <KpiCard
           rotulo="Recebido no mês"
-          valor={receitaDoMes(listaDePagamentos, hoje.slice(0, 7))}
+          valor={receitaDoMes(listaDePagamentos, mes)}
           formatar={formatarMoeda}
           carregando={estado.carregando}
         />
         <KpiCard
-          rotulo="Total em atraso"
-          valor={atrasos.reduce((soma, atraso) => soma + atraso.valor, 0)}
+          rotulo="Pendente no mês"
+          valor={pendenteNoMes(listaDePagamentos, mes)}
           formatar={formatarMoeda}
           carregando={estado.carregando}
         />
+        <div className={styles.inadimplencia} data-alerta={devido.cobrancas > 0 || undefined}>
+          <KpiCard
+            rotulo="Em atraso"
+            valor={devido.total}
+            formatar={formatarMoeda}
+            carregando={estado.carregando}
+          />
+          {!estado.carregando && (
+            <p className={styles.inadimplenciaLegenda}>
+              {devido.cobrancas === 0
+                ? 'Nenhuma cobrança vencida'
+                : `${plural(devido.cobrancas, 'cobrança vencida', 'cobranças vencidas')} de ${plural(devido.clientes, 'cliente', 'clientes')}`}
+            </p>
+          )}
+        </div>
       </div>
 
-      <Painel titulo="Faturamento dos últimos 6 meses">
+      <Painel titulo="Recebimentos dos últimos 6 meses">
         {estado.carregando ? (
           <Carregando />
         ) : (
-          <GraficoMRR nome="Faturamento" serie={faturamentoPorMes(listaDePagamentos, hoje)} />
+          <GraficoMRR nome="Recebimentos" serie={faturamentoPorMes(listaDePagamentos, hoje)} />
         )}
       </Painel>
 
       <div className={styles.paineis}>
+        <Painel titulo="Próximos vencimentos">
+          {estado.carregando ? (
+            <Carregando />
+          ) : proximos.length === 0 ? (
+            <EstadoVazio ilustracao="calendario" titulo="Nenhum vencimento nos próximos 7 dias." />
+          ) : (
+            <Vencimentos itens={proximos} />
+          )}
+        </Painel>
+
         <Painel titulo="Pagamentos atrasados">
           {estado.carregando ? (
             <Carregando />
           ) : atrasos.length === 0 ? (
             <EstadoVazio ilustracao="pagamentos" titulo="Nenhum pagamento atrasado." />
           ) : (
-            <ul className={`${ui.lista} stagger`}>
-              {atrasos.map((atraso) => (
-                <li key={`${atraso.cliente.id}-${atraso.mes}`} className={`${ui.linha} ${ui.linhaClicavel}`}>
-                  <div className={ui.linhaTexto}>
-                    <Link to={`/app/clientes/${atraso.cliente.id}`} className={ui.linhaTitulo}>
-                      {atraso.cliente.nome}
-                    </Link>
-                    <span className={ui.mudo}>Referente a {formatarMes(atraso.mes)}</span>
-                  </div>
-                  <span className={styles.valor}>{formatarMoeda(atraso.valor)}</span>
-                  <Pill tom="vermelho">{plural(atraso.dias, 'dia', 'dias')} de atraso</Pill>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Painel>
-
-        <Painel titulo="Clientes há mais tempo">
-          {estado.carregando ? (
-            <Carregando />
-          ) : fieis.length === 0 ? (
-            <EstadoVazio
-              ilustracao="clientes"
-              titulo="Nenhum cliente ativo com início de contrato."
-              texto="A fidelidade é contada a partir da data de início do contrato no cadastro."
-            />
-          ) : (
-            <ol className={`${ui.lista} stagger`}>
-              {fieis.map(({ cliente, meses }) => (
-                <li key={cliente.id} className={`${ui.linha} ${ui.linhaClicavel}`}>
-                  <div className={ui.linhaTexto}>
-                    <Link to={`/app/clientes/${cliente.id}`} className={ui.linhaTitulo}>
-                      {cliente.nome}
-                    </Link>
-                    <span className={ui.mudo}>{formatarFidelidade(meses)}</span>
-                  </div>
-                  <span className={styles.valor}>{formatarMoeda(Number(cliente.mrr))}</span>
-                </li>
-              ))}
-            </ol>
+            <Vencimentos itens={atrasos} atrasados />
           )}
         </Painel>
       </div>

@@ -7,6 +7,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
 import { hojeISO } from '@/lib/datas'
 import type { Cargo } from '@/lib/permissoes'
+import { SincronizarCobrancas } from '@/dados/pagamentos'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
 import { ClientePage } from './ClientePage'
 import { proximoMes, vencimentoNoMes } from './cartoes'
@@ -291,30 +292,41 @@ describe('página do cliente: pagamentos recorrentes', () => {
     const [ano, mes] = MES_ATUAL.split('-').map(Number)
     return mes === 1 ? `${ano - 1}-12-01` : `${ano}-${String(mes - 1).padStart(2, '0')}-01`
   })()
-  // Contrato iniciado no dia 28 do mês passado: o mês passado já venceu, o atual vence dia 28
+  // Contrato iniciado no dia 28 do mês passado: as cobranças vencem todo dia 28
   const CLIENTE = { ...PADARIA, data_inicio_contrato: `${MES_PASSADO.slice(0, 8)}28` }
   const mes = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(0, 4)}`
 
-  function linhaPaga(iso: string, valor = 1500) {
+  function cobranca(iso: string, parcial: Record<string, unknown> = {}) {
     return {
       id: `p-${iso}`,
       client_id: 'c1',
       mes_referencia: iso,
-      valor,
-      data_vencimento: `${iso.slice(0, 8)}28`,
-      data_pagamento: `${iso.slice(0, 8)}27`,
-      status: 'pago',
+      valor: 1500,
+      data_vencimento: vencimentoNoMes(iso, 28),
+      data_pagamento: null,
+      status: 'pendente',
       created_at: '2026-01-01',
+      ...parcial,
     }
   }
+
+  const paga = (iso: string, valor = 1500) =>
+    cobranca(iso, { valor, status: 'pago', data_pagamento: `${iso.slice(0, 8)}27` })
 
   interface Cenario {
     cliente?: Record<string, unknown>
     pagamentos?: Record<string, unknown>[]
     colunasAusentes?: string[]
+    /** false deixa as cobranças exatamente como o teste as pôs no banco */
+    sincronizar?: boolean
   }
 
-  async function abrirPagamentos({ cliente = CLIENTE, pagamentos = [], colunasAusentes = [] }: Cenario = {}) {
+  async function abrirPagamentos({
+    cliente = CLIENTE,
+    pagamentos = [],
+    colunasAusentes = [],
+    sincronizar = true,
+  }: Cenario = {}) {
     bancoFalso().reiniciar({
       profiles: [perfilDeTeste()],
       clients: [cliente],
@@ -322,20 +334,27 @@ describe('página do cliente: pagamentos recorrentes', () => {
     })
     bancoFalso().colunasAusentes = colunasAusentes
     renderizar(
-      <Routes>
-        <Route path="/app/clientes/:id" element={<ClientePage />} />
-      </Routes>,
+      <>
+        {/* No app, quem mantém as cobranças em dia é o layout */}
+        {sincronizar && <SincronizarCobrancas />}
+        <Routes>
+          <Route path="/app/clientes/:id" element={<ClientePage />} />
+        </Routes>
+      </>,
       { rota: '/app/clientes/c1' },
     )
     await screen.findByRole('heading', { name: 'Padaria Sol' })
     fireEvent.click(screen.getByRole('tab', { name: 'Pagamentos' }))
     const painel = within(screen.getByRole('tabpanel', { name: 'Pagamentos' }))
-    await painel.findByText(/Valor e vencimento vêm do cadastro|Informe o início do contrato/)
+    await painel.findByText(/Valor e vencimento vêm do cadastro|para gerar as cobranças|não gera cobrança/)
     return painel
   }
 
+  const emAberto = (painel: Awaited<ReturnType<typeof abrirPagamentos>>) =>
+    within(painel.getByRole('region', { name: 'Em aberto' }))
+
   async function pagar(nome: string) {
-    fireEvent.click(screen.getByRole('button', { name: nome }))
+    fireEvent.click(await screen.findByRole('button', { name: nome }))
     const confirmacao = within(screen.getByRole('dialog', { name: 'Confirmar pagamento' }))
     fireEvent.click(confirmacao.getByRole('button', { name: 'Confirmar pagamento' }))
   }
@@ -346,44 +365,55 @@ describe('página do cliente: pagamentos recorrentes', () => {
     expect(screen.getByRole('tab', { name: 'Demandas' })).toBeInTheDocument()
   })
 
-  it('gera sozinho um cartão por mês desde o início do contrato, sem cadastro manual', async () => {
+  it('gera sozinho as cobranças do mês atual e dos três seguintes, sem voltar no tempo', async () => {
     const painel = await abrirPagamentos()
-    const abertos = within(painel.getByRole('region', { name: 'Em aberto' }))
-    const cartoes = abertos.getAllByRole('listitem')
-    expect(cartoes).toHaveLength(2)
-    expect(cartoes[0]).toHaveTextContent(mes(MES_PASSADO))
-    expect(cartoes[0]).toHaveTextContent('Atrasado')
+    await waitFor(() => expect(emAberto(painel).getAllByRole('listitem')).toHaveLength(4))
+    const cartoes = emAberto(painel).getAllByRole('listitem')
+    expect(cartoes[0]).toHaveTextContent(mes(MES_ATUAL))
     expect(cartoes[0]).toHaveTextContent(/1\.500,00/)
-    expect(cartoes[1]).toHaveTextContent(mes(MES_ATUAL))
+    expect(cartoes[1]).toHaveTextContent(mes(MES_QUE_VEM))
+
+    // O contrato começou no mês passado, mas mês passado não é criado depois do fato
+    const linhas = bancoFalso().tabelas.client_payments
+    expect(linhas).toHaveLength(4)
+    expect(linhas.some((l) => l.mes_referencia === MES_PASSADO)).toBe(false)
+    expect(linhas[0]).toMatchObject({
+      client_id: 'c1',
+      mes_referencia: MES_ATUAL,
+      valor: 1500,
+      data_vencimento: vencimentoNoMes(MES_ATUAL, 28),
+      status: 'pendente',
+    })
     expect(painel.queryByRole('button', { name: 'Adicionar pagamento' })).not.toBeInTheDocument()
     expect(painel.getByText('Nenhum pagamento confirmado ainda.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.client_payments).toHaveLength(0)
   })
 
-  it('confirmar por Pix leva o mês ao histórico e grava a forma de pagamento', async () => {
+  it('cobrança de mês passado que ficou em aberto aparece como atrasada', async () => {
+    const painel = await abrirPagamentos({ pagamentos: [cobranca(MES_PASSADO)] })
+    const primeiro = (await emAberto(painel).findAllByRole('listitem'))[0]
+    expect(primeiro).toHaveTextContent(mes(MES_PASSADO))
+    expect(primeiro).toHaveTextContent('Atrasado')
+  })
+
+  it('confirmar por Pix leva a cobrança ao histórico, com a forma e a data de hoje', async () => {
     const painel = await abrirPagamentos()
-    await pagar(`Pagar ${mes(MES_PASSADO)} com Pix`)
+    await pagar(`Pagar ${mes(MES_ATUAL)} com Pix`)
 
     expect(await screen.findByText('Pagamento confirmado.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.client_payments[0]).toMatchObject({
-      client_id: 'c1',
-      mes_referencia: MES_PASSADO,
-      valor: 1500,
-      data_vencimento: `${MES_PASSADO.slice(0, 8)}28`,
-      data_pagamento: HOJE,
+    expect(bancoFalso().tabelas.client_payments.find((l) => l.mes_referencia === MES_ATUAL)).toMatchObject({
       status: 'pago',
+      data_pagamento: HOJE,
       forma_pagamento: 'pix',
+      arquivado: true,
     })
     const historico = within(painel.getByRole('region', { name: 'Histórico' }))
-    expect(await historico.findByText(mes(MES_PASSADO))).toBeInTheDocument()
+    expect(await historico.findByText(mes(MES_ATUAL))).toBeInTheDocument()
     expect(historico.getByText(/Pix/)).toBeInTheDocument()
-    await waitFor(() =>
-      expect(within(painel.getByRole('region', { name: 'Em aberto' })).getAllByRole('listitem')).toHaveLength(1),
-    )
+    await waitFor(() => expect(emAberto(painel).getAllByRole('listitem')).toHaveLength(3))
   })
 
-  it('ao pagar o último mês em aberto, cria o cartão do mês seguinte com o mesmo valor e dia', async () => {
-    const painel = await abrirPagamentos({ pagamentos: [linhaPaga(MES_PASSADO)] })
+  it('ao pagar, cria a cobrança do mês seguinte se ela ainda não existir', async () => {
+    const painel = await abrirPagamentos({ pagamentos: [cobranca(MES_ATUAL)], sincronizar: false })
     await pagar(`Pagar ${mes(MES_ATUAL)} com Dinheiro`)
 
     expect(await screen.findByText('Pagamento confirmado.')).toBeInTheDocument()
@@ -398,63 +428,85 @@ describe('página do cliente: pagamentos recorrentes', () => {
       valor: 1500,
       data_vencimento: vencimentoNoMes(MES_QUE_VEM, 28),
     })
-    const abertos = within(painel.getByRole('region', { name: 'Em aberto' }))
-    expect(await abertos.findByText(mes(MES_QUE_VEM))).toBeInTheDocument()
-    expect(abertos.getByText('Pendente')).toBeInTheDocument()
+    expect(await emAberto(painel).findByText(mes(MES_QUE_VEM))).toBeInTheDocument()
   })
 
   it('cancelar a confirmação não grava nada', async () => {
-    await abrirPagamentos()
-    fireEvent.click(screen.getByRole('button', { name: `Pagar ${mes(MES_PASSADO)} com Pix` }))
+    await abrirPagamentos({ pagamentos: [cobranca(MES_ATUAL)], sincronizar: false })
+    fireEvent.click(screen.getByRole('button', { name: `Pagar ${mes(MES_ATUAL)} com Pix` }))
     fireEvent.click(
       within(screen.getByRole('dialog', { name: 'Confirmar pagamento' })).getByRole('button', {
         name: 'Cancelar',
       }),
     )
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(bancoFalso().tabelas.client_payments).toEqual([expect.objectContaining({ status: 'pendente' })])
+  })
+
+  it('se o banco recusa, avisa e a cobrança continua em aberto', async () => {
+    const painel = await abrirPagamentos({ pagamentos: [cobranca(MES_ATUAL)], sincronizar: false })
+    bancoFalso().erroEscrita = { message: 'negado' }
+    await pagar(`Pagar ${mes(MES_ATUAL)} com Pix`)
+
+    expect(await screen.findByText('Não foi possível confirmar o pagamento.')).toBeInTheDocument()
+    expect(emAberto(painel).getAllByRole('listitem')).toHaveLength(1)
+  })
+
+  it('valor alterado no cadastro vale para as cobranças em aberto, não para o que já foi pago', async () => {
+    const painel = await abrirPagamentos({
+      cliente: { ...CLIENTE, mrr: 2000 },
+      pagamentos: [paga(MES_PASSADO, 1500), cobranca(MES_ATUAL)],
+    })
+    expect(within(painel.getByRole('region', { name: 'Histórico' })).getByText(/1\.500,00/)).toBeInTheDocument()
+    await waitFor(() => expect(emAberto(painel).getAllByText(/2\.000,00/)).toHaveLength(4))
+    expect(emAberto(painel).queryByText(/1\.500,00/)).not.toBeInTheDocument()
+    expect(bancoFalso().tabelas.client_payments.find((l) => l.mes_referencia === MES_ATUAL)).toMatchObject({
+      valor: 2000,
+    })
+  })
+
+  it('cliente em churn tem as cobranças em aberto canceladas e o histórico preservado', async () => {
+    const painel = await abrirPagamentos({
+      cliente: { ...CLIENTE, status: 'churn' },
+      pagamentos: [paga(MES_PASSADO), cobranca(MES_ATUAL), cobranca(MES_QUE_VEM)],
+    })
+    expect(await painel.findByText('Nenhuma cobrança em aberto.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.client_payments.map((l) => l.status)).toEqual([
+      'pago',
+      'cancelado',
+      'cancelado',
+    ])
+    expect(within(painel.getByRole('region', { name: 'Histórico' })).getByText(mes(MES_PASSADO))).toBeInTheDocument()
+  })
+
+  it('sem início de contrato nem dia de vencimento, explica o que falta', async () => {
+    const painel = await abrirPagamentos({ cliente: { ...CLIENTE, data_inicio_contrato: null } })
+    expect(
+      painel.getByText(
+        'Informe o início do contrato ou o dia do vencimento no cadastro do cliente para gerar as cobranças.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(bancoFalso().tabelas.client_payments).toHaveLength(0)
   })
 
-  it('se o banco recusa, avisa e o cartão continua em aberto', async () => {
-    const painel = await abrirPagamentos()
-    bancoFalso().erroEscrita = { message: 'negado' }
-    await pagar(`Pagar ${mes(MES_PASSADO)} com Pix`)
-
-    expect(await screen.findByText('Não foi possível confirmar o pagamento.')).toBeInTheDocument()
-    expect(
-      within(painel.getByRole('region', { name: 'Em aberto' })).getAllByRole('listitem'),
-    ).toHaveLength(2)
-  })
-
-  it('valor alterado no cadastro vale para os meses em aberto, não para o que já foi pago', async () => {
-    const painel = await abrirPagamentos({
-      cliente: { ...CLIENTE, mrr: 2000 },
-      pagamentos: [linhaPaga(MES_PASSADO, 1500)],
-    })
-    expect(within(painel.getByRole('region', { name: 'Histórico' })).getByText(/1\.500,00/)).toBeInTheDocument()
-    expect(within(painel.getByRole('region', { name: 'Em aberto' })).getByText(/2\.000,00/)).toBeInTheDocument()
-  })
-
-  it('sem data de início do contrato, explica o que falta', async () => {
-    const painel = await abrirPagamentos({ cliente: { ...CLIENTE, data_inicio_contrato: null } })
-    expect(
-      painel.getByText('Informe o início do contrato no cadastro do cliente para gerar os pagamentos.'),
-    ).toBeInTheDocument()
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-  })
-
-  it('sem a migration 0002, confirma do mesmo jeito e avisa que a forma não foi gravada', async () => {
+  it('sem as migrations, gera e confirma do mesmo jeito e avisa que a forma não foi gravada', async () => {
     await abrirPagamentos({
-      colunasAusentes: ['clients.dia_vencimento', 'client_payments.forma_pagamento'],
+      colunasAusentes: [
+        'clients.dia_vencimento',
+        'client_payments.forma_pagamento',
+        'client_payments.arquivado',
+      ],
     })
-    await pagar(`Pagar ${mes(MES_PASSADO)} com Pix`)
+    await pagar(`Pagar ${mes(MES_ATUAL)} com Pix`)
 
     expect(
       await screen.findByText(/Pagamento confirmado\. A forma de pagamento não foi gravada/),
     ).toBeInTheDocument()
-    const linha = bancoFalso().tabelas.client_payments[0]
-    expect(linha).toMatchObject({ mes_referencia: MES_PASSADO, status: 'pago' })
+    const linha = bancoFalso().tabelas.client_payments.find((l) => l.mes_referencia === MES_ATUAL)
+    expect(linha).toMatchObject({ status: 'pago' })
     expect(linha).not.toHaveProperty('forma_pagamento')
+    expect(linha).not.toHaveProperty('arquivado')
   })
 })
 

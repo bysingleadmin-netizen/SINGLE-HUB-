@@ -29,6 +29,67 @@
   white-space: nowrap;
 }
 
+/* Inadimplência: o indicador ganha a cor de alerta quando há cobrança vencida */
+.inadimplencia {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.inadimplencia > :first-child {
+  flex: 1;
+  padding-bottom: 40px;
+}
+
+.inadimplencia[data-alerta] > :first-child {
+  border-color: rgba(230, 48, 48, 0.45);
+  background: linear-gradient(180deg, rgba(230, 48, 48, 0.1), rgba(230, 48, 48, 0.02));
+}
+
+.inadimplenciaLegenda {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Alternância entre cobranças em aberto e histórico */
+.alternar {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius);
+}
+
+.alternarBotao {
+  min-height: 32px;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.alternarBotao:hover {
+  color: var(--text);
+}
+
+.alternarBotao[aria-pressed='true'] {
+  background: rgba(230, 48, 48, 0.15);
+  color: var(--text);
+}
+
 /* Formulários em linha: os campos dividem a largura e o botão fica alinhado à base */
 .campos {
   display: grid;

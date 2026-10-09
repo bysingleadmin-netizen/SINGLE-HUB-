@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { hojeISO, somarDias } from '@/lib/datas'
 import { tarefaAberta } from '@/lib/regras'
@@ -56,6 +57,7 @@ export function useMarcarComoLida() {
 export function useNotificar() {
   const { perfil } = useAuth()
   const queryClient = useQueryClient()
+  const toast = useToast()
   const userId = perfil?.id
 
   return useCallback(
@@ -63,15 +65,17 @@ export function useNotificar() {
       const ids = [...new Set(destinatarios)].filter((id): id is string => !!id && id !== userId)
       if (ids.length === 0) return
       try {
-        await supabase
+        // O Supabase devolve o erro em vez de lançar; sem conferir, o aviso perdido passava em silêncio
+        const { error } = await supabase
           .from('notifications')
           .insert(ids.map((user_id) => ({ user_id, lida: false, ...aviso })))
+        if (error) throw error
         await queryClient.invalidateQueries({ queryKey: ['notifications'] })
       } catch {
-        // notificação é acessória
+        toast.erro('A ação foi salva, mas o aviso não chegou a quem foi atribuído.')
       }
     },
-    [userId, queryClient],
+    [userId, queryClient, toast],
   )
 }
 
@@ -129,7 +133,8 @@ export function useAvisarPrazosDeAmanha() {
         await supabase.from('notifications').insert(novos)
         await queryClient.invalidateQueries({ queryKey: ['notifications'] })
       } catch {
-        // aviso de prazo é acessório
+        // Roda sozinho ao abrir o app, sem ninguém ter pedido nada: um aviso de erro aqui só
+        // confundiria. Se falhar, a conferência se repete na próxima abertura.
       }
     })()
   }, [userId, lista, queryClient])

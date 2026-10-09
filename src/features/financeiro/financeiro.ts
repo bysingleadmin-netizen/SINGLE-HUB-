@@ -1,5 +1,4 @@
-import { gerarCartoes } from '@/features/clientes/cartoes'
-import { diffDias, mesesCompletos } from '@/lib/datas'
+import { diffDias } from '@/lib/datas'
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
 import { parseMoeda, ultimosMeses } from '@/lib/regras'
@@ -62,55 +61,80 @@ export function faturamentoPorMes(
   }))
 }
 
-export interface Atraso {
+type Cobranca = Pick<
+  ClientPayment,
+  'client_id' | 'mes_referencia' | 'valor' | 'data_vencimento' | 'status'
+>
+
+const emAberto = (pagamento: Pick<ClientPayment, 'status'>) =>
+  pagamento.status === 'pendente' || pagamento.status === 'atrasado'
+
+/** Quanto ainda se espera receber das cobranças do mês ('AAAA-MM'). */
+export function pendenteNoMes(pagamentos: Cobranca[], mes: string): number {
+  return somar(
+    pagamentos.filter((p) => emAberto(p) && p.mes_referencia.slice(0, 7) === mes).map((p) => p.valor),
+  )
+}
+
+export interface Vencimento {
   cliente: Pick<Client, 'id' | 'nome'>
   /** Primeiro dia do mês de referência */
   mes: string
   valor: number
   vencimento: string
+  /** Dias até vencer; negativo quando já venceu */
   dias: number
 }
 
+function vencimentos(
+  clientes: Pick<Client, 'id' | 'nome'>[],
+  pagamentos: Cobranca[],
+  hoje: string,
+): Vencimento[] {
+  const nomes = new Map(clientes.map((c) => [c.id, c.nome]))
+  return pagamentos.filter(emAberto).map((p) => ({
+    cliente: { id: p.client_id, nome: nomes.get(p.client_id) ?? 'Cliente removido' },
+    mes: p.mes_referencia,
+    valor: Number(p.valor),
+    vencimento: p.data_vencimento,
+    dias: diffDias(hoje, p.data_vencimento),
+  }))
+}
+
 /**
- * Meses vencidos e não pagos de todos os clientes, do mais atrasado para o menos.
- * Usa os mesmos cartões da aba Pagamentos do cliente, então os dois lugares sempre concordam.
+ * Cobranças vencidas e não pagas, da mais atrasada para a menos. Lê as mesmas cobranças da
+ * aba Pagamentos, então os dois lugares sempre concordam.
  */
 export function pagamentosEmAtraso(
-  clientes: Client[],
-  pagamentos: ClientPayment[],
+  clientes: Pick<Client, 'id' | 'nome'>[],
+  pagamentos: Cobranca[],
   hoje: string,
-): Atraso[] {
-  return clientes
-    .flatMap((cliente) =>
-      gerarCartoes(cliente, pagamentos, hoje)
-        .filter((cartao) => cartao.status === 'atrasado')
-        .map((cartao) => ({
-          cliente: { id: cliente.id, nome: cliente.nome },
-          mes: cartao.mes,
-          valor: cartao.valor,
-          vencimento: cartao.vencimento,
-          dias: diffDias(cartao.vencimento, hoje),
-        })),
-    )
-    .sort((a, b) => b.dias - a.dias)
+): Vencimento[] {
+  return vencimentos(clientes, pagamentos, hoje)
+    .filter((v) => v.dias < 0)
+    .sort((a, b) => a.dias - b.dias)
 }
 
-/** Clientes ativos há mais tempo, com os meses completos de contrato. */
-export function maisFieis<T extends Pick<Client, 'status' | 'data_inicio_contrato'>>(
-  clientes: T[],
+/** Cobranças que vencem de hoje até daqui a `dias` dias, da mais próxima para a mais distante. */
+export function proximosVencimentos(
+  clientes: Pick<Client, 'id' | 'nome'>[],
+  pagamentos: Cobranca[],
   hoje: string,
-  quantos = 5,
-): { cliente: T; meses: number }[] {
-  return clientes
-    .filter((c) => c.status === 'ativo' && c.data_inicio_contrato)
-    .map((cliente) => ({
-      cliente,
-      meses: mesesCompletos(cliente.data_inicio_contrato as string, hoje),
-    }))
-    .sort((a, b) => b.meses - a.meses)
-    .slice(0, quantos)
+  dias = 7,
+): Vencimento[] {
+  return vencimentos(clientes, pagamentos, hoje)
+    .filter((v) => v.dias >= 0 && v.dias <= dias)
+    .sort((a, b) => a.dias - b.dias)
 }
 
+/** O atraso em um número: quanto, de quantas cobranças e de quantos clientes. */
+export function inadimplencia(atrasos: Vencimento[]) {
+  return {
+    total: atrasos.reduce((soma, atraso) => soma + atraso.valor, 0),
+    cobrancas: atrasos.length,
+    clientes: new Set(atrasos.map((atraso) => atraso.cliente.id)).size,
+  }
+}
 type Leads = Pick<TrafficMetric, 'leads_instagram' | 'leads_whatsapp'>
 
 export function totalDeLeads(metrica: Leads): number {

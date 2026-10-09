@@ -2,7 +2,7 @@
 
 Estado de cada sistema externo e o que falta fazer. Atualize as caixas conforme for concluindo.
 
-Última atualização: 2026-10-08
+Última atualização: 2026-10-09
 
 ## Supabase (banco, login, arquivos)
 
@@ -48,24 +48,36 @@ Depois disso, os cargos dos demais membros poderão ser ajustados pela tela Conf
 
 O botão "Convidar colaborador", em Configurações > Equipe, chama a função `convidar-colaborador`. Ela existe porque o convite exige a chave de serviço do Supabase, que dá acesso total ao banco e não pode ficar no navegador.
 
-- [ ] Função publicada. O código está em `supabase/functions/convidar-colaborador/index.ts`. Para publicar, com a CLI do Supabase logada na conta do SINGLE: `supabase functions deploy convidar-colaborador --project-ref <ref do projeto>`. Também dá para criar pelo painel, em Edge Functions > Deploy a new function, colando o conteúdo do arquivo
+- [ ] Função publicada com o nome exato `convidar-colaborador`. Em 2026-10-09 o projeto do Supabase que o app usa respondia "Requested function was not found" para esse nome: ou a função não foi publicada neste projeto, ou foi publicada com outro nome. O código está em `supabase/functions/convidar-colaborador/index.ts`. Para publicar, com a CLI do Supabase logada na conta do SINGLE: `supabase functions deploy convidar-colaborador --project-ref <ref do projeto>`. Também dá para criar pelo painel, em Edge Functions > Deploy a new function: o nome da função precisa ser `convidar-colaborador` e o conteúdo é o do arquivo
+- [ ] Conferir em Edge Functions > Secrets que existem `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY`. O Supabase costuma criar as três sozinho; se alguma faltar, a função responde dizendo qual
 - [ ] Modelo do e-mail de convite revisado (Authentication > Emails > Invite user)
 
-Enquanto a função não estiver publicada, o botão mostra o aviso "A função de convite ainda não foi publicada no Supabase".
+O botão sempre mostra o motivo da falha: função inexistente, variável ausente, limite de e-mails do Supabase atingido ou e-mail que já tem acesso. O limite de e-mails do Supabase sem SMTP próprio é baixo; se os convites passarem a falhar por isso, configure o Resend (fim deste arquivo).
 
-### Pagamentos recorrentes (migration 0002)
+### Migration 0003 (revisão de 2026-10-09)
 
-- [ ] Rodar `supabase/migrations/0002_pagamentos_recorrentes.sql` no SQL Editor. Ela cria `clients.dia_vencimento` e `client_payments.forma_pagamento`
+- [ ] Rodar `supabase/migrations/0003_revisao.sql` inteiro no SQL Editor
 
-O app funciona sem ela: os cartões mensais são gerados do mesmo jeito, vencendo no dia do mês em que o contrato começou, e o pagamento é confirmado sem registrar se foi Pix ou dinheiro. Depois da migration, o cadastro do cliente passa a mostrar o campo "Dia do vencimento" e a forma de pagamento fica gravada. Não é preciso publicar de novo.
+Ela inclui o que estava na 0002, então quem não rodou a 0002 só precisa desta. Pode rodar mais de uma vez. Foi testada em um Postgres local com o schema da 0001 e as tabelas criadas pelo painel.
 
-### Tabelas da etapa 3
+O que ela faz e o que o app faz enquanto ela não roda:
 
-`calendar_events`, `event_participants` e `notifications` foram criadas direto no painel, fora de `supabase/migrations`. Confira:
+| Recurso | Sem a migration | Com a migration |
+|---|---|---|
+| Dia do vencimento do cliente | vence no dia do mês em que o contrato começou | campo "Dia do vencimento" no cadastro |
+| Forma de pagamento | o pagamento é confirmado, mas não fica gravado se foi Pix ou dinheiro | forma gravada e mostrada no histórico |
+| Cobrança de cliente pausado ou em churn | as cobranças em aberto são apagadas | ficam com status "cancelado" |
+| Prioridade | funciona nas demandas, com os valores que já estiverem no banco | padronizada (baixa, média, alta, urgente) em demandas e conteúdos |
+| Colunas dos quadros | fixas | renomear com dois cliques, criar, remover e reordenar arrastando |
+| RLS e índices | como estiverem no painel | RLS ligado em todas as tabelas, políticas das tabelas criadas pelo painel e índices nas colunas de filtro |
 
-- [ ] RLS ligado nas três, com leitura e escrita para usuários autenticados em `calendar_events` e `event_participants`
-- [ ] Em `notifications`: cada pessoa lê e atualiza só as próprias linhas (`user_id = auth.uid()`), e qualquer autenticado pode inserir, porque quem cria uma tarefa avisa o responsável
-- [ ] Se `tipo` tiver restrição de valores, ela aceita `reuniao`, `gravacao`, `entrega`, `otimizacao` e `outro` nos eventos, e `tarefa`, `evento` e `prazo` nas notificações
+Tabelas criadas direto no painel, fora de `supabase/migrations`, que a 0003 passa a cobrir: `calendar_events`, `event_participants`, `notifications`, `task_comments` e a coluna `tasks.prioridade`. Nenhuma tem restrição de `tipo` garantida: o app grava `reuniao`, `gravacao`, `entrega`, `otimizacao` e `outro` nos eventos, e `tarefa`, `evento` e `prazo` nas notificações.
+
+### Pagamentos recorrentes
+
+Ninguém cadastra pagamento à mão. Para cada cliente ativo com valor mensal e dia de vencimento, o sistema grava em `client_payments` a cobrança do mês atual e as dos três meses seguintes. Meses anteriores ao atual não são criados depois do fato.
+
+Quem gera e ajusta as cobranças é o próprio app, no navegador de alguém da liderança (só a liderança pode gravar pagamentos). Basta uma pessoa da liderança abrir o sistema para o mês novo ganhar suas cobranças. Não há tarefa agendada no servidor.
 
 ## GitHub (código)
 

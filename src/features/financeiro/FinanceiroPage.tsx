@@ -3,14 +3,15 @@ import { Abas } from '@/components/ui/Abas'
 import { Dre } from './Dre'
 import { Lancamentos } from './Lancamentos'
 import { MetaETrafego } from './MetaETrafego'
+import { PagamentosDosClientes } from './PagamentosDosClientes'
 import { Resumo } from './Resumo'
 import styles from './financeiro.module.css'
 
 const ABAS = [
-  { id: 'resumo', rotulo: 'Dashboard' },
-  { id: 'lancamentos', rotulo: 'Lançamentos' },
-  { id: 'dre', rotulo: 'DRE' },
-  { id: 'meta', rotulo: 'Meta e Tráfego' },
+  { id: 'resumo', rotulo: 'Visão Geral' },
+  { id: 'pagamentos', rotulo: 'Pagamentos' },
+  { id: 'despesas', rotulo: 'Despesas' },
+  { id: 'relatorios', rotulo: 'Relatórios' },
 ] as const
 
 type Aba = (typeof ABAS)[number]['id']
@@ -31,9 +32,15 @@ export function FinanceiroPage() {
         onMudar={(id) => navigate(id === 'resumo' ? '/app/financeiro' : `/app/financeiro/${id}`)}
       >
         {aba === 'resumo' && <Resumo />}
-        {aba === 'lancamentos' && <Lancamentos />}
-        {aba === 'dre' && <Dre />}
-        {aba === 'meta' && <MetaETrafego />}
+        {aba === 'pagamentos' && <PagamentosDosClientes />}
+        {aba === 'despesas' && <Lancamentos />}
+        {/* Relatórios: o demonstrativo do mês e, abaixo, a meta e as métricas de tráfego */}
+        {aba === 'relatorios' && (
+          <>
+            <Dre />
+            <MetaETrafego />
+          </>
+        )}
       </Abas>
     </div>
   )

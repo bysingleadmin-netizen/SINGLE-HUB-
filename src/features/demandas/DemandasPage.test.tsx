@@ -122,6 +122,49 @@ describe('DemandasPage', () => {
     )
   })
 
+  it('avisa o responsável quando a demanda nasce atribuída a outra pessoa', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+    fireEvent.click(screen.getByRole('button', { name: 'Nova demanda' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Nova demanda' }))
+    fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Banner da campanha' } })
+    fireEvent.change(modal.getByLabelText('Responsável'), { target: { value: 'u2' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+
+    await screen.findByText('Demanda criada.')
+    const criada = bancoFalso().tabelas.tasks[3]
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.notifications).toEqual([
+        expect.objectContaining({
+          user_id: 'u2',
+          tipo: 'tarefa',
+          lida: false,
+          link: `/app/demandas?abrir=${criada.id}`,
+        }),
+      ]),
+    )
+  })
+
+  it('não gera aviso quando a pessoa atribui a demanda a si mesma', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+    fireEvent.click(screen.getByRole('button', { name: 'Nova demanda' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Nova demanda' }))
+    fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Minha tarefa' } })
+    fireEvent.change(modal.getByLabelText('Responsável'), { target: { value: 'u1' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+
+    await screen.findByText('Demanda criada.')
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.activity_log).toContainEqual(
+        expect.objectContaining({ acao: 'demanda_criada' }),
+      ),
+    )
+    expect(bancoFalso().tabelas.notifications ?? []).toHaveLength(0)
+  })
+
   it('não salva sem título', async () => {
     bancoFalso().reiniciar()
     renderizar(<DemandasPage />)

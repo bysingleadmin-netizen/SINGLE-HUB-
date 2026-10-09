@@ -146,3 +146,38 @@ export interface ActivityLog {
   entidade_id: string | null
   created_at: string
 }
+
+export type TipoEvento = 'reuniao' | 'gravacao' | 'entrega' | 'otimizacao' | 'outro'
+
+export interface CalendarEvent {
+  id: string
+  titulo: string
+  descricao: string | null
+  tipo: TipoEvento
+  /** Timestamps ISO 8601, com fuso */
+  data_inicio: string
+  data_fim: string | null
+  dia_inteiro: boolean
+  client_id: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface EventParticipant {
+  event_id: string
+  profile_id: string
+}
+
+export type TipoNotificacao = 'tarefa' | 'evento' | 'prazo'
+
+/** Linha de `notifications`. O nome evita confusão com a Notification do navegador. */
+export interface Notificacao {
+  id: string
+  user_id: string
+  tipo: TipoNotificacao
+  titulo: string
+  mensagem: string | null
+  link: string | null
+  lida: boolean
+  created_at: string
+}

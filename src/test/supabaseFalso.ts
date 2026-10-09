@@ -37,7 +37,7 @@ export function criarSupabaseFalso() {
 
   function from(tabela: string) {
     let operacao: 'select' | 'insert' | 'update' | 'delete' = 'select'
-    let valores: Linha = {}
+    let valores: Linha | Linha[] = {}
     const filtros: [string, unknown][] = []
     let unico = false
     let limite: number | undefined
@@ -54,9 +54,12 @@ export function criarSupabaseFalso() {
       } else {
         if (banco.erroEscrita) return { data: null, error: banco.erroEscrita }
         if (operacao === 'insert') {
-          const nova = { id: `novo-${sequencia++}`, created_at: new Date().toISOString(), ...valores }
-          linhas.push(nova)
-          resultado = [nova]
+          resultado = (Array.isArray(valores) ? valores : [valores]).map((linha) => ({
+            id: `novo-${sequencia++}`,
+            created_at: new Date().toISOString(),
+            ...linha,
+          }))
+          linhas.push(...resultado)
         } else if (operacao === 'update') {
           resultado = linhas.filter(casa)
           resultado.forEach((linha) => Object.assign(linha, valores))
@@ -79,7 +82,7 @@ export function criarSupabaseFalso() {
 
     const consulta = {
       select: () => consulta,
-      insert: (novos: Linha) => {
+      insert: (novos: Linha | Linha[]) => {
         operacao = 'insert'
         valores = novos
         return consulta

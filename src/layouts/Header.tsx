@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom'
 import { Icone } from '@/components/ui/Icone'
 import { tituloDaRota } from './navegacao'
+import { Sino } from './Sino'
 import styles from './layout.module.css'
 
 interface HeaderProps {
@@ -21,6 +22,9 @@ export function Header({ onAbrirMenu }: HeaderProps) {
         <Icone nome="menu" />
       </button>
       <h1 className={styles.tituloPagina}>{tituloDaRota(pathname)}</h1>
+      <div className={styles.headerAcoes}>
+        <Sino />
+      </div>
     </header>
   )
 }

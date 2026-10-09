@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
 import { useSalvar } from '@/dados/base'
+import { useNotificar } from '@/dados/notificacoes'
 import { useAuth } from '@/features/auth/AuthContext'
 import type { Erros } from '@/lib/formulario'
 import { COLUNAS_TAREFA, TIPOS_TAREFA } from '@/lib/rotulos'
@@ -48,6 +49,7 @@ export function TarefaModal({
   const [erros, setErros] = useState<Erros<FormTarefa>>({})
   const salvar = useSalvar<Task>('tasks')
   const registrarAtividade = useRegistrarAtividade()
+  const notificar = useNotificar()
   const toast = useToast()
 
   function mudar<C extends keyof FormTarefa>(campo: C, valor: FormTarefa[C]) {
@@ -85,6 +87,12 @@ export function TarefaModal({
               descricao: `criou a demanda "${salva.titulo}"`,
               entidade: 'tasks',
               entidadeId: salva.id,
+            })
+            void notificar([salva.responsavel_id], {
+              tipo: 'tarefa',
+              titulo: 'Nova demanda para você',
+              mensagem: `${perfil?.nome ?? 'Alguém'} atribuiu a demanda "${salva.titulo}" a você.`,
+              link: `/app/demandas?abrir=${salva.id}`,
             })
           } else if (mudouDeColuna) {
             void registrarAtividade({

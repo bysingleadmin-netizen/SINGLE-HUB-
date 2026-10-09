@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
+import { useAvisarPrazosDeAmanha } from '@/dados/notificacoes'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import styles from './layout.module.css'
@@ -18,6 +19,7 @@ export function AppLayout() {
   const { pathname } = useLocation()
   const [colapsada, setColapsada] = useState(lerColapsada)
   const [menuAberto, setMenuAberto] = useState(false)
+  useAvisarPrazosDeAmanha()
 
   const alternar = useCallback(() => {
     setColapsada((atual) => {

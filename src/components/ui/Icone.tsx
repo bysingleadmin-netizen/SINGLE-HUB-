@@ -71,6 +71,20 @@ const DESENHOS = {
   ),
   fechar: <path d="m6 6 12 12M18 6 6 18" />,
   mais: <path d="M12 5v14M5 12h14" />,
+  sino: (
+    <>
+      <path d="M6 16.5c1.2-1.4 1.7-3 1.7-5.6a4.3 4.3 0 0 1 8.6 0c0 2.6.5 4.2 1.7 5.6z" />
+      <path d="M10 19.5a2 2 0 0 0 4 0" />
+    </>
+  ),
+  busca: (
+    <>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m16 16 4.5 4.5" />
+    </>
+  ),
+  seta: <path d="m9 6 6 6-6 6" />,
+  setaEsquerda: <path d="m15 6-6 6 6 6" />,
   arquivar: (
     <>
       <rect x="3" y="4" width="18" height="5" rx="1.5" />

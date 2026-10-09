@@ -283,3 +283,125 @@
 .vazioTexto {
   color: var(--text-muted);
 }
+
+/* Cabeçalho: ações à direita e sino de notificações */
+.headerAcoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.sino {
+  position: relative;
+}
+
+.sino > .botaoIcone {
+  position: relative;
+}
+
+.sinoContagem {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.sinoLista {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 50;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(520px, calc(100vh - 96px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: rgba(20, 20, 23, 0.94);
+  border: 1px solid var(--campo-borda);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+  overflow-y: auto;
+  animation: fadeUp 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.sinoTitulo {
+  font-size: 15px;
+}
+
+.sinoAviso {
+  color: var(--text-muted);
+}
+
+.sinoItens {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sinoItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px 10px 22px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.sinoItem:hover {
+  background: var(--vidro-hover);
+  transform: translateX(2px);
+}
+
+.sinoItem[data-nova]::before {
+  content: '';
+  position: absolute;
+  top: 17px;
+  left: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.sinoItemTitulo {
+  font-weight: 600;
+}
+
+.sinoItem:not([data-nova]) .sinoItemTitulo {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.sinoItemTexto {
+  font-size: 13px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.sinoItemTempo {
+  font-size: 12px;
+  color: #6d6d78;
+}

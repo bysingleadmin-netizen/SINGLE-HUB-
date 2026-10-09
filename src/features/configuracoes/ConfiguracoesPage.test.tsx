@@ -139,7 +139,8 @@ describe('convidar colaborador', () => {
 
     expect(await screen.findByText('Convite enviado para ana@single.com.')).toBeInTheDocument()
     expect(bancoFalso().funcoesChamadas).toEqual([
-      { nome: 'convidar-colaborador', body: { email: 'ana@single.com' } },
+      // O cargo escolhido no modal vai junto; sem mexer, é o padrão
+      { nome: 'convidar-colaborador', body: { email: 'ana@single.com', cargo: 'Social Media' } },
     ])
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })

@@ -9,8 +9,8 @@ Estado de cada sistema externo e o que falta fazer. Atualize as caixas conforme 
 - [x] Projeto criado
 - [x] `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` cadastradas na Vercel
 - [x] Arquivo `.env.local` preenchido (só necessário para rodar no seu computador; não vai para o GitHub)
-- [ ] Migration aplicada
-- [ ] Primeiro usuário criado e marcado como CEO
+- [x] Migration aplicada
+- [x] Primeiro usuário criado e marcado como CEO
 
 ### Rodar no seu computador
 
@@ -51,8 +51,12 @@ Depois disso, os cargos dos demais membros poderão ser ajustados pela tela Conf
 
 ## Vercel (hospedagem)
 
-- [x] Variáveis de ambiente cadastradas
-- [ ] Repositório conectado e primeira publicação feita
+- [x] Variáveis de ambiente cadastradas no projeto `singlehub` (produção, preview e desenvolvimento)
+- [x] Framework ajustado para Vite
+- [x] Primeira publicação feita pela CLI (`vercel deploy --prod`), em https://singlehub-singlehub.vercel.app
+- [x] Proteção de Deploy desligada: o site abre para qualquer pessoa com o link (o acesso aos dados continua exigindo login)
+- [x] Conexão antiga com o repositório `useFindash` removida
+- [ ] Repositório `SINGLE-HUB-` conectado ao projeto. A Vercel recusou: a conta do GitHub ligada à Vercel (`saasownerbr`) não tem acesso de escrita ao repositório, que pertence a `bysingleadmin-netizen`. Enquanto isso, cada publicação é feita com `vercel deploy --prod`
 - [ ] Domínio próprio (opcional)
 
 Configuração esperada do projeto na Vercel: framework Vite, comando de build `npm run build`, pasta de saída `dist`. O arquivo `vercel.json` já redireciona todas as rotas para o app, então recarregar a página em `/app/clientes` funciona.

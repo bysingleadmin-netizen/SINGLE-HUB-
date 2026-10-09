@@ -70,6 +70,47 @@ const DESENHOS = {
     </>
   ),
   fechar: <path d="m6 6 12 12M18 6 6 18" />,
+  mais: <path d="M12 5v14M5 12h14" />,
+  arquivar: (
+    <>
+      <rect x="3" y="4" width="18" height="5" rx="1.5" />
+      <path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9" />
+      <path d="M10 13h4" />
+    </>
+  ),
+  editar: (
+    <>
+      <path d="M4 20h4L19 9l-4-4L4 16z" />
+      <path d="m13.5 6.5 4 4" />
+    </>
+  ),
+  externo: (
+    <>
+      <path d="M14 4h6v6" />
+      <path d="M20 4 10 14" />
+      <path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
+    </>
+  ),
+  calendario: (
+    <>
+      <rect x="3" y="5" width="18" height="16" rx="2.5" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </>
+  ),
+  confirmar: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  lixeira: (
+    <>
+      <path d="M4 7h16M10 7V4h4v3" />
+      <path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12" />
+    </>
+  ),
+  voltar: <path d="M19 12H5m6-6-6 6 6 6" />,
+  enviar: (
+    <>
+      <path d="M12 16V4m-5 5 5-5 5 5" />
+      <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </>
+  ),
   alerta: (
     <>
       <path d="M12 4 2.8 19.5h18.4z" />

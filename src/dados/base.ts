@@ -1,0 +1,94 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+
+export type Tabela =
+  | 'profiles'
+  | 'clients'
+  | 'client_payments'
+  | 'tasks'
+  | 'content_cards'
+  | 'campaigns'
+  | 'campaign_tasks'
+
+interface ComId {
+  id: string
+}
+
+type Valores<T> = Partial<Omit<T, 'id' | 'created_at'>>
+
+/**
+ * Lista a tabela inteira, da linha mais antiga para a mais nova.
+ * `ativo: false` adia a consulta (tabelas que só a liderança pode ler).
+ */
+export function useLista<T>(tabela: Tabela, { ativo = true }: { ativo?: boolean } = {}) {
+  return useQuery({
+    queryKey: [tabela],
+    enabled: ativo,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from(tabela)
+        .select('*')
+        .order('created_at', { ascending: true })
+      if (error) throw error
+      return (data ?? []) as T[]
+    },
+  })
+}
+
+/** Cria (sem id) ou atualiza (com id) uma linha e devolve o resultado. */
+export function useSalvar<T extends ComId>(tabela: Tabela) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, valores }: { id?: string; valores: Valores<T> }) => {
+      const consulta = id
+        ? supabase.from(tabela).update(valores as Record<string, unknown>).eq('id', id)
+        : supabase.from(tabela).insert(valores as Record<string, unknown>)
+      const { data, error } = await consulta.select().single()
+      if (error) throw error
+      return data as T
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: [tabela] }),
+  })
+}
+
+/**
+ * Atualiza uma linha mostrando o resultado na hora e desfazendo se o banco recusar.
+ * Usado ao arrastar cards e em edições rápidas de um campo.
+ */
+export function useAtualizarOtimista<T extends ComId>(tabela: Tabela) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, valores }: { id: string; valores: Valores<T> }) => {
+      const { error } = await supabase.from(tabela).update(valores as Record<string, unknown>).eq('id', id)
+      if (error) throw error
+    },
+    onMutate: async ({ id, valores }) => {
+      await queryClient.cancelQueries({ queryKey: [tabela] })
+      const anterior = queryClient.getQueryData<T[]>([tabela])
+      queryClient.setQueryData<T[]>([tabela], (lista) =>
+        lista?.map((linha) => (linha.id === id ? { ...linha, ...valores } : linha)),
+      )
+      return { anterior }
+    },
+    onError: (_erro, _variaveis, contexto) => {
+      if (contexto?.anterior) queryClient.setQueryData([tabela], contexto.anterior)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: [tabela] }),
+  })
+}
+
+export function useRemover(tabela: Tabela) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from(tabela).delete().eq('id', id)
+      if (error) throw error
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: [tabela] }),
+  })
+}
+
+/** Indexa uma lista por id para fazer junções no cliente. */
+export function porId<T extends ComId>(lista: T[] | undefined): Map<string, T> {
+  return new Map((lista ?? []).map((item) => [item.id, item]))
+}

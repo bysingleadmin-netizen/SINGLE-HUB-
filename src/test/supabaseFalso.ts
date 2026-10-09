@@ -1,0 +1,134 @@
+// Substituto em memória do cliente Supabase, só para testes.
+// Cobre o que o app usa: select, insert, update, delete, eq, order, limit, single e storage.
+
+type Linha = Record<string, unknown>
+
+interface ErroFalso {
+  message: string
+  code?: string
+}
+
+interface Resposta {
+  data: unknown
+  error: ErroFalso | null
+}
+
+export interface BancoFalso {
+  tabelas: Record<string, Linha[]>
+  /** Se definido, toda escrita falha com este erro */
+  erroEscrita: ErroFalso | null
+  /** Se definido, toda leitura falha com este erro */
+  erroLeitura: ErroFalso | null
+  reiniciar: (tabelas?: Record<string, Linha[]>) => void
+}
+
+export function criarSupabaseFalso() {
+  let sequencia = 1
+  const banco: BancoFalso = {
+    tabelas: {},
+    erroEscrita: null,
+    erroLeitura: null,
+    reiniciar(tabelas = {}) {
+      banco.tabelas = structuredClone(tabelas)
+      banco.erroEscrita = null
+      banco.erroLeitura = null
+    },
+  }
+
+  function from(tabela: string) {
+    let operacao: 'select' | 'insert' | 'update' | 'delete' = 'select'
+    let valores: Linha = {}
+    const filtros: [string, unknown][] = []
+    let unico = false
+    let limite: number | undefined
+    let ordem: { coluna: string; crescente: boolean } | undefined
+
+    function executar(): Resposta {
+      const linhas = (banco.tabelas[tabela] ??= [])
+      const casa = (linha: Linha) => filtros.every(([coluna, valor]) => linha[coluna] === valor)
+      let resultado: Linha[]
+
+      if (operacao === 'select') {
+        if (banco.erroLeitura) return { data: null, error: banco.erroLeitura }
+        resultado = linhas.filter(casa)
+      } else {
+        if (banco.erroEscrita) return { data: null, error: banco.erroEscrita }
+        if (operacao === 'insert') {
+          const nova = { id: `novo-${sequencia++}`, created_at: new Date().toISOString(), ...valores }
+          linhas.push(nova)
+          resultado = [nova]
+        } else if (operacao === 'update') {
+          resultado = linhas.filter(casa)
+          resultado.forEach((linha) => Object.assign(linha, valores))
+        } else {
+          resultado = linhas.filter(casa)
+          banco.tabelas[tabela] = linhas.filter((linha) => !casa(linha))
+        }
+      }
+
+      if (ordem) {
+        const { coluna, crescente } = ordem
+        resultado = [...resultado].sort(
+          (a, b) => String(a[coluna]).localeCompare(String(b[coluna])) * (crescente ? 1 : -1),
+        )
+      }
+      if (limite != null) resultado = resultado.slice(0, limite)
+      const copia = structuredClone(resultado)
+      return { data: unico ? (copia[0] ?? null) : copia, error: null }
+    }
+
+    const consulta = {
+      select: () => consulta,
+      insert: (novos: Linha) => {
+        operacao = 'insert'
+        valores = novos
+        return consulta
+      },
+      update: (novos: Linha) => {
+        operacao = 'update'
+        valores = novos
+        return consulta
+      },
+      delete: () => {
+        operacao = 'delete'
+        return consulta
+      },
+      eq: (coluna: string, valor: unknown) => {
+        filtros.push([coluna, valor])
+        return consulta
+      },
+      order: (coluna: string, opcoes?: { ascending?: boolean }) => {
+        ordem = { coluna, crescente: opcoes?.ascending ?? true }
+        return consulta
+      },
+      limit: (n: number) => {
+        limite = n
+        return consulta
+      },
+      single: () => {
+        unico = true
+        return consulta
+      },
+      maybeSingle: () => {
+        unico = true
+        return consulta
+      },
+      then: <A, B>(ok: (resposta: Resposta) => A, falha?: (motivo: unknown) => B) =>
+        Promise.resolve().then(executar).then(ok, falha),
+    }
+    return consulta
+  }
+
+  const storage = {
+    from: (bucket: string) => ({
+      upload: async () => ({ error: banco.erroEscrita }),
+      getPublicUrl: (caminho: string) => ({
+        data: { publicUrl: `https://falso.test/${bucket}/${caminho}` },
+      }),
+    }),
+  }
+
+  return { from, storage, banco }
+}
+
+export type SupabaseFalso = ReturnType<typeof criarSupabaseFalso>

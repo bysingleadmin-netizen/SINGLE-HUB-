@@ -34,15 +34,7 @@
 
 .logo {
   display: inline-flex;
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  white-space: nowrap;
-}
-
-.logoLetra {
-  color: var(--accent);
+  align-items: center;
 }
 
 .botaoIcone {

@@ -54,6 +54,11 @@ describe('Sidebar', () => {
     )
   })
 
+  it('mostra o logotipo vetorial da marca', () => {
+    montar('Designer')
+    expect(screen.getByRole('img', { name: 'SINGLE' }).querySelector('svg')).not.toBeNull()
+  })
+
   it('marca a rota atual', () => {
     montar('Designer')
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')

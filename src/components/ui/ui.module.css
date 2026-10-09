@@ -257,6 +257,25 @@
   line-height: 1.5;
 }
 
+/* Logotipo: a inicial segue em destaque, como já era no texto */
+.logotipo {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.logotipo svg {
+  display: block;
+}
+
+.logotipoInicial {
+  color: var(--accent);
+}
+
+.logotipoRestante {
+  display: inline-flex;
+}
+
 /* Texto que só leitores de tela anunciam */
 .somenteLeitor {
   position: absolute;

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
+import { Logotipo } from '@/components/ui/Logotipo'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './AuthContext'
 import { traduzirErroAuth } from './erros'
@@ -36,7 +37,7 @@ export function LoginPage() {
     <div className={styles.tela}>
       <form className={`${styles.cartao} fade-up`} onSubmit={entrar} noValidate>
         <div className={styles.marca}>
-          <span className={styles.marcaNome}>SINGLE</span>
+          <Logotipo altura={22} />
           <span className={styles.marcaSub}>Gestão da agência</span>
         </div>
 

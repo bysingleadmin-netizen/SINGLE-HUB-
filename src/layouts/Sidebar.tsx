@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Icone } from '@/components/ui/Icone'
+import { Logotipo } from '@/components/ui/Logotipo'
 import { useAuth } from '@/features/auth/AuthContext'
 import { itensVisiveis } from './navegacao'
 import styles from './layout.module.css'
@@ -23,9 +24,8 @@ export function Sidebar({ colapsada, onAlternar, abertaMobile, onFecharMobile }:
       data-aberta={abertaMobile || undefined}
     >
       <div className={styles.topo}>
-        <span className={styles.logo} aria-label="SINGLE">
-          <span className={styles.logoLetra}>S</span>
-          <span className={styles.rotulo}>INGLE</span>
+        <span className={styles.logo}>
+          <Logotipo altura={15} classeDoRestante={styles.rotulo} />
         </span>
         <button
           type="button"

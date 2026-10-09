@@ -42,7 +42,7 @@ O pedido da etapa 2 difere da spec em alguns pontos. Vale o pedido mais recente:
 - [x] 7. Configurações: perfil, avatar, equipe. Deploy.
 - [x] 8. Verificação final: testes, build, checagem das colunas contra a API.
 
-Estado em 2026-10-08: as oito tarefas estão concluídas na branch `etapa-2-operacional`. Ficaram pendentes a publicação (`vercel deploy --prod` não foi autorizado na sessão que concluiu o trabalho) e o logotipo vetorial (o arquivo da marca não está no repositório).
+Estado em 2026-10-08: as oito tarefas estão concluídas e publicadas em `main`. O logotipo vetorial entrou depois, a partir do arquivo da marca, na sidebar e no login.
 
 ## Review Focus
 

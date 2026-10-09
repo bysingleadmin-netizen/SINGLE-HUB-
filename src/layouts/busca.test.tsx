@@ -31,7 +31,7 @@ describe('buscar', () => {
     expect(buscar('clinica', DADOS)).toEqual([
       { tipo: 'cliente', id: 'c1', nome: 'Clínica Vita', rota: '/app/clientes/c1' },
       { tipo: 'demanda', id: 't1', nome: 'Roteiro da clínica', rota: '/app/demandas?abrir=t1' },
-      { tipo: 'campanha', id: 'g1', nome: 'Black Friday Clínica', rota: '/app/campanhas/g1' },
+      { tipo: 'campanha', id: 'g1', nome: 'Black Friday Clínica', rota: '/app/anuncios/g1' },
     ])
   })
 
@@ -82,7 +82,7 @@ describe('BuscaGlobal', () => {
     fireEvent.keyDown(document, { key: 'k', ctrlKey: true })
     const paleta = within(screen.getByRole('dialog', { name: 'Buscar' }))
     // Espera os dados chegarem antes de digitar
-    await paleta.findByText('Digite para procurar em clientes, demandas, conteúdos e campanhas.')
+    await paleta.findByText('Digite para procurar em clientes, demandas, conteúdos e anúncios.')
     fireEvent.change(paleta.getByRole('combobox', { name: 'Buscar' }), { target: { value: texto } })
     return paleta
   }

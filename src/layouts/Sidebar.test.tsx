@@ -83,7 +83,7 @@ describe('Sidebar', () => {
       '/app/demandas': { total: 3, descricao: '3 demandas atrasadas' },
     })
     expect(screen.getByRole('link', { name: /^Demandas\s*3 demandas atrasadas$/ })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Campanhas' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Anúncios' })).toBeInTheDocument()
   })
 
   it('sai ao clicar em Sair', () => {

@@ -130,9 +130,9 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Nenhuma otimização nos próximos 3 dias.')).toBeInTheDocument()
     expect(screen.getByText('Nada registrado ainda.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Criar demanda' })).toHaveAttribute('href', '/app/demandas')
-    expect(screen.getByRole('link', { name: 'Criar campanha' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Criar anúncio' })).toHaveAttribute(
       'href',
-      '/app/campanhas',
+      '/app/anuncios',
     )
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })

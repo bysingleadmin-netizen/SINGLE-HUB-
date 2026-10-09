@@ -30,7 +30,7 @@ export function CampanhaModal({ campanha, clientes, onFechar }: CampanhaModalPro
   const salvar = useSalvar<Campaign>('campaigns')
   const registrarAtividade = useRegistrarAtividade()
   const toast = useToast()
-  const titulo = campanha ? 'Editar campanha' : 'Nova campanha'
+  const titulo = campanha ? 'Editar anúncio' : 'Novo anúncio'
 
   function campo(nome: keyof FormCampanha) {
     return {
@@ -53,18 +53,18 @@ export function CampanhaModal({ campanha, clientes, onFechar }: CampanhaModalPro
       { id: campanha?.id, valores: resultado.valores },
       {
         onSuccess: (salva) => {
-          toast.sucesso(campanha ? 'Campanha atualizada.' : 'Campanha criada.')
+          toast.sucesso(campanha ? 'Anúncio atualizado.' : 'Anúncio criado.')
           if (!campanha) {
             void registrarAtividade({
               acao: 'campanha_criada',
-              descricao: `criou a campanha "${salva.nome}"`,
+              descricao: `criou o anúncio "${salva.nome}"`,
               entidade: 'campaigns',
               entidadeId: salva.id,
             })
           }
           onFechar()
         },
-        onError: () => toast.erro('Não foi possível salvar a campanha.'),
+        onError: () => toast.erro('Não foi possível salvar o anúncio.'),
       },
     )
   }
@@ -73,7 +73,7 @@ export function CampanhaModal({ campanha, clientes, onFechar }: CampanhaModalPro
     return (
       <Modal aberto titulo={titulo} onFechar={onFechar}>
         <div className={ui.formulario}>
-          <p>Cadastre um cliente antes de criar uma campanha.</p>
+          <p>Cadastre um cliente antes de criar um anúncio.</p>
           <Link to="/app/clientes" className={ui.linkAcao}>
             Ir para Clientes
           </Link>

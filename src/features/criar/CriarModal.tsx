@@ -12,8 +12,8 @@ const CATEGORIAS: readonly { valor: Categoria; rotulo: string; destino: string }
   { valor: 'conteudo', rotulo: 'Conteúdo', destino: 'Vai para o menu Conteúdo.' },
   {
     valor: 'campanha',
-    rotulo: 'Tarefa de campanha',
-    destino: 'Vai para a campanha escolhida, no menu Campanhas.',
+    rotulo: 'Tarefa de anúncio',
+    destino: 'Vai para o anúncio escolhido, no menu Anúncios.',
   },
 ]
 

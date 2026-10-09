@@ -40,7 +40,7 @@ const ABAS: readonly { id: Aba; rotulo: string }[] = [
   { id: 'visao', rotulo: 'Visão Geral' },
   { id: 'pagamentos', rotulo: 'Pagamentos' },
   { id: 'demandas', rotulo: 'Demandas' },
-  { id: 'campanhas', rotulo: 'Campanhas' },
+  { id: 'campanhas', rotulo: 'Anúncios' },
   { id: 'conteudos', rotulo: 'Conteúdos' },
 ]
 
@@ -286,7 +286,7 @@ export function ClientePage() {
       return {
         id: c.id,
         titulo: c.nome,
-        rota: `/app/campanhas/${c.id}`,
+        rota: `/app/anuncios/${c.id}`,
         detalhe: (
           <>
             <span className={ui.mudo}>{formatarMoeda(Number(c.orcamento))}</span>
@@ -358,7 +358,7 @@ export function ClientePage() {
           <ListaDoCliente
             itens={campanhasDoCliente}
             ilustracao="campanhas"
-            vazio="Nenhuma campanha para este cliente."
+            vazio="Nenhum anúncio para este cliente."
           />
         )}
         {ativa === 'conteudos' && (

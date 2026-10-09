@@ -42,7 +42,7 @@ function Estrategia({ campanha }: { campanha: Campaign }) {
   return (
     <div className={ui.painel}>
       <AreaTexto
-        rotulo="Estratégia da campanha"
+        rotulo="Estratégia do anúncio"
         rows={6}
         placeholder="Público, oferta, canais e o que se espera do resultado. Salva ao sair do campo."
         value={texto}
@@ -80,11 +80,11 @@ export function CampanhaPage() {
   if (!campanha) {
     return (
       <EstadoVazio
-        ilustracao="busca" titulo="Campanha não encontrada."
+        ilustracao="busca" titulo="Anúncio não encontrado."
         texto="Ela pode ter sido removida ou o endereço está incorreto."
         acao={
-          <Link to="/app/campanhas" className={ui.linkAcao}>
-            Voltar para Campanhas
+          <Link to="/app/anuncios" className={ui.linkAcao}>
+            Voltar para Anúncios
           </Link>
         }
       />
@@ -96,9 +96,9 @@ export function CampanhaPage() {
 
   return (
     <div className={styles.pagina}>
-      <Link to="/app/campanhas" className={styles.voltar}>
+      <Link to="/app/anuncios" className={styles.voltar}>
         <Icone nome="voltar" tamanho={16} />
-        Voltar para Campanhas
+        Voltar para Anúncios
       </Link>
 
       <div className={ui.painel}>

@@ -71,8 +71,8 @@ describe('CampanhasPage', () => {
   it('sem campanhas mostra o estado vazio com a ação de criar', async () => {
     bancoFalso().reiniciar({ clients: [CLIENTE] })
     renderizar(<CampanhasPage />)
-    expect(await screen.findByText('Nenhuma campanha ainda.')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: 'Nova campanha' }).length).toBeGreaterThan(0)
+    expect(await screen.findByText('Nenhum anúncio ainda.')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Novo anúncio' }).length).toBeGreaterThan(0)
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
@@ -83,7 +83,7 @@ describe('CampanhasPage', () => {
     const linha = within((await screen.findByRole('link', { name: 'Black Friday' })).closest('li')!)
     expect(screen.getByRole('link', { name: 'Black Friday' })).toHaveAttribute(
       'href',
-      '/app/campanhas/g1',
+      '/app/anuncios/g1',
     )
     expect(linha.getByText(/Padaria Sol/)).toBeInTheDocument()
     expect(linha.getByText('Em execução')).toBeInTheDocument()
@@ -104,22 +104,22 @@ describe('CampanhasPage', () => {
     expect(screen.getByRole('link', { name: 'Institucional' })).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'finalizada' } })
-    expect(screen.getByText('Nenhuma campanha com esse status.')).toBeInTheDocument()
+    expect(screen.getByText('Nenhum anúncio com esse status.')).toBeInTheDocument()
   })
 
   it('cria a campanha, aceita orçamento com vírgula e registra a atividade', async () => {
     bancoFalso().reiniciar({ clients: [CLIENTE] })
     renderizar(<CampanhasPage />)
-    await screen.findByText('Nenhuma campanha ainda.')
-    fireEvent.click(screen.getAllByRole('button', { name: 'Nova campanha' })[0])
+    await screen.findByText('Nenhum anúncio ainda.')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Novo anúncio' })[0])
 
-    const modal = within(screen.getByRole('dialog', { name: 'Nova campanha' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Novo anúncio' }))
     fireEvent.change(modal.getByLabelText('Nome'), { target: { value: 'Dia das Mães' } })
     fireEvent.change(modal.getByLabelText('Cliente'), { target: { value: 'c1' } })
     fireEvent.change(modal.getByLabelText('Orçamento'), { target: { value: '2.500,50' } })
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
-    expect(await screen.findByText('Campanha criada.')).toBeInTheDocument()
+    expect(await screen.findByText('Anúncio criado.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.campaigns[0]).toMatchObject({
       nome: 'Dia das Mães',
       client_id: 'c1',
@@ -137,11 +137,11 @@ describe('CampanhasPage', () => {
   it('sem clientes, o formulário manda cadastrar um antes', async () => {
     bancoFalso().reiniciar()
     renderizar(<CampanhasPage />)
-    await screen.findByText('Nenhuma campanha ainda.')
-    fireEvent.click(screen.getAllByRole('button', { name: 'Nova campanha' })[0])
+    await screen.findByText('Nenhum anúncio ainda.')
+    fireEvent.click(screen.getAllByRole('button', { name: 'Novo anúncio' })[0])
 
-    const modal = within(screen.getByRole('dialog', { name: 'Nova campanha' }))
-    expect(modal.getByText('Cadastre um cliente antes de criar uma campanha.')).toBeInTheDocument()
+    const modal = within(screen.getByRole('dialog', { name: 'Novo anúncio' }))
+    expect(modal.getByText('Cadastre um cliente antes de criar um anúncio.')).toBeInTheDocument()
     expect(modal.getByRole('link', { name: 'Ir para Clientes' })).toHaveAttribute(
       'href',
       '/app/clientes',
@@ -157,7 +157,7 @@ describe('CampanhasPage', () => {
 
     bancoFalso().erroLeitura = null
     fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
-    expect(await screen.findByText('Nenhuma campanha ainda.')).toBeInTheDocument()
+    expect(await screen.findByText('Nenhum anúncio ainda.')).toBeInTheDocument()
   })
 })
 
@@ -165,9 +165,9 @@ describe('CampanhaPage', () => {
   function abrir(id = 'g1') {
     return renderizar(
       <Routes>
-        <Route path="/app/campanhas/:id" element={<CampanhaPage />} />
+        <Route path="/app/anuncios/:id" element={<CampanhaPage />} />
       </Routes>,
-      { rota: `/app/campanhas/${id}` },
+      { rota: `/app/anuncios/${id}` },
     )
   }
 
@@ -178,7 +178,7 @@ describe('CampanhaPage', () => {
     expect(screen.getByText(/Padaria Sol/)).toBeInTheDocument()
     expect(screen.getByText(/3\.000,00/)).toBeInTheDocument()
     expect(screen.getByText(/Otimização pendente desde/)).toBeInTheDocument()
-    expect(screen.getByLabelText('Estratégia da campanha')).toHaveValue('Remarketing para quem visitou o site')
+    expect(screen.getByLabelText('Estratégia do anúncio')).toHaveValue('Remarketing para quem visitou o site')
   })
 
   it('campanha sem otimização pendente não mostra o alerta', async () => {
@@ -208,7 +208,7 @@ describe('CampanhaPage', () => {
   it('salva a estratégia ao sair do campo', async () => {
     popular()
     abrir()
-    const campo = await screen.findByLabelText('Estratégia da campanha')
+    const campo = await screen.findByLabelText('Estratégia do anúncio')
     fireEvent.change(campo, { target: { value: 'Foco em público frio' } })
     fireEvent.blur(campo)
     expect(await screen.findByText('Estratégia salva.')).toBeInTheDocument()
@@ -309,22 +309,22 @@ describe('CampanhaPage', () => {
     popular()
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
-    const modal = within(screen.getByRole('dialog', { name: 'Editar campanha' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Editar anúncio' }))
     expect(modal.getByLabelText('Orçamento')).toHaveValue('3000,00')
     fireEvent.change(modal.getByLabelText('Status'), { target: { value: 'pausada' } })
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
-    expect(await screen.findByText('Campanha atualizada.')).toBeInTheDocument()
+    expect(await screen.findByText('Anúncio atualizado.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.campaigns[0].status).toBe('pausada')
   })
 
   it('avisa quando a campanha não existe', async () => {
     popular()
     abrir('nao-existe')
-    expect(await screen.findByText('Campanha não encontrada.')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Voltar para Campanhas' })).toHaveAttribute(
+    expect(await screen.findByText('Anúncio não encontrado.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Voltar para Anúncios' })).toHaveAttribute(
       'href',
-      '/app/campanhas',
+      '/app/anuncios',
     )
   })
 })

@@ -16,7 +16,7 @@ const TIPOS: Record<TipoDeResultado, { rotulo: string; icone: NomeIcone }> = {
   cliente: { rotulo: 'Cliente', icone: 'clientes' },
   demanda: { rotulo: 'Demanda', icone: 'demandas' },
   conteudo: { rotulo: 'Conteúdo', icone: 'conteudo' },
-  campanha: { rotulo: 'Campanha', icone: 'campanhas' },
+  campanha: { rotulo: 'Anúncio', icone: 'campanhas' },
 }
 
 function Paleta({ onFechar }: { onFechar: () => void }) {
@@ -65,7 +65,7 @@ function Paleta({ onFechar }: { onFechar: () => void }) {
         aria-autocomplete="list"
         autoComplete="off"
         autoFocus
-        placeholder="Cliente, demanda, conteúdo ou campanha"
+        placeholder="Cliente, demanda, conteúdo ou anúncio"
         value={termo}
         onChange={(evento) => {
           setTermo(evento.target.value)
@@ -79,7 +79,7 @@ function Paleta({ onFechar }: { onFechar: () => void }) {
       ) : consultas.carregando ? (
         <p className={ui.mudo}>Carregando…</p>
       ) : termo.trim() === '' ? (
-        <p className={ui.mudo}>Digite para procurar em clientes, demandas, conteúdos e campanhas.</p>
+        <p className={ui.mudo}>Digite para procurar em clientes, demandas, conteúdos e anúncios.</p>
       ) : resultados.length === 0 ? (
         <EstadoVazio ilustracao="busca" titulo={`Nada encontrado para "${termo.trim()}".`} />
       ) : (

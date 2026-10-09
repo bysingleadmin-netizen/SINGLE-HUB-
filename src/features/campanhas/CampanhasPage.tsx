@@ -33,7 +33,7 @@ export function CampanhasPage() {
   const botaoNova = (
     <Button onClick={() => setCriando(true)}>
       <Icone nome="mais" tamanho={16} />
-      Nova campanha
+      Novo anúncio
     </Button>
   )
 
@@ -60,12 +60,12 @@ export function CampanhasPage() {
         </div>
       ) : lista.length === 0 ? (
         <EstadoVazio
-          ilustracao="campanhas" titulo="Nenhuma campanha ainda."
+          ilustracao="campanhas" titulo="Nenhum anúncio ainda."
           texto="Crie a primeira para acompanhar estratégia, tarefas e otimizações."
           acao={botaoNova}
         />
       ) : visiveis.length === 0 ? (
-        <EstadoVazio ilustracao="busca" titulo="Nenhuma campanha com esse status." />
+        <EstadoVazio ilustracao="busca" titulo="Nenhum anúncio com esse status." />
       ) : (
         <ul className={`${styles.lista} stagger`}>
           {visiveis.map((campanha) => {
@@ -73,7 +73,7 @@ export function CampanhasPage() {
             return (
               <li key={campanha.id} className={styles.item}>
                 <div className={ui.linhaTexto}>
-                  <Link to={`/app/campanhas/${campanha.id}`} className={styles.itemNome}>
+                  <Link to={`/app/anuncios/${campanha.id}`} className={styles.itemNome}>
                     {campanha.nome}
                   </Link>
                   <span className={ui.mudo}>

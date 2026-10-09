@@ -10,7 +10,7 @@ import {
 describe('validarCampanha', () => {
   it('exige nome e cliente', () => {
     expect(validarCampanha(formNovaCampanha())).toEqual({
-      erros: { nome: 'Informe o nome da campanha.', client_id: 'Escolha o cliente.' },
+      erros: { nome: 'Informe o nome do anúncio.', client_id: 'Escolha o cliente.' },
     })
   })
 

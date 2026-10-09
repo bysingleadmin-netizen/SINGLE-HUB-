@@ -45,7 +45,7 @@ export function FormTarefaDeCampanha({
     evento.preventDefault()
     const limpo = titulo.trim()
     const novos = {
-      campanha: campanhaId === '' ? 'Escolha a campanha.' : undefined,
+      campanha: campanhaId === '' ? 'Escolha o anúncio.' : undefined,
       titulo: limpo === '' ? 'Informe o título da tarefa.' : undefined,
     }
     setErros(novos)
@@ -63,7 +63,7 @@ export function FormTarefaDeCampanha({
       },
       {
         onSuccess: (salva) => {
-          toast.sucesso('Tarefa adicionada à campanha.')
+          toast.sucesso('Tarefa adicionada ao anúncio.')
           void registrarAtividade({
             acao: 'tarefa_de_anuncio_criada',
             descricao: `criou a tarefa de anúncio "${salva.titulo}"`,
@@ -72,9 +72,9 @@ export function FormTarefaDeCampanha({
           })
           void notificar([salva.responsavel_id], {
             tipo: 'tarefa',
-            titulo: 'Nova tarefa de campanha para você',
+            titulo: 'Nova tarefa de anúncio para você',
             mensagem: `${perfil?.nome ?? 'Alguém'} atribuiu a tarefa "${salva.titulo}" a você.`,
-            link: `/app/campanhas/${salva.campaign_id}`,
+            link: `/app/anuncios/${salva.campaign_id}`,
           })
           onFechar()
         },
@@ -86,9 +86,9 @@ export function FormTarefaDeCampanha({
   if (campanhas.isSuccess && campanhas.data.length === 0) {
     return (
       <>
-        <p>Crie uma campanha antes de adicionar tarefas a ela.</p>
-        <Link to="/app/campanhas" className={ui.linkAcao} onClick={onFechar}>
-          Ir para Campanhas
+        <p>Crie um anúncio antes de adicionar tarefas a ele.</p>
+        <Link to="/app/anuncios" className={ui.linkAcao} onClick={onFechar}>
+          Ir para Anúncios
         </Link>
       </>
     )
@@ -98,8 +98,8 @@ export function FormTarefaDeCampanha({
     <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
       <div className={ui.duasColunas}>
         <Selecao
-          rotulo="Campanha"
-          vazio="Escolha a campanha"
+          rotulo="Anúncio"
+          vazio="Escolha o anúncio"
           opcoes={(campanhas.data ?? []).map((c) => ({ valor: c.id, rotulo: c.nome }))}
           value={campanhaId}
           erro={erros.campanha}

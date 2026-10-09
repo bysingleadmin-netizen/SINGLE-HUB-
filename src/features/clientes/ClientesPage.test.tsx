@@ -264,9 +264,9 @@ describe('página do cliente: abas', () => {
 
   it('Campanhas e Conteúdos listam o que é do cliente', async () => {
     await abrirCliente()
-    expect(aba('Campanhas').getByRole('link', { name: 'Black Friday' })).toHaveAttribute(
+    expect(aba('Anúncios').getByRole('link', { name: 'Black Friday' })).toHaveAttribute(
       'href',
-      '/app/campanhas/g1',
+      '/app/anuncios/g1',
     )
     const conteudos = aba('Conteúdos')
     expect(conteudos.getByRole('link', { name: 'Carrossel de dicas' })).toHaveAttribute(
@@ -278,7 +278,7 @@ describe('página do cliente: abas', () => {
 
   it('aba sem itens mostra estado vazio', async () => {
     await abrirCliente('CEO', 'c2')
-    expect(aba('Campanhas').getByText('Nenhuma campanha para este cliente.')).toBeInTheDocument()
+    expect(aba('Anúncios').getByText('Nenhum anúncio para este cliente.')).toBeInTheDocument()
     expect(aba('Conteúdos').getByText('Nenhum conteúdo para este cliente.')).toBeInTheDocument()
   })
 })

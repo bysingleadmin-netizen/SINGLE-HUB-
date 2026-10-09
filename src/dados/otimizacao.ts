@@ -21,7 +21,7 @@ export function useRegistrarOtimizacao() {
             toast.sucesso('Otimização registrada.')
             void registrarAtividade({
               acao: 'otimizacao_registrada',
-              descricao: `registrou a otimização da campanha "${campanha.nome}"`,
+              descricao: `registrou a otimização do anúncio "${campanha.nome}"`,
               entidade: 'campaigns',
               entidadeId: campanha.id,
             })

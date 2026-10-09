@@ -55,7 +55,7 @@ export function validarCampanha(form: FormCampanha): Validacao<ValoresCampanha, 
   const nome = form.nome.trim()
   const orcamento = form.orcamento.trim() === '' ? 0 : parseMoeda(form.orcamento)
 
-  if (nome === '') erros.nome = 'Informe o nome da campanha.'
+  if (nome === '') erros.nome = 'Informe o nome do anúncio.'
   if (form.client_id === '') erros.client_id = 'Escolha o cliente.'
   if (orcamento == null) erros.orcamento = 'Informe um valor como 1.500,00.'
   if (form.data_inicio && form.data_fim && form.data_fim < form.data_inicio) {

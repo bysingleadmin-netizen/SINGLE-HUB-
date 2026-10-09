@@ -16,7 +16,7 @@ export const ITENS_NAV: readonly ItemNav[] = [
   { rota: '/app/clientes', rotulo: 'Clientes', icone: 'clientes' },
   { rota: '/app/demandas', rotulo: 'Demandas', icone: 'demandas' },
   { rota: '/app/conteudo', rotulo: 'Conteúdo', icone: 'conteudo' },
-  { rota: '/app/campanhas', rotulo: 'Campanhas', icone: 'campanhas' },
+  { rota: '/app/anuncios', rotulo: 'Anúncios', icone: 'campanhas' },
   { rota: '/app/calendario', rotulo: 'Calendário', icone: 'calendario' },
   { rota: '/app/financeiro', rotulo: 'Financeiro', icone: 'financeiro', apenasLideranca: true },
   { rota: '/app/configuracoes', rotulo: 'Configurações', icone: 'configuracoes' },
@@ -46,7 +46,7 @@ export function avisosDoMenu(
     }
   }
   if (pendentes > 0) {
-    avisos['/app/campanhas'] = {
+    avisos['/app/anuncios'] = {
       total: pendentes,
       descricao: plural(pendentes, 'otimização pendente', 'otimizações pendentes'),
     }

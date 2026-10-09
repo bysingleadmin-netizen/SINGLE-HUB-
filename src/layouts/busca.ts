@@ -20,7 +20,7 @@ interface Acervo {
 
 const LIMITE = 12
 
-/** Procura o termo em clientes, demandas, conteúdos e campanhas, sem ligar para acentos. */
+/** Procura o termo em clientes, demandas, conteúdos e anúncios, sem ligar para acentos. */
 export function buscar(termo: string, acervo: Acervo): Resultado[] {
   const alvo = semAcentos(termo.trim())
   if (alvo === '') return []
@@ -52,7 +52,7 @@ export function buscar(termo: string, acervo: Acervo): Resultado[] {
         tipo: 'campanha',
         id: c.id,
         nome: c.nome,
-        rota: `/app/campanhas/${c.id}`,
+        rota: `/app/anuncios/${c.id}`,
       })),
   ].slice(0, LIMITE)
 }

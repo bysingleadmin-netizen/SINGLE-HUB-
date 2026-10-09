@@ -7,7 +7,7 @@ describe('itensVisiveis', () => {
       'Clientes',
       'Demandas',
       'Conteúdo',
-      'Campanhas',
+      'Anúncios',
       'Calendário',
       'Configurações',
     ])
@@ -19,7 +19,7 @@ describe('itensVisiveis', () => {
       'Clientes',
       'Demandas',
       'Conteúdo',
-      'Campanhas',
+      'Anúncios',
       'Calendário',
       'Financeiro',
       'Configurações',
@@ -50,7 +50,7 @@ describe('avisosDoMenu', () => {
     )
     expect(avisos).toEqual({
       '/app/demandas': { total: 2, descricao: '2 demandas atrasadas' },
-      '/app/campanhas': { total: 1, descricao: '1 otimização pendente' },
+      '/app/anuncios': { total: 1, descricao: '1 otimização pendente' },
     })
   })
 
@@ -62,7 +62,7 @@ describe('avisosDoMenu', () => {
 describe('tituloDaRota', () => {
   it('acha o título pela rota, inclusive em subrotas', () => {
     expect(tituloDaRota('/app/dashboard')).toBe('Dashboard')
-    expect(tituloDaRota('/app/campanhas/123')).toBe('Campanhas')
+    expect(tituloDaRota('/app/anuncios/123')).toBe('Anúncios')
     expect(tituloDaRota('/app/financeiro/dre')).toBe('Financeiro')
   })
 

@@ -218,8 +218,8 @@ export function DashboardPage() {
             <EstadoVazio
               ilustracao="campanhas" titulo="Nenhuma otimização nos próximos 3 dias."
               acao={
-                <Link to="/app/campanhas" className={ui.linkAcao}>
-                  Criar campanha
+                <Link to="/app/anuncios" className={ui.linkAcao}>
+                  Criar anúncio
                 </Link>
               }
             />
@@ -228,7 +228,7 @@ export function DashboardPage() {
               {otimizacoes.map((campanha) => (
                 <li key={campanha.id} className={`${ui.linha} ${ui.linhaClicavel}`}>
                   <div className={ui.linhaTexto}>
-                    <Link to={`/app/campanhas/${campanha.id}`} className={ui.linhaTitulo}>
+                    <Link to={`/app/anuncios/${campanha.id}`} className={ui.linhaTitulo}>
                       {campanha.nome}
                     </Link>
                     <span className={ui.mudo}>
@@ -260,7 +260,7 @@ export function DashboardPage() {
         ) : registros.length === 0 ? (
           <EstadoVazio
             ilustracao="atividade" titulo="Nada registrado ainda."
-            texto="Clientes, demandas, conteúdos e campanhas criados pela equipe aparecem aqui."
+            texto="Clientes, demandas, conteúdos e anúncios criados pela equipe aparecem aqui."
           />
         ) : (
           <ul className={`${ui.lista} stagger`}>

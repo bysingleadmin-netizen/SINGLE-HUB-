@@ -91,15 +91,15 @@ describe('criação central de tarefas', () => {
     popular()
     const modal = await abrir()
     fireEvent.change(modal.getByLabelText('Categoria'), { target: { value: 'campanha' } })
-    expect(modal.getByText('Vai para a campanha escolhida, no menu Campanhas.')).toBeInTheDocument()
+    expect(modal.getByText('Vai para o anúncio escolhido, no menu Anúncios.')).toBeInTheDocument()
 
     await modal.findByRole('option', { name: 'Black Friday' })
-    fireEvent.change(modal.getByLabelText('Campanha'), { target: { value: 'g1' } })
+    fireEvent.change(modal.getByLabelText('Anúncio'), { target: { value: 'g1' } })
     fireEvent.change(modal.getByLabelText('Função'), { target: { value: 'criativos' } })
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Três criativos estáticos' } })
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
-    expect(await screen.findByText('Tarefa adicionada à campanha.')).toBeInTheDocument()
+    expect(await screen.findByText('Tarefa adicionada ao anúncio.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.campaign_tasks[0]).toMatchObject({
       campaign_id: 'g1',
       funcao: 'criativos',
@@ -113,7 +113,7 @@ describe('criação central de tarefas', () => {
     const modal = await abrir()
     fireEvent.change(modal.getByLabelText('Categoria'), { target: { value: 'campanha' } })
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
-    expect(await modal.findByText('Escolha a campanha.')).toBeInTheDocument()
+    expect(await modal.findByText('Escolha o anúncio.')).toBeInTheDocument()
     expect(modal.getByText('Informe o título da tarefa.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.campaign_tasks).toHaveLength(0)
   })
@@ -123,11 +123,11 @@ describe('criação central de tarefas', () => {
     const modal = await abrir()
     fireEvent.change(modal.getByLabelText('Categoria'), { target: { value: 'campanha' } })
     expect(
-      await modal.findByText('Crie uma campanha antes de adicionar tarefas a ela.'),
+      await modal.findByText('Crie um anúncio antes de adicionar tarefas a ele.'),
     ).toBeInTheDocument()
-    expect(modal.getByRole('link', { name: 'Ir para Campanhas' })).toHaveAttribute(
+    expect(modal.getByRole('link', { name: 'Ir para Anúncios' })).toHaveAttribute(
       'href',
-      '/app/campanhas',
+      '/app/anuncios',
     )
     expect(modal.queryByRole('button', { name: 'Salvar' })).not.toBeInTheDocument()
   })

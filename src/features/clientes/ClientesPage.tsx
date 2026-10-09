@@ -52,7 +52,7 @@ export function ClientesPage() {
         <EstadoVazio
           ilustracao="clientes"
           titulo="Nenhum cliente cadastrado."
-          texto="Cadastre o primeiro cliente para começar a organizar demandas e campanhas."
+          texto="Cadastre o primeiro cliente para começar a organizar demandas e anúncios."
           acao={botaoNovo}
         />
       ) : (

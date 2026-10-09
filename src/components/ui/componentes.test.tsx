@@ -43,6 +43,23 @@ describe('Modal', () => {
     expect(onFechar).toHaveBeenCalledTimes(3)
   })
 
+  it('leva o foco para o diálogo ao abrir, sem tirar do campo que pediu foco', () => {
+    const { unmount } = render(
+      <Modal aberto titulo="Aviso" onFechar={() => {}}>
+        texto
+      </Modal>,
+    )
+    expect(screen.getByRole('dialog')).toHaveFocus()
+    unmount()
+
+    render(
+      <Modal aberto titulo="Novo cliente" onFechar={() => {}}>
+        <input aria-label="Nome" autoFocus />
+      </Modal>,
+    )
+    expect(screen.getByLabelText('Nome')).toHaveFocus()
+  })
+
   it('Escape fecha só a camada de cima quando há um modal sobre um drawer', () => {
     const fecharDrawer = vi.fn()
     const fecharModal = vi.fn()

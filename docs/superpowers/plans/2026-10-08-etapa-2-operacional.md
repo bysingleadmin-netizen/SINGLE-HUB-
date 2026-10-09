@@ -33,14 +33,16 @@ O pedido da etapa 2 difere da spec em alguns pontos. Vale o pedido mais recente:
 
 ## Tasks
 
-- [ ] 1. Base: `@dnd-kit/core`, `src/lib/regras.ts` com testes, `src/lib/rotulos.ts`, `src/dados` (hooks genéricos, atividade, storage), componentes de UI (Modal, Drawer, Pill, KpiCard, Selecao, AreaTexto, Estado), logotipo.
-- [ ] 2. Dashboard. Deploy.
-- [ ] 3. Clientes: grid, modal de cadastro e edição, drawer de detalhe, upload de logo, pagamentos. Deploy.
-- [ ] 4. Quadro Kanban compartilhado; Demandas com filtros. Deploy.
-- [ ] 5. Conteúdo. Deploy.
-- [ ] 6. Campanhas: lista, criação, detalhe com estratégia, otimização e tarefas por função. Deploy.
-- [ ] 7. Configurações: perfil, avatar, equipe. Deploy.
-- [ ] 8. Verificação final: testes, build, checagem das colunas contra a API.
+- [x] 1. Base: `@dnd-kit/core`, `src/lib/regras.ts` com testes, `src/lib/rotulos.ts`, `src/dados` (hooks genéricos, atividade, storage), componentes de UI (Modal, Drawer, Pill, KpiCard, Selecao, AreaTexto, Estado), logotipo.
+- [x] 2. Dashboard. Deploy.
+- [x] 3. Clientes: grid, modal de cadastro e edição, drawer de detalhe, upload de logo, pagamentos. Deploy.
+- [x] 4. Quadro Kanban compartilhado; Demandas com filtros. Deploy.
+- [x] 5. Conteúdo. Deploy.
+- [x] 6. Campanhas: lista, criação, detalhe com estratégia, otimização e tarefas por função. Deploy.
+- [x] 7. Configurações: perfil, avatar, equipe. Deploy.
+- [x] 8. Verificação final: testes, build, checagem das colunas contra a API.
+
+Estado em 2026-10-08: as oito tarefas estão concluídas na branch `etapa-2-operacional`. Ficaram pendentes a publicação (`vercel deploy --prod` não foi autorizado na sessão que concluiu o trabalho) e o logotipo vetorial (o arquivo da marca não está no repositório).
 
 ## Review Focus
 

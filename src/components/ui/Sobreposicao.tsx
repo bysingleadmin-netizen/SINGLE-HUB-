@@ -29,12 +29,14 @@ export function Sobreposicao({
   const caixa = useRef<HTMLDivElement>(null)
   const fechar = useRef(onFechar)
   fechar.current = onFechar
+  // Guardado ainda na renderização: depois dela, um campo com autoFocus já teria levado o foco
+  const focoAnterior = useRef<Element | null>(null)
+  if (aberto && !focoAnterior.current) focoAnterior.current = document.activeElement
 
   useEffect(() => {
     if (!aberto) return
     pilha.push(id)
-    const focoAnterior = document.activeElement
-    caixa.current?.focus()
+    if (!caixa.current?.contains(document.activeElement)) caixa.current?.focus()
 
     function aoTeclar(evento: KeyboardEvent) {
       if (evento.key === 'Escape' && pilha[pilha.length - 1] === id) {
@@ -46,7 +48,8 @@ export function Sobreposicao({
     return () => {
       document.removeEventListener('keydown', aoTeclar)
       pilha.splice(pilha.indexOf(id), 1)
-      if (focoAnterior instanceof HTMLElement) focoAnterior.focus()
+      if (focoAnterior.current instanceof HTMLElement) focoAnterior.current.focus()
+      focoAnterior.current = null
     }
   }, [aberto, id])
 

@@ -125,7 +125,8 @@ function MeuPerfil({ perfil }: { perfil: Profile }) {
 
 function ConviteModal({ onFechar }: { onFechar: () => void }) {
   const [email, setEmail] = useState('')
-  const [erro, setErro] = useState<string>()
+  const [cargo, setCargo] = useState<Cargo>('Social Media')
+  const [erroEmail, setErroEmail] = useState<string>()
   const convidar = useConvidar()
   const toast = useToast()
 
@@ -133,11 +134,11 @@ function ConviteModal({ onFechar }: { onFechar: () => void }) {
     evento.preventDefault()
     const limpo = email.trim()
     if (!emailValido(limpo)) {
-      setErro('Informe um e-mail válido.')
+      setErroEmail('Informe um e-mail válido.')
       return
     }
-    setErro(undefined)
-    convidar.mutate(limpo, {
+    setErroEmail(undefined)
+    convidar.mutate({ email: limpo, cargo }, {
       onSuccess: () => {
         toast.sucesso(`Convite enviado para ${limpo}.`)
         onFechar()
@@ -150,16 +151,21 @@ function ConviteModal({ onFechar }: { onFechar: () => void }) {
     <Modal aberto titulo="Convidar colaborador" onFechar={onFechar}>
       <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
         <p className={ui.mudo}>
-          A pessoa recebe um e-mail com o link para criar a senha. Ela entra como Social Media e o
-          cargo pode ser ajustado aqui na lista.
+          A pessoa receberá um código de 6 dígitos por e-mail para criar a conta. O código expira em 1 hora.
         </p>
         <Campo
           rotulo="E-mail"
           type="email"
           autoFocus
           value={email}
-          erro={erro}
+          erro={erroEmail}
           onChange={(evento) => setEmail(evento.target.value)}
+        />
+        <Selecao
+          rotulo="Cargo"
+          opcoes={OPCOES_CARGO}
+          value={cargo}
+          onChange={(evento) => setCargo(evento.target.value as Cargo)}
         />
         <div className={ui.acoes}>
           <Button variante="fantasma" onClick={onFechar}>

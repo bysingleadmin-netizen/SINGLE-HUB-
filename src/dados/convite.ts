@@ -4,8 +4,6 @@ import { supabase } from '@/lib/supabase'
 export const FUNCAO_NAO_PUBLICADA =
   'A função de convite ainda não foi publicada no Supabase. Veja docs/INTEGRACOES.md.'
 
-// Sem resposta nenhuma: o navegador não chegou à função. O caso mais comum é ela não existir
-// neste projeto (ou ter sido publicada com outro nome), quando o Supabase responde sem CORS.
 export const FUNCAO_INALCANCAVEL =
   'Não foi possível chegar à função de convite. Confira no Supabase se existe uma Edge Function chamada convidar-colaborador neste projeto. Veja docs/INTEGRACOES.md.'
 
@@ -14,7 +12,6 @@ interface Recusa {
   detalhe?: string
 }
 
-/** O erro de uma Edge Function traz a resposta HTTP em `context`; daí saem o status e o motivo. */
 async function lerFalha(error: unknown): Promise<{ status?: number; corpo: Recusa | null }> {
   const contexto = (error as { context?: { status?: number; json?: () => Promise<unknown> } }).context
   let corpo: Recusa | null = null
@@ -22,23 +19,23 @@ async function lerFalha(error: unknown): Promise<{ status?: number; corpo: Recus
     try {
       corpo = (await contexto.json()) as Recusa
     } catch {
-      // resposta sem JSON: fica só o status
+      // resposta sem JSON
     }
   }
   return { status: contexto?.status, corpo }
 }
 
-/**
- * Convida alguém por e-mail. O convite em si é feito pela Edge Function
- * `convidar-colaborador`: ele exige a chave de serviço do Supabase, que não pode
- * ficar no navegador. A função confere se quem pede é da liderança.
- * Rejeita com uma mensagem pronta para mostrar à pessoa, sempre com o motivo que a função deu.
- */
+interface ConviteParams {
+  email: string
+  nome?: string
+  cargo: string
+}
+
 export function useConvidar() {
   return useMutation({
-    mutationFn: async (email: string) => {
+    mutationFn: async ({ email, nome, cargo }: ConviteParams) => {
       const { data, error } = await supabase.functions.invoke('convidar-colaborador', {
-        body: { email },
+        body: { email, nome, cargo },
       })
       if (error) {
         const { status, corpo } = await lerFalha(error)

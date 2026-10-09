@@ -6,6 +6,7 @@ import {
   proximasOtimizacoes,
   situacaoDoPrazo,
   formatarFidelidade,
+  mrrPorMes,
   otimizacaoPendente,
   pagamentoAtrasado,
   parseMoeda,
@@ -169,6 +170,56 @@ describe('parseMoeda', () => {
     expect(parseMoeda('')).toBeNull()
     expect(parseMoeda('abc')).toBeNull()
     expect(parseMoeda('-10')).toBeNull()
+  })
+})
+
+describe('mrrPorMes', () => {
+  const cliente = (mrr: number, inicio: string | null, status = 'ativo') =>
+    ({ mrr, data_inicio_contrato: inicio, status }) as Client
+
+  it('devolve os seis meses até o atual, do mais antigo para o mais novo', () => {
+    const serie = mrrPorMes([], HOJE)
+    expect(serie.map((p) => p.mes)).toEqual([
+      '2026-05',
+      '2026-06',
+      '2026-07',
+      '2026-08',
+      '2026-09',
+      '2026-10',
+    ])
+    expect(serie.map((p) => p.rotulo)).toEqual(['mai', 'jun', 'jul', 'ago', 'set', 'out'])
+    expect(serie.every((p) => p.valor === 0)).toBe(true)
+  })
+
+  it('soma em cada mês o MRR dos clientes ativos cujo contrato já tinha começado', () => {
+    const serie = mrrPorMes(
+      [
+        cliente(1000, '2025-01-10'),
+        cliente(500, '2026-08-31'),
+        cliente(250.5, '2026-10-01'),
+        cliente(900, '2026-11-01'),
+        cliente(700, '2026-01-01', 'churn'),
+      ],
+      HOJE,
+    )
+    expect(serie.map((p) => p.valor)).toEqual([1000, 1000, 1000, 1500, 1500, 1750.5])
+  })
+
+  it('cliente sem data de início conta em todos os meses', () => {
+    expect(mrrPorMes([cliente(300, null)], HOJE).map((p) => p.valor)).toEqual([
+      300, 300, 300, 300, 300, 300,
+    ])
+  })
+
+  it('vira o ano corretamente', () => {
+    expect(mrrPorMes([], '2026-02-15').map((p) => p.mes)).toEqual([
+      '2025-09',
+      '2025-10',
+      '2025-11',
+      '2025-12',
+      '2026-01',
+      '2026-02',
+    ])
   })
 })
 

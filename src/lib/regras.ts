@@ -130,3 +130,38 @@ export function calcularMetricas(
     conteudosAguardando: cards.filter((c) => c.etapa === 'aguardando_aprovacao').length,
   }
 }
+
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+
+export interface PontoDeMRR {
+  /** 'AAAA-MM' */
+  mes: string
+  /** 'jan', 'fev'... */
+  rotulo: string
+  valor: number
+}
+
+/**
+ * MRR mês a mês, do mais antigo ao atual. O banco não guarda histórico de MRR,
+ * então cada mês soma o valor de hoje dos clientes ativos cujo contrato já tinha
+ * começado naquele mês. Cliente sem data de início conta em todos.
+ */
+export function mrrPorMes(
+  clientes: Pick<Client, 'status' | 'mrr' | 'data_inicio_contrato'>[],
+  hoje: string,
+  meses = 6,
+): PontoDeMRR[] {
+  const [ano, mes] = hoje.split('-').map(Number)
+  const ativos = clientes.filter((c) => c.status === 'ativo')
+  return Array.from({ length: meses }, (_, i) => {
+    const indice = ano * 12 + (mes - 1) - (meses - 1 - i)
+    const chave = `${Math.floor(indice / 12)}-${String((indice % 12) + 1).padStart(2, '0')}`
+    return {
+      mes: chave,
+      rotulo: MESES[indice % 12],
+      valor: ativos
+        .filter((c) => !c.data_inicio_contrato || c.data_inicio_contrato.slice(0, 7) <= chave)
+        .reduce((soma, c) => soma + Number(c.mrr), 0),
+    }
+  })
+}

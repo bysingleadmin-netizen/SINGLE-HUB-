@@ -40,6 +40,16 @@ function popular() {
         created_at: '2026-01-02',
       },
       { id: 't3', titulo: 'Feita', status: 'concluido', tipo: 'trafego', created_at: '2026-01-03' },
+      {
+        id: 't4',
+        titulo: 'Aprovar criativos',
+        status: 'aguardando_aprovacao',
+        tipo: 'trafego',
+        client_id: 'c2',
+        responsavel_id: 'u1',
+        data_entrega: HOJE,
+        created_at: '2026-01-04',
+      },
     ],
     content_cards: [
       { id: 'k1', titulo: 'Carrossel', etapa: 'aguardando_aprovacao', created_at: '2026-01-01' },
@@ -60,6 +70,32 @@ function popular() {
         client_id: 'c2',
         status: 'em_execucao',
         proxima_otimizacao: somarDias(HOJE, 20),
+        created_at: '2026-01-02',
+      },
+    ],
+    calendar_events: [
+      {
+        id: 'e1',
+        titulo: 'Reunião de pauta',
+        descricao: null,
+        tipo: 'reuniao',
+        data_inicio: new Date(new Date().setHours(14, 0, 0, 0)).toISOString(),
+        data_fim: null,
+        dia_inteiro: false,
+        client_id: null,
+        created_by: 'u1',
+        created_at: '2026-01-01',
+      },
+      {
+        id: 'e2',
+        titulo: 'Evento de outro dia',
+        descricao: null,
+        tipo: 'outro',
+        data_inicio: '2020-01-01T12:00:00Z',
+        data_fim: null,
+        dia_inteiro: false,
+        client_id: null,
+        created_by: 'u1',
         created_at: '2026-01-02',
       },
     ],
@@ -104,7 +140,7 @@ describe('DashboardPage', () => {
     expect(await screen.findByText(/4\.000,50/)).toBeInTheDocument()
     const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
     expect(valorDe('Clientes ativos')).toHaveTextContent('2')
-    expect(valorDe('Tarefas abertas')).toHaveTextContent('2')
+    expect(valorDe('Tarefas abertas')).toHaveTextContent('3')
     expect(valorDe('Conteúdos aguardando aprovação')).toHaveTextContent('1')
   })
 
@@ -151,6 +187,38 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByText('Não foi possível registrar a otimização.')).toBeInTheDocument()
     expect(otimizacoes.getByText('Black Friday')).toBeInTheDocument()
+  })
+
+  it('a seção Hoje junta os eventos e as entregas do dia', async () => {
+    popular()
+    renderizar(<DashboardPage />)
+    const hojePainel = painel('Hoje')
+    expect(await hojePainel.findByRole('link', { name: 'Reunião de pauta' })).toHaveAttribute(
+      'href',
+      `/app/calendario?dia=${HOJE}`,
+    )
+    expect(hojePainel.getByText('14:00')).toBeInTheDocument()
+    expect(hojePainel.getByRole('link', { name: 'Aprovar criativos' })).toHaveAttribute(
+      'href',
+      '/app/demandas?abrir=t4',
+    )
+    expect(hojePainel.queryByText('Evento de outro dia')).not.toBeInTheDocument()
+    expect(hojePainel.queryByText('Relatório mensal')).not.toBeInTheDocument()
+  })
+
+  it('sem nada para hoje, a seção diz isso', async () => {
+    bancoFalso().reiniciar()
+    renderizar(<DashboardPage />)
+    expect(await painel('Hoje').findByText('Nada marcado para hoje.')).toBeInTheDocument()
+  })
+
+  it('desenha o gráfico de MRR dos últimos seis meses', async () => {
+    popular()
+    renderizar(<DashboardPage />)
+    const grafico = await screen.findByRole('img', { name: /^MRR dos últimos 6 meses/ })
+    expect(grafico.tagName.toLowerCase()).toBe('svg')
+    expect(grafico.querySelectorAll('circle')).toHaveLength(6)
+    expect(grafico).toHaveAccessibleName(/4\.000,50/)
   })
 
   it('mostra a atividade recente com o nome de quem fez', async () => {

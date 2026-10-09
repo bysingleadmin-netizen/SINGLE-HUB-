@@ -11,20 +11,26 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import ui from '@/components/ui/ui.module.css'
 import { useAtividadeRecente } from '@/dados/atividade'
 import { juntarConsultas, porId } from '@/dados/base'
+import { useEventos } from '@/dados/eventos'
 import { useRegistrarOtimizacao } from '@/dados/otimizacao'
 import { useCampanhas, useCards, useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
+import { eventosPorDia, horarioDoEvento } from '@/features/calendario/calendario'
 import { hojeISO } from '@/lib/datas'
 import { formatarData, formatarMoeda } from '@/lib/formato'
 import {
   calcularMetricas,
   diasDeAtraso,
+  mrrPorMes,
   otimizacaoPendente,
   plural,
   proximasEntregas,
   proximasOtimizacoes,
+  tarefaAberta,
   tarefaAtrasada,
   tempoRelativo,
 } from '@/lib/regras'
+import { TIPOS_EVENTO, opcao } from '@/lib/rotulos'
+import { GraficoMRR } from './GraficoMRR'
 import styles from './dashboard.module.css'
 
 const ICONE_DA_ENTIDADE: Record<string, NomeIcone> = {
@@ -51,6 +57,7 @@ export function DashboardPage() {
   const campanhas = useCampanhas()
   const perfis = usePerfis()
   const atividade = useAtividadeRecente()
+  const eventos = useEventos()
   const { registrar, registrando } = useRegistrarOtimizacao()
 
   const hoje = hojeISO()
@@ -59,16 +66,21 @@ export function DashboardPage() {
   const nomeDoCliente = (id: string | null) =>
     (id && clientePorId.get(id)?.nome) || 'Sem cliente'
 
-  const todas = juntarConsultas(clientes, tarefas, cards, campanhas, perfis, atividade)
+  const todas = juntarConsultas(clientes, tarefas, cards, campanhas, perfis, atividade, eventos)
   const kpis = juntarConsultas(clientes, tarefas, cards)
   const painelEntregas = juntarConsultas(tarefas, clientes, perfis)
   const painelOtimizacoes = juntarConsultas(campanhas, clientes)
   const painelAtividade = juntarConsultas(atividade, perfis)
+  const painelHoje = juntarConsultas(tarefas, eventos)
 
   const metricas = calcularMetricas(clientes.data ?? [], tarefas.data ?? [], cards.data ?? [])
   const entregas = proximasEntregas(tarefas.data ?? [], hoje)
   const otimizacoes = proximasOtimizacoes(campanhas.data ?? [], hoje)
   const registros = atividade.data ?? []
+  const eventosDeHoje = eventosPorDia(eventos.data ?? []).get(hoje) ?? []
+  const entregasDeHoje = (tarefas.data ?? []).filter(
+    (tarefa) => tarefaAberta(tarefa) && tarefa.data_entrega === hoje,
+  )
 
   return (
     <div className={styles.pagina}>
@@ -101,6 +113,54 @@ export function DashboardPage() {
       )}
 
       <div className={styles.paineis}>
+        <Painel titulo="Hoje">
+          {painelHoje.erro ? (
+            <EstadoErro onTentar={todas.tentar} />
+          ) : painelHoje.carregando ? (
+            <Carregando />
+          ) : eventosDeHoje.length + entregasDeHoje.length === 0 ? (
+            <EstadoVazio ilustracao="calendario" titulo="Nada marcado para hoje." />
+          ) : (
+            <ul className={`${ui.lista} stagger`}>
+              {eventosDeHoje.map((evento) => {
+                const tipo = opcao(TIPOS_EVENTO, evento.tipo)
+                return (
+                  <li key={evento.id} className={ui.linha}>
+                    <div className={ui.linhaTexto}>
+                      <Link to={`/app/calendario?dia=${hoje}`} className={ui.linhaTitulo}>
+                        {evento.titulo}
+                      </Link>
+                      <span className={ui.mudo}>{horarioDoEvento(evento)}</span>
+                    </div>
+                    <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>
+                  </li>
+                )
+              })}
+              {entregasDeHoje.map((tarefa) => (
+                <li key={tarefa.id} className={ui.linha}>
+                  <div className={ui.linhaTexto}>
+                    <Link to={`/app/demandas?abrir=${tarefa.id}`} className={ui.linhaTitulo}>
+                      {tarefa.titulo}
+                    </Link>
+                    <span className={ui.mudo}>{nomeDoCliente(tarefa.client_id)}</span>
+                  </div>
+                  <Pill tom="amarelo">Entrega hoje</Pill>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Painel>
+
+        <Painel titulo="MRR dos últimos 6 meses">
+          {clientes.isError ? (
+            <EstadoErro onTentar={todas.tentar} />
+          ) : clientes.isLoading ? (
+            <Carregando />
+          ) : (
+            <GraficoMRR serie={mrrPorMes(clientes.data ?? [], hoje)} />
+          )}
+        </Painel>
+
         <Painel titulo="Próximas entregas">
           {painelEntregas.erro ? (
             <EstadoErro onTentar={todas.tentar} />

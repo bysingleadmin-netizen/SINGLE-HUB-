@@ -1,30 +1,40 @@
 import { useState } from 'react'
+import styles from '@/components/quadro/detalhe.module.css'
 import { useEdicaoInline } from '@/components/quadro/useEdicaoInline'
 import { AreaTexto } from '@/components/ui/AreaTexto'
 import { Campo } from '@/components/ui/Campo'
 import { Drawer } from '@/components/ui/Drawer'
+import { Icone } from '@/components/ui/Icone'
+import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
-import ui from '@/components/ui/ui.module.css'
+import type { ColunaDoQuadro } from '@/dados/colunas'
+import { useColunasOpcionais } from '@/dados/esquema'
+import { hojeISO } from '@/lib/datas'
+import { formatarData } from '@/lib/formato'
 import { textoOuNull } from '@/lib/formulario'
-import { COLUNAS_TAREFA, TIPOS_TAREFA } from '@/lib/rotulos'
-import type { Client, Profile, Task, TaskStatus, TaskTipo } from '@/types/database'
-
-const OPCOES_STATUS = COLUNAS_TAREFA.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))
+import { opcoesDePessoas } from '@/lib/pessoas'
+import { descreverPrazo, situacaoDoPrazo, tarefaAberta } from '@/lib/regras'
+import { PRIORIDADES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
+import type { Client, Prioridade, Profile, Task, TaskStatus, TaskTipo } from '@/types/database'
+import { Comentarios } from './Comentarios'
 
 interface TarefaDrawerProps {
   tarefa: Task
   clientes: Client[]
   perfis: Profile[]
+  /** Colunas do quadro, com os nomes que a equipe deu */
+  colunas: readonly ColunaDoQuadro[]
   /** Trocar o status é mover o card: quem sabe a posição e registra a atividade é a página */
   onMover: (destino: TaskStatus) => void
   onFechar: () => void
 }
 
 /** Painel lateral da demanda. Cada campo salva sozinho: textos ao sair, seleções ao escolher. */
-export function TarefaDrawer({ tarefa, clientes, perfis, onMover, onFechar }: TarefaDrawerProps) {
+export function TarefaDrawer({ tarefa, clientes, perfis, colunas, onMover, onFechar }: TarefaDrawerProps) {
   const [titulo, setTitulo] = useState(tarefa.titulo)
   const [descricao, setDescricao] = useState(tarefa.descricao ?? '')
   const [erroTitulo, setErroTitulo] = useState<string>()
+  const esquema = useColunasOpcionais()
   const salvar = useEdicaoInline<Task>('tasks', tarefa.id, {
     sucesso: 'Demanda atualizada.',
     erro: 'Não foi possível salvar a demanda.',
@@ -35,6 +45,12 @@ export function TarefaDrawer({ tarefa, clientes, perfis, onMover, onFechar }: Ta
       entidadeId: tarefa.id,
     },
   })
+
+  const hoje = hojeISO()
+  const entregue = !tarefaAberta(tarefa)
+  const tipo = opcao(TIPOS_TAREFA, tarefa.tipo)
+  const prioridade = opcao(PRIORIDADES, tarefa.prioridade ?? 'media')
+  const criador = perfis.find((p) => p.id === tarefa.created_by)
 
   function salvarTitulo() {
     const limpo = titulo.trim()
@@ -54,57 +70,90 @@ export function TarefaDrawer({ tarefa, clientes, perfis, onMover, onFechar }: Ta
 
   return (
     <Drawer aberto titulo={tarefa.titulo} onFechar={onFechar}>
-      <div className={ui.formulario}>
+      <div className={styles.detalhe}>
+        <div className={styles.resumo}>
+          <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>
+          {esquema.prioridadeTarefa && <Pill tom={prioridade.tom}>Prioridade {prioridade.rotulo}</Pill>}
+          <span
+            className={styles.prazo}
+            data-prazo={situacaoDoPrazo(tarefa.data_entrega, hoje, entregue) ?? undefined}
+          >
+            <Icone nome="calendario" tamanho={14} />
+            {descreverPrazo(tarefa.data_entrega, hoje, entregue)}
+          </span>
+        </div>
+
         <Campo
+          className={styles.titulo}
           rotulo="Título"
           value={titulo}
           erro={erroTitulo}
           onChange={(evento) => setTitulo(evento.target.value)}
           onBlur={salvarTitulo}
         />
-        <AreaTexto
-          rotulo="Descrição"
-          placeholder="Salva ao sair do campo."
-          value={descricao}
-          onChange={(evento) => setDescricao(evento.target.value)}
-          onBlur={salvarDescricao}
-        />
-        <div className={ui.duasColunas}>
-          <Selecao
-            rotulo="Status"
-            opcoes={OPCOES_STATUS}
-            value={tarefa.status}
-            onChange={(evento) => onMover(evento.target.value as TaskStatus)}
+
+        <section className={styles.bloco} aria-label="Detalhes">
+          <h3 className={styles.blocoTitulo}>Detalhes</h3>
+          <div className={styles.propriedades}>
+            <Selecao
+              rotulo="Status"
+              opcoes={colunas.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))}
+              value={tarefa.status}
+              onChange={(evento) => onMover(evento.target.value as TaskStatus)}
+            />
+            <Selecao
+              rotulo="Tipo"
+              opcoes={TIPOS_TAREFA}
+              value={tarefa.tipo}
+              onChange={(evento) => salvar({ tipo: evento.target.value as TaskTipo })}
+            />
+            <Selecao
+              rotulo="Cliente"
+              vazio="Sem cliente"
+              opcoes={clientes.map((c) => ({ valor: c.id, rotulo: c.nome }))}
+              value={tarefa.client_id ?? ''}
+              onChange={(evento) => salvar({ client_id: evento.target.value || null })}
+            />
+            <Selecao
+              rotulo="Responsável"
+              vazio="Sem responsável"
+              opcoes={opcoesDePessoas(perfis)}
+              value={tarefa.responsavel_id ?? ''}
+              onChange={(evento) => salvar({ responsavel_id: evento.target.value || null })}
+            />
+            <Campo
+              rotulo="Data de entrega"
+              type="date"
+              value={tarefa.data_entrega ?? ''}
+              onChange={(evento) => salvar({ data_entrega: evento.target.value || null })}
+            />
+            {esquema.prioridadeTarefa && (
+              <Selecao
+                rotulo="Prioridade"
+                opcoes={PRIORIDADES}
+                value={tarefa.prioridade ?? 'media'}
+                onChange={(evento) => salvar({ prioridade: evento.target.value as Prioridade })}
+              />
+            )}
+          </div>
+        </section>
+
+        <section className={styles.bloco} aria-label="Descrição da demanda">
+          <AreaTexto
+            rotulo="Descrição"
+            placeholder="Salva ao sair do campo."
+            value={descricao}
+            onChange={(evento) => setDescricao(evento.target.value)}
+            onBlur={salvarDescricao}
           />
-          <Selecao
-            rotulo="Tipo"
-            opcoes={TIPOS_TAREFA}
-            value={tarefa.tipo}
-            onChange={(evento) => salvar({ tipo: evento.target.value as TaskTipo })}
-          />
-        </div>
-        <div className={ui.duasColunas}>
-          <Selecao
-            rotulo="Cliente"
-            vazio="Sem cliente"
-            opcoes={clientes.map((c) => ({ valor: c.id, rotulo: c.nome }))}
-            value={tarefa.client_id ?? ''}
-            onChange={(evento) => salvar({ client_id: evento.target.value || null })}
-          />
-          <Selecao
-            rotulo="Responsável"
-            vazio="Sem responsável"
-            opcoes={perfis.map((p) => ({ valor: p.id, rotulo: p.nome }))}
-            value={tarefa.responsavel_id ?? ''}
-            onChange={(evento) => salvar({ responsavel_id: evento.target.value || null })}
-          />
-        </div>
-        <Campo
-          rotulo="Data de entrega"
-          type="date"
-          value={tarefa.data_entrega ?? ''}
-          onChange={(evento) => salvar({ data_entrega: evento.target.value || null })}
-        />
+        </section>
+
+        <Comentarios tarefaId={tarefa.id} perfis={perfis} />
+
+        <p className={styles.rodape}>
+          Criada em {formatarData(tarefa.created_at)}
+          {criador && ` por ${criador.nome}`}
+        </p>
       </div>
     </Drawer>
   )

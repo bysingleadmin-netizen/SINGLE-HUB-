@@ -38,14 +38,20 @@ describe('filtrarTarefas', () => {
   ] as Task[]
 
   it('sem filtros devolve tudo', () => {
-    expect(filtrarTarefas(tarefas, { tipo: '', responsavel: '' })).toHaveLength(3)
+    expect(filtrarTarefas(tarefas, { tipo: '', responsaveis: [] })).toHaveLength(3)
   })
 
   it('filtra por tipo, por responsável e pelos dois juntos', () => {
     const ids = (filtros: Parameters<typeof filtrarTarefas>[1]) =>
       filtrarTarefas(tarefas, filtros).map((t) => t.id)
-    expect(ids({ tipo: 'trafego', responsavel: '' })).toEqual(['b', 'c'])
-    expect(ids({ tipo: '', responsavel: 'u1' })).toEqual(['a'])
-    expect(ids({ tipo: 'trafego', responsavel: 'u2' })).toEqual(['b'])
+    expect(ids({ tipo: 'trafego', responsaveis: [] })).toEqual(['b', 'c'])
+    expect(ids({ tipo: '', responsaveis: ['u1'] })).toEqual(['a'])
+    expect(ids({ tipo: 'trafego', responsaveis: ['u2'] })).toEqual(['b'])
+  })
+
+  it('com vários responsáveis marcados mostra as demandas de qualquer um deles', () => {
+    expect(
+      filtrarTarefas(tarefas, { tipo: '', responsaveis: ['u1', 'u2'] }).map((t) => t.id),
+    ).toEqual(['a', 'b'])
   })
 })

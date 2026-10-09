@@ -15,6 +15,8 @@ export type Tabela =
   | 'expenses'
   | 'monthly_goals'
   | 'traffic_metrics'
+  | 'task_comments'
+  | 'board_columns'
 
 interface ComId {
   id: string

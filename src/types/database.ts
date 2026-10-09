@@ -4,7 +4,9 @@
 import type { Cargo } from '@/lib/permissoes'
 
 export type ClientStatus = 'ativo' | 'pausado' | 'churn'
-export type PaymentStatus = 'pendente' | 'pago' | 'atrasado'
+/** 'cancelado' só é aceito pelo banco depois da migration 0003 */
+export type PaymentStatus = 'pendente' | 'pago' | 'atrasado' | 'cancelado'
+export type Prioridade = 'baixa' | 'media' | 'alta' | 'urgente'
 export type FormaDePagamento = 'pix' | 'dinheiro'
 export type TaskTipo = 'conteudo' | 'trafego' | 'estrategia' | 'audiovisual'
 export type TaskStatus =
@@ -61,6 +63,8 @@ export interface ClientPayment {
   status: PaymentStatus
   /** Só existe depois da migration 0002 */
   forma_pagamento?: FormaDePagamento | null
+  /** Pago e guardado no histórico. Só existe depois da migration 0003 */
+  arquivado?: boolean
   created_at: string
 }
 
@@ -73,6 +77,8 @@ export interface Task {
   tipo: TaskTipo
   status: TaskStatus
   data_entrega: string | null
+  /** Sem valor conta como 'media' */
+  prioridade?: Prioridade | null
   posicao: number
   created_by: string | null
   created_at: string
@@ -86,6 +92,8 @@ export interface ContentCard {
   responsavel_id: string | null
   etapa: ContentEtapa
   data_entrega: string | null
+  /** Só existe depois da migration 0003; sem valor conta como 'media' */
+  prioridade?: Prioridade | null
   observacoes: string | null
   posicao: number
   created_at: string
@@ -184,5 +192,26 @@ export interface Notificacao {
   mensagem: string | null
   link: string | null
   lida: boolean
+  created_at: string
+}
+
+export interface TaskComment {
+  id: string
+  task_id: string
+  author_id: string | null
+  conteudo: string
+  created_at: string
+}
+
+export type QuadroId = 'demandas' | 'conteudo'
+
+/** Coluna de um quadro Kanban com nome e ordem definidos pela equipe (migration 0003). */
+export interface BoardColumn {
+  id: string
+  quadro: QuadroId
+  /** Valor gravado em tasks.status ou content_cards.etapa */
+  chave: string
+  titulo: string
+  posicao: number
   created_at: string
 }

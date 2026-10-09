@@ -4,4 +4,6 @@ import { afterEach } from 'vitest'
 
 afterEach(() => {
   cleanup()
+  // Preferências guardadas no navegador (menu recolhido, quadro ou lista) não vazam entre testes
+  localStorage.clear()
 })

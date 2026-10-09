@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { ReactNode } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -12,13 +12,23 @@ import {
 } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { Icone } from '@/components/ui/Icone'
-import { agrupar, destinoDoArraste } from './colunas'
+import { agrupar, destinoDoArraste, reordenarColunas } from './colunas'
 import type { ItemQuadro } from './colunas'
 import styles from './quadro.module.css'
 
 interface ColunaQuadro {
   id: string
   titulo: string
+  /** Criada pela equipe; pode ser removida quando estiver vazia */
+  personalizada?: boolean
+}
+
+/** Ações de personalização das colunas. Sem elas, o quadro tem colunas fixas. */
+export interface EdicaoDeColunas {
+  renomear: (id: string, titulo: string) => void
+  criar: (titulo: string) => void
+  reordenar: (ids: string[]) => void
+  remover: (id: string) => void
 }
 
 interface QuadroProps<T extends ItemQuadro> {
@@ -33,7 +43,11 @@ interface QuadroProps<T extends ItemQuadro> {
   onCriar: (coluna: string) => void
   onAbrir: (item: T) => void
   onArquivar: (item: T) => void
+  edicao?: EdicaoDeColunas
 }
+
+// O arraste de uma coluna usa o mesmo contexto dos cards; o prefixo separa os dois
+const PREFIXO_COLUNA = 'coluna:'
 
 interface CardProps {
   id: string
@@ -54,6 +68,7 @@ function Card({ id, titulo, atrasado, children, onAbrir, onArquivar }: CardProps
       data-arrastando={isDragging || undefined}
       {...listeners}
     >
+      {/* O botão ocupa o card inteiro: clicar em qualquer ponto abre o detalhe */}
       <button type="button" className={styles.cardAbrir} aria-label={`Abrir ${titulo}`} onClick={onAbrir}>
         {children}
       </button>
@@ -75,20 +90,66 @@ interface ColunaProps {
   total: number
   children: ReactNode
   onCriar: () => void
+  edicao?: EdicaoDeColunas
 }
 
-function Coluna({ coluna, total, children, onCriar }: ColunaProps) {
+function Coluna({ coluna, total, children, onCriar, edicao }: ColunaProps) {
   const { setNodeRef, isOver } = useDroppable({ id: coluna.id })
+  const alca = useDraggable({ id: `${PREFIXO_COLUNA}${coluna.id}`, disabled: !edicao })
+  const [nome, setNome] = useState<string | null>(null)
+
+  function salvarNome() {
+    const limpo = (nome ?? '').trim()
+    if (limpo !== '' && limpo !== coluna.titulo) edicao?.renomear(coluna.id, limpo)
+    setNome(null)
+  }
+
   return (
     <section
       ref={setNodeRef}
       className={styles.coluna}
       aria-label={coluna.titulo}
       data-sobre={isOver || undefined}
+      data-arrastando={alca.isDragging || undefined}
     >
       <header className={styles.colunaTopo}>
-        <h2 className={styles.colunaTitulo}>{coluna.titulo}</h2>
+        {nome != null ? (
+          <input
+            className={styles.colunaNome}
+            aria-label={`Nome da coluna ${coluna.titulo}`}
+            autoFocus
+            value={nome}
+            onChange={(evento) => setNome(evento.target.value)}
+            onBlur={salvarNome}
+            onKeyDown={(evento) => {
+              if (evento.key === 'Enter') salvarNome()
+              if (evento.key === 'Escape') setNome(null)
+            }}
+          />
+        ) : (
+          <h2
+            ref={edicao ? alca.setNodeRef : undefined}
+            className={styles.colunaTitulo}
+            data-editavel={edicao ? true : undefined}
+            title={edicao ? 'Dois cliques para renomear, arraste para mudar a ordem' : undefined}
+            onDoubleClick={edicao ? () => setNome(coluna.titulo) : undefined}
+            {...(edicao ? alca.listeners : {})}
+          >
+            {coluna.titulo}
+          </h2>
+        )}
         <span className={styles.colunaTotal}>{total}</span>
+        {edicao && coluna.personalizada && total === 0 && (
+          <button
+            type="button"
+            className={styles.colunaCriar}
+            aria-label={`Remover a coluna ${coluna.titulo}`}
+            title="Remover coluna"
+            onClick={() => edicao.remover(coluna.id)}
+          >
+            <Icone nome="lixeira" tamanho={15} />
+          </button>
+        )}
         <button
           type="button"
           className={styles.colunaCriar}
@@ -106,7 +167,45 @@ function Coluna({ coluna, total, children, onCriar }: ColunaProps) {
   )
 }
 
-/** Quadro Kanban: arrastar um card para outra coluna chama `onMover`. */
+function NovaColuna({ onCriar }: { onCriar: (titulo: string) => void }) {
+  const [nome, setNome] = useState<string | null>(null)
+
+  function aoEnviar(evento: FormEvent) {
+    evento.preventDefault()
+    const limpo = (nome ?? '').trim()
+    if (limpo !== '') onCriar(limpo)
+    setNome(null)
+  }
+
+  if (nome == null) {
+    return (
+      <button type="button" className={styles.novaColuna} onClick={() => setNome('')}>
+        <Icone nome="mais" tamanho={16} />
+        Nova coluna
+      </button>
+    )
+  }
+  return (
+    <form className={styles.novaColuna} data-aberta onSubmit={aoEnviar}>
+      <input
+        className={styles.colunaNome}
+        aria-label="Nome da nova coluna"
+        placeholder="Nome da coluna"
+        autoFocus
+        value={nome}
+        onChange={(evento) => setNome(evento.target.value)}
+        onBlur={aoEnviar}
+        onKeyDown={(evento) => evento.key === 'Escape' && setNome(null)}
+      />
+    </form>
+  )
+}
+
+/**
+ * Quadro Kanban: arrastar um card para outra coluna chama `onMover`.
+ * Com `edicao`, as colunas podem ser renomeadas (dois cliques no nome), reordenadas
+ * (arrastando o nome) e criadas.
+ */
 export function Quadro<T extends ItemQuadro>({
   colunas,
   itens,
@@ -118,6 +217,7 @@ export function Quadro<T extends ItemQuadro>({
   onCriar,
   onAbrir,
   onArquivar,
+  edicao,
 }: QuadroProps<T>) {
   const [arrastandoId, setArrastandoId] = useState<string | null>(null)
   const sensores = useSensors(
@@ -128,12 +228,25 @@ export function Quadro<T extends ItemQuadro>({
 
   const grupos = agrupar(itens, colunas, colunaDe)
   const arrastado = itens.find((item) => item.id === arrastandoId)
+  const colunaArrastada = arrastandoId?.startsWith(PREFIXO_COLUNA)
+    ? colunas.find((coluna) => `${PREFIXO_COLUNA}${coluna.id}` === arrastandoId)
+    : undefined
   const tituloDaColuna = (id: string | number | undefined) =>
     colunas.find((coluna) => coluna.id === id)?.titulo
 
   function aoSoltar(evento: DragEndEvent) {
     setArrastandoId(null)
-    const item = itens.find((candidato) => candidato.id === evento.active.id)
+    const ativo = String(evento.active.id)
+    if (ativo.startsWith(PREFIXO_COLUNA)) {
+      const nova = reordenarColunas(
+        colunas.map((coluna) => coluna.id),
+        ativo.slice(PREFIXO_COLUNA.length),
+        evento.over?.id,
+      )
+      if (nova) edicao?.reordenar(nova)
+      return
+    }
+    const item = itens.find((candidato) => candidato.id === ativo)
     if (!item) return
     const destino = destinoDoArraste(colunaDe(item), evento.over?.id, colunas)
     if (destino) onMover(item, destino)
@@ -147,14 +260,15 @@ export function Quadro<T extends ItemQuadro>({
       onDragCancel={() => setArrastandoId(null)}
       accessibility={{
         announcements: {
-          onDragStart: () => 'Card levantado.',
+          onDragStart: ({ active }) =>
+            String(active.id).startsWith(PREFIXO_COLUNA) ? 'Coluna levantada.' : 'Card levantado.',
           onDragOver: ({ over }) => {
             const titulo = tituloDaColuna(over?.id)
             return titulo ? `Sobre a coluna ${titulo}.` : undefined
           },
           onDragEnd: ({ over }) => {
             const titulo = tituloDaColuna(over?.id)
-            return titulo ? `Card solto na coluna ${titulo}.` : 'Card solto fora do quadro.'
+            return titulo ? `Solto na coluna ${titulo}.` : 'Solto fora do quadro.'
           },
           onDragCancel: () => 'Movimento cancelado.',
         },
@@ -169,6 +283,7 @@ export function Quadro<T extends ItemQuadro>({
               coluna={coluna}
               total={daColuna.length}
               onCriar={() => onCriar(coluna.id)}
+              edicao={edicao}
             >
               {daColuna.map((item) => (
                 <Card
@@ -185,6 +300,7 @@ export function Quadro<T extends ItemQuadro>({
             </Coluna>
           )
         })}
+        {edicao && <NovaColuna onCriar={edicao.criar} />}
       </div>
       <DragOverlay dropAnimation={null}>
         {arrastado && (
@@ -192,6 +308,7 @@ export function Quadro<T extends ItemQuadro>({
             <div className={styles.cardAbrir}>{renderCard(arrastado)}</div>
           </div>
         )}
+        {colunaArrastada && <div className={styles.colunaFlutuante}>{colunaArrastada.titulo}</div>}
       </DragOverlay>
     </DndContext>
   )

@@ -151,6 +151,27 @@ const DESENHOS = {
       <path d="M12 10v4.5M12 17.2v.3" />
     </>
   ),
+  comentario: <path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-6l-4.5 3.5V17H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />,
+  lista: <path d="M8 6.5h12M8 12h12M8 17.5h12M4 6.5v.01M4 12v.01M4 17.5v.01" />,
+  colunas: (
+    <>
+      <rect x="3.5" y="4.5" width="5" height="15" rx="1.5" />
+      <rect x="10.5" y="4.5" width="5" height="10" rx="1.5" />
+      <rect x="17.5" y="4.5" width="3" height="13" rx="1.5" />
+    </>
+  ),
+  relogio: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5v5l3 2" />
+    </>
+  ),
+  usuario: (
+    <>
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>
 
 export type NomeIcone = keyof typeof DESENHOS

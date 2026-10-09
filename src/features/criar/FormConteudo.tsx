@@ -9,14 +9,15 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
 import { useSalvar } from '@/dados/base'
+import { useColunasDoQuadro } from '@/dados/colunas'
+import { useColunasOpcionais } from '@/dados/esquema'
 import { useCards, useClientes, usePerfis } from '@/dados/tabelas'
 import { formNovoCard, validarCard } from '@/features/conteudo/card'
 import type { FormCard } from '@/features/conteudo/card'
 import type { Erros } from '@/lib/formulario'
-import { COLUNAS_CONTEUDO, TIPOS_CONTEUDO } from '@/lib/rotulos'
-import type { ContentCard, ContentEtapa, TipoConteudo } from '@/types/database'
-
-const OPCOES_ETAPA = COLUNAS_CONTEUDO.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))
+import { opcoesDePessoas } from '@/lib/pessoas'
+import { COLUNAS_CONTEUDO, PRIORIDADES, TIPOS_CONTEUDO } from '@/lib/rotulos'
+import type { ContentCard, ContentEtapa, Prioridade, TipoConteudo } from '@/types/database'
 
 interface FormConteudoProps {
   /** Etapa em que o conteúdo nasce */
@@ -31,6 +32,9 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
   const perfis = usePerfis()
   const [form, setForm] = useState<FormCard>(() => formNovoCard(etapaInicial))
   const [erros, setErros] = useState<Erros<FormCard>>({})
+  const [prioridade, setPrioridade] = useState<Prioridade>('media')
+  const esquema = useColunasOpcionais()
+  const { colunas } = useColunasDoQuadro('conteudo', COLUNAS_CONTEUDO)
   const salvar = useSalvar<ContentCard>('content_cards')
   const registrarAtividade = useRegistrarAtividade()
   const toast = useToast()
@@ -52,7 +56,14 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
     const posicao = proximaPosicao((cards.data ?? []).filter((c) => c.etapa === valores.etapa))
 
     salvar.mutate(
-      { valores: { ...valores, posicao } },
+      {
+        valores: {
+          ...valores,
+          posicao,
+          // A média é o padrão do banco; só vai junto quando a pessoa escolhe outra
+          ...(esquema.prioridadeConteudo && prioridade !== 'media' ? { prioridade } : {}),
+        },
+      },
       {
         onSuccess: (salvo) => {
           toast.sucesso('Conteúdo criado.')
@@ -87,7 +98,7 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
         />
         <Selecao
           rotulo="Etapa"
-          opcoes={OPCOES_ETAPA}
+          opcoes={colunas.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))}
           value={form.etapa}
           onChange={(evento) => mudar('etapa', evento.target.value as ContentEtapa)}
         />
@@ -103,17 +114,27 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
         <Selecao
           rotulo="Responsável"
           vazio="Sem responsável"
-          opcoes={(perfis.data ?? []).map((p) => ({ valor: p.id, rotulo: p.nome }))}
+          opcoes={opcoesDePessoas(perfis.data ?? [])}
           value={form.responsavel_id}
           onChange={(evento) => mudar('responsavel_id', evento.target.value)}
         />
       </div>
-      <Campo
-        rotulo="Data de entrega"
-        type="date"
-        value={form.data_entrega}
-        onChange={(evento) => mudar('data_entrega', evento.target.value)}
-      />
+      <div className={ui.duasColunas}>
+        <Campo
+          rotulo="Data de entrega"
+          type="date"
+          value={form.data_entrega}
+          onChange={(evento) => mudar('data_entrega', evento.target.value)}
+        />
+        {esquema.prioridadeConteudo && (
+          <Selecao
+            rotulo="Prioridade"
+            opcoes={PRIORIDADES}
+            value={prioridade}
+            onChange={(evento) => setPrioridade(evento.target.value as Prioridade)}
+          />
+        )}
+      </div>
       <AreaTexto
         rotulo="Observações"
         rows={3}

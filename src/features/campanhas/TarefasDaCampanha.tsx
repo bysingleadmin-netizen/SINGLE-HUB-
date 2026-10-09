@@ -8,6 +8,7 @@ import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
 import { porId, useAtualizarOtimista, useRemover, useSalvar } from '@/dados/base'
 import type { Valores } from '@/dados/base'
+import { opcoesDePessoas } from '@/lib/pessoas'
 import { STATUS_TAREFA_CAMPANHA } from '@/lib/rotulos'
 import type { CampaignFuncao, CampaignTask, CampaignTaskStatus, Profile } from '@/types/database'
 import { agruparPorFuncao } from './campanha'
@@ -28,7 +29,7 @@ function Grupo({ grupo, campanhaId, perfis }: GrupoProps) {
   const registrarAtividade = useRegistrarAtividade()
   const toast = useToast()
   const perfilPorId = porId(perfis)
-  const opcoesDePerfil = perfis.map((p) => ({ valor: p.id, rotulo: p.nome }))
+  const opcoesDePerfil = opcoesDePessoas(perfis)
 
   function aoAdicionar(evento: FormEvent) {
     evento.preventDefault()

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Abas } from '@/components/ui/Abas'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
@@ -15,10 +16,18 @@ import { otimizacaoPendente } from '@/lib/regras'
 import { STATUS_CAMPANHA, opcao } from '@/lib/rotulos'
 import type { CampaignStatus } from '@/types/database'
 import { CampanhaModal } from './CampanhaModal'
+import { TarefasDeAnuncio } from './TarefasDeAnuncio'
 import { periodoDaCampanha } from './campanha'
 import styles from './campanhas.module.css'
 
-export function CampanhasPage() {
+const ABAS = [
+  { id: 'anuncios', rotulo: 'Anúncios' },
+  { id: 'tarefas', rotulo: 'Tarefas' },
+] as const
+
+type Aba = (typeof ABAS)[number]['id']
+
+function Anuncios() {
   const campanhas = useCampanhas()
   const clientes = useClientes()
   const [criando, setCriando] = useState(false)
@@ -38,7 +47,7 @@ export function CampanhasPage() {
   )
 
   return (
-    <div className={styles.pagina}>
+    <>
       <div className={styles.barra}>
         <Selecao
           className={styles.filtro}
@@ -97,6 +106,18 @@ export function CampanhasPage() {
       {criando && (
         <CampanhaModal clientes={clientes.data ?? []} onFechar={() => setCriando(false)} />
       )}
+    </>
+  )
+}
+
+/** Menu Anúncios: os anúncios em si e, na outra aba, todas as tarefas deles em lista. */
+export function CampanhasPage() {
+  const [aba, setAba] = useState<Aba>('anuncios')
+  return (
+    <div className={styles.pagina}>
+      <Abas rotulo="Seções de anúncios" abas={ABAS} ativa={aba} onMudar={setAba}>
+        {aba === 'anuncios' ? <Anuncios /> : <TarefasDeAnuncio />}
+      </Abas>
     </div>
   )
 }

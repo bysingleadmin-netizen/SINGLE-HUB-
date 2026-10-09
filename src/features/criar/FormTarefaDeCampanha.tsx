@@ -11,6 +11,7 @@ import { useSalvar } from '@/dados/base'
 import { useNotificar } from '@/dados/notificacoes'
 import { useCampanhas, useClientes, usePerfis } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
+import { opcoesDePessoas } from '@/lib/pessoas'
 import { FUNCOES_CAMPANHA } from '@/lib/rotulos'
 import type { CampaignFuncao, CampaignTask } from '@/types/database'
 
@@ -122,7 +123,7 @@ export function FormTarefaDeCampanha({
       <Selecao
         rotulo="Responsável"
         vazio="Sem responsável"
-        opcoes={(perfis.data ?? []).map((p) => ({ valor: p.id, rotulo: p.nome }))}
+        opcoes={opcoesDePessoas(perfis.data ?? [])}
         value={responsavelId}
         onChange={(evento) => setResponsavelId(evento.target.value)}
       />

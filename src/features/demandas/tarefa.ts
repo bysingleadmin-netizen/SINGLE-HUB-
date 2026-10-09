@@ -1,7 +1,8 @@
+import { doColaborador } from '@/components/quadro/colunas'
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
 import { COLUNAS_TAREFA } from '@/lib/rotulos'
-import type { Task, TaskStatus, TaskTipo } from '@/types/database'
+import type { Prioridade, Task, TaskStatus, TaskTipo } from '@/types/database'
 
 export function tituloDoStatus(status: string): string {
   return COLUNAS_TAREFA.find((coluna) => coluna.id === status)?.titulo ?? status
@@ -15,6 +16,8 @@ export interface FormTarefa {
   tipo: TaskTipo
   status: TaskStatus
   data_entrega: string
+  /** Fica fora dos valores validados: só é gravada quando o banco tem a coluna */
+  prioridade: Prioridade
 }
 
 export type ValoresTarefa = Pick<
@@ -31,6 +34,7 @@ export function formNovaTarefa(status: TaskStatus): FormTarefa {
     tipo: 'conteudo',
     status,
     data_entrega: '',
+    prioridade: 'media',
   }
 }
 
@@ -56,14 +60,14 @@ export function validarTarefa(form: FormTarefa): Validacao<ValoresTarefa, FormTa
 export interface FiltrosTarefa {
   /** '' mostra todos os tipos */
   tipo: TaskTipo | ''
-  /** '' mostra todos os responsáveis */
-  responsavel: string
+  /** Vazio mostra todos os responsáveis; com ids, só as demandas deles */
+  responsaveis: string[]
 }
 
-export function filtrarTarefas(tarefas: Task[], { tipo, responsavel }: FiltrosTarefa): Task[] {
+export function filtrarTarefas(tarefas: Task[], { tipo, responsaveis }: FiltrosTarefa): Task[] {
   return tarefas.filter(
     (tarefa) =>
       (tipo === '' || tarefa.tipo === tipo) &&
-      (responsavel === '' || tarefa.responsavel_id === responsavel),
+      doColaborador(tarefa.responsavel_id, responsaveis),
   )
 }

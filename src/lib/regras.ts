@@ -33,6 +33,16 @@ export function situacaoDoPrazo(
   return dataEntrega <= somarDias(hoje, 2) ? 'proximo' : 'folgado'
 }
 
+/** O prazo em palavras, para o painel de detalhe: "Vence em 2 dias", "3 dias de atraso". */
+export function descreverPrazo(dataEntrega: string | null, hoje: string, entregue = false): string {
+  if (!dataEntrega) return 'Sem data de entrega'
+  if (entregue) return 'Entregue'
+  const dias = diffDias(hoje, dataEntrega)
+  if (dias < 0) return `${plural(-dias, 'dia', 'dias')} de atraso`
+  if (dias === 0) return 'Vence hoje'
+  return dias === 1 ? 'Vence amanhã' : `Vence em ${dias} dias`
+}
+
 export function diasDeAtraso(dataISO: string, hoje: string): number {
   return Math.max(0, diffDias(dataISO, hoje))
 }

@@ -183,9 +183,104 @@ describe('DemandasPage', () => {
     expect(screen.queryByText('Roteiro de reels')).not.toBeInTheDocument()
     expect(screen.getByText('Subir campanha')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('Responsável'), { target: { value: 'u1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Luan Uliana, CEO' }))
     expect(screen.queryByText('Subir campanha')).not.toBeInTheDocument()
     expect(screen.getByText('Nenhuma demanda com esses filtros.')).toBeInTheDocument()
+  })
+
+  it('o filtro por colaborador aceita mais de uma pessoa e pode ser limpo', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+
+    const bia = screen.getByRole('button', { name: 'Bia Souza, Designer' })
+    fireEvent.click(bia)
+    expect(bia).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByText('Roteiro de reels')).not.toBeInTheDocument()
+    expect(screen.getByText('Subir campanha')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Luan Uliana, CEO' }))
+    expect(screen.getByText('Roteiro de reels')).toBeInTheDocument()
+    expect(screen.getByText('Subir campanha')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Limpar' }))
+    expect(bia).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('o card mostra a empresa, o colaborador e o cargo dele', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    const card = within(await screen.findByRole('button', { name: 'Abrir Roteiro de reels' }))
+    expect(card.getByText('Padaria Sol')).toBeInTheDocument()
+    expect(card.getByText('Luan Uliana')).toBeInTheDocument()
+    expect(card.getByText('CEO')).toBeInTheDocument()
+  })
+
+  it('a visão em lista mostra status, responsável, entrega e cliente, e abre a demanda', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+    fireEvent.click(screen.getByRole('button', { name: 'Lista' }))
+
+    const tabela = within(screen.getByRole('table', { name: 'Lista de demandas' }))
+    expect(tabela.getAllByRole('row')).toHaveLength(3)
+    const linha = within(tabela.getByRole('row', { name: /Roteiro de reels/ }))
+    expect(linha.getByText('A Fazer')).toBeInTheDocument()
+    expect(linha.getByText('Padaria Sol')).toBeInTheDocument()
+    expect(linha.getByText('CEO')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'A Fazer' })).not.toBeInTheDocument()
+
+    fireEvent.click(linha.getByRole('button', { name: 'Abrir Roteiro de reels' }))
+    expect(await screen.findByRole('dialog', { name: 'Roteiro de reels' })).toBeInTheDocument()
+  })
+
+  it('renomeia uma coluna com dois cliques e guarda o nome no banco', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+
+    fireEvent.doubleClick(screen.getByRole('heading', { name: 'A Fazer' }))
+    const campo = screen.getByLabelText('Nome da coluna A Fazer')
+    fireEvent.change(campo, { target: { value: 'Backlog' } })
+    fireEvent.keyDown(campo, { key: 'Enter' })
+
+    expect(await screen.findByText('Coluna renomeada.')).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Backlog' })).toBeInTheDocument()
+    // Na primeira edição as quatro colunas vão para o banco; o card continua na mesma chave
+    expect(bancoFalso().tabelas.board_columns).toHaveLength(4)
+    expect(bancoFalso().tabelas.board_columns).toContainEqual(
+      expect.objectContaining({ quadro: 'demandas', chave: 'a_fazer', titulo: 'Backlog' }),
+    )
+    expect(coluna('Backlog').getByText('Roteiro de reels')).toBeInTheDocument()
+  })
+
+  it('cria uma coluna nova e remove enquanto está vazia', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nova coluna' }))
+    const campo = screen.getByLabelText('Nome da nova coluna')
+    fireEvent.change(campo, { target: { value: 'Revisão interna' } })
+    fireEvent.submit(campo.closest('form') as HTMLFormElement)
+
+    expect(await screen.findByText('Coluna criada.')).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Revisão interna' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remover a coluna Revisão interna' }))
+    expect(await screen.findByText('Coluna removida.')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'Revisão interna' })).not.toBeInTheDocument(),
+    )
+  })
+
+  it('sem a tabela de colunas no banco, o quadro fica com as colunas fixas e sem edição', async () => {
+    popular()
+    bancoFalso().tabelasAusentes = ['board_columns']
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+    expect(screen.getByRole('region', { name: 'A Fazer' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nova coluna' })).not.toBeInTheDocument()
   })
 
   it('arquiva pelo card e some do quadro', async () => {

@@ -5,6 +5,7 @@ import type {
   ClientStatus,
   ContentEtapa,
   PaymentStatus,
+  Prioridade,
   TaskStatus,
   TaskTipo,
   TipoConteudo,
@@ -29,7 +30,20 @@ export const STATUS_PAGAMENTO: readonly Opcao<PaymentStatus>[] = [
   { valor: 'pendente', rotulo: 'Pendente', tom: 'amarelo' },
   { valor: 'pago', rotulo: 'Pago', tom: 'verde' },
   { valor: 'atrasado', rotulo: 'Atrasado', tom: 'vermelho' },
+  { valor: 'cancelado', rotulo: 'Cancelado', tom: 'cinza' },
 ]
+
+export const PRIORIDADES: readonly Opcao<Prioridade>[] = [
+  { valor: 'baixa', rotulo: 'Baixa', tom: 'cinza' },
+  { valor: 'media', rotulo: 'Média', tom: 'azul' },
+  { valor: 'alta', rotulo: 'Alta', tom: 'laranja' },
+  { valor: 'urgente', rotulo: 'Urgente', tom: 'vermelho' },
+]
+
+/** Peso para ordenar listas: quanto mais urgente, maior. */
+export function pesoDaPrioridade(prioridade: string | null | undefined): number {
+  return PRIORIDADES.findIndex((p) => p.valor === (prioridade ?? 'media'))
+}
 
 // Cores pedidas no briefing: Conteúdo #4a9eff, Tráfego #e63030, Estratégia #a855f7, Audiovisual #e6a630
 export const TIPOS_TAREFA: readonly Opcao<TaskTipo>[] = [

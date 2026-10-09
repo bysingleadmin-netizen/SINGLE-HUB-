@@ -21,6 +21,8 @@ export interface BancoFalso {
   erroLeitura: ErroFalso | null
   /** Colunas que o banco ainda não tem, como 'clients.dia_vencimento' */
   colunasAusentes: string[]
+  /** Tabelas que o banco ainda não tem, como 'board_columns' */
+  tabelasAusentes: string[]
   /** Chamadas feitas a Edge Functions, na ordem */
   funcoesChamadas: { nome: string; body: unknown }[]
   /** Se definido, a próxima chamada de função falha com este erro */
@@ -37,10 +39,12 @@ export function criarSupabaseFalso() {
     erroEscrita: null,
     erroLeitura: null,
     colunasAusentes: [],
+    tabelasAusentes: [],
     funcoesChamadas: [],
     erroDaFuncao: null,
     respostaDaFuncao: { ok: true },
     reiniciar(tabelas = {}) {
+      banco.tabelasAusentes = []
       banco.tabelas = structuredClone(tabelas) as Record<string, Linha[]>
       banco.erroEscrita = null
       banco.erroLeitura = null
@@ -64,6 +68,9 @@ export function criarSupabaseFalso() {
       colunas.find((coluna) => banco.colunasAusentes.includes(`${tabela}.${coluna}`))
 
     function executar(): Resposta {
+      if (banco.tabelasAusentes.includes(tabela)) {
+        return { data: null, error: { code: 'PGRST205', message: `Could not find the table '${tabela}'` } }
+      }
       const linhas = (banco.tabelas[tabela] ??= [])
       const casa = (linha: Linha) => filtros.every(([coluna, valor]) => linha[coluna] === valor)
       let resultado: Linha[]

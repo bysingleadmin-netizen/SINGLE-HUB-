@@ -9,16 +9,17 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
 import { useSalvar } from '@/dados/base'
+import { useColunasDoQuadro } from '@/dados/colunas'
+import { useColunasOpcionais } from '@/dados/esquema'
 import { useNotificar } from '@/dados/notificacoes'
 import { useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
 import { formNovaTarefa, validarTarefa } from '@/features/demandas/tarefa'
 import type { FormTarefa } from '@/features/demandas/tarefa'
 import type { Erros } from '@/lib/formulario'
-import { COLUNAS_TAREFA, TIPOS_TAREFA } from '@/lib/rotulos'
-import type { Task, TaskStatus, TaskTipo } from '@/types/database'
-
-const OPCOES_STATUS = COLUNAS_TAREFA.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))
+import { opcoesDePessoas } from '@/lib/pessoas'
+import { COLUNAS_TAREFA, PRIORIDADES, TIPOS_TAREFA } from '@/lib/rotulos'
+import type { Prioridade, Task, TaskStatus, TaskTipo } from '@/types/database'
 
 interface FormDemandaProps {
   /** Coluna em que a demanda nasce */
@@ -32,6 +33,8 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
   const tarefas = useTarefas()
   const clientes = useClientes()
   const perfis = usePerfis()
+  const esquema = useColunasOpcionais()
+  const { colunas } = useColunasDoQuadro('demandas', COLUNAS_TAREFA)
   const [form, setForm] = useState<FormTarefa>(() => formNovaTarefa(statusInicial))
   const [erros, setErros] = useState<Erros<FormTarefa>>({})
   const salvar = useSalvar<Task>('tasks')
@@ -56,7 +59,17 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
     const posicao = proximaPosicao((tarefas.data ?? []).filter((t) => t.status === valores.status))
 
     salvar.mutate(
-      { valores: { ...valores, posicao, created_by: perfil?.id ?? null } },
+      {
+        valores: {
+          ...valores,
+          posicao,
+          created_by: perfil?.id ?? null,
+          // A média é o padrão do banco; só vai junto quando a pessoa escolhe outra
+          ...(esquema.prioridadeTarefa && form.prioridade !== 'media'
+            ? { prioridade: form.prioridade }
+            : {}),
+        },
+      },
       {
         onSuccess: (salva) => {
           toast.sucesso('Demanda criada.')
@@ -105,7 +118,7 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
         <Selecao
           rotulo="Responsável"
           vazio="Sem responsável"
-          opcoes={(perfis.data ?? []).map((p) => ({ valor: p.id, rotulo: p.nome }))}
+          opcoes={opcoesDePessoas(perfis.data ?? [])}
           value={form.responsavel_id}
           onChange={(evento) => mudar('responsavel_id', evento.target.value)}
         />
@@ -119,17 +132,27 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
         />
         <Selecao
           rotulo="Status"
-          opcoes={OPCOES_STATUS}
+          opcoes={colunas.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))}
           value={form.status}
           onChange={(evento) => mudar('status', evento.target.value as TaskStatus)}
         />
       </div>
-      <Campo
-        rotulo="Data de entrega"
-        type="date"
-        value={form.data_entrega}
-        onChange={(evento) => mudar('data_entrega', evento.target.value)}
-      />
+      <div className={ui.duasColunas}>
+        <Campo
+          rotulo="Data de entrega"
+          type="date"
+          value={form.data_entrega}
+          onChange={(evento) => mudar('data_entrega', evento.target.value)}
+        />
+        {esquema.prioridadeTarefa && (
+          <Selecao
+            rotulo="Prioridade"
+            opcoes={PRIORIDADES}
+            value={form.prioridade}
+            onChange={(evento) => mudar('prioridade', evento.target.value as Prioridade)}
+          />
+        )}
+      </div>
       <div className={ui.acoes}>
         <Button variante="fantasma" onClick={onFechar}>
           Cancelar

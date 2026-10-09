@@ -107,6 +107,24 @@ describe('CampanhasPage', () => {
     expect(screen.getByText('Nenhum anúncio com esse status.')).toBeInTheDocument()
   })
 
+  it('a aba Tarefas lista as tarefas de todos os anúncios e filtra por colaborador', async () => {
+    popular()
+    renderizar(<CampanhasPage />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Tarefas' }))
+
+    const tabela = within(await screen.findByRole('table', { name: 'Tarefas de anúncio' }))
+    const linha = within(tabela.getByRole('row', { name: /Escrever anúncios/ }))
+    expect(linha.getByText('Black Friday')).toBeInTheDocument()
+    expect(linha.getByText('Padaria Sol')).toBeInTheDocument()
+    expect(linha.getByText('Bia Souza')).toBeInTheDocument()
+    expect(linha.getByText('Copywriter')).toBeInTheDocument()
+    expect(linha.getByText('Pendente')).toBeInTheDocument()
+    expect(tabela.getByRole('row', { name: /De outra campanha/ })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bia Souza, Copywriter' }))
+    expect(tabela.queryByRole('row', { name: /De outra campanha/ })).not.toBeInTheDocument()
+  })
+
   it('cria a campanha, aceita orçamento com vírgula e registra a atividade', async () => {
     bancoFalso().reiniciar({ clients: [CLIENTE] })
     renderizar(<CampanhasPage />)

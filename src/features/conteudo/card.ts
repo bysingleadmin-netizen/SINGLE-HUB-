@@ -64,6 +64,8 @@ export function tituloDaEtapa(etapa: string): string {
 export function atividadeDoMovimento(
   card: Pick<ContentCard, 'id' | 'titulo'>,
   destino: string,
+  /** Nome da etapa de destino, que a equipe pode ter mudado */
+  tituloDoDestino: string = tituloDaEtapa(destino),
 ): Registro | null {
   if (destino === 'arquivado') return null
   const publicado = destino === 'publicado'
@@ -71,7 +73,7 @@ export function atividadeDoMovimento(
     acao: publicado ? 'conteudo_publicado' : 'conteudo_movido',
     descricao: publicado
       ? `publicou o conteúdo "${card.titulo}"`
-      : `moveu o conteúdo "${card.titulo}" para ${tituloDaEtapa(destino)}`,
+      : `moveu o conteúdo "${card.titulo}" para ${tituloDoDestino}`,
     entidade: 'content_cards',
     entidadeId: card.id,
   }

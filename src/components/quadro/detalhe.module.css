@@ -1,0 +1,160 @@
+/* Painel lateral de uma demanda ou de um conteúdo */
+.detalhe {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Faixa de resumo: o que a pessoa precisa saber antes de ler os campos */
+.resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.prazo {
+  --prazo: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--prazo);
+}
+
+.prazo[data-prazo='folgado'] {
+  --prazo: #3ecf8e;
+}
+
+.prazo[data-prazo='proximo'] {
+  --prazo: #e6a630;
+}
+
+.prazo[data-prazo='atrasado'] {
+  --prazo: #f04444;
+}
+
+/* O título é o campo principal: maior e sem moldura até ganhar foco */
+.titulo input {
+  min-height: 48px;
+  padding: 0 12px;
+  background: transparent;
+  border-color: transparent;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.titulo input:hover {
+  background: var(--vidro);
+  border-color: var(--campo-borda);
+}
+
+.titulo label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius);
+}
+
+.blocoTitulo {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-fraco);
+}
+
+.propriedades {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rodape {
+  font-size: 12px;
+  color: var(--text-fraco);
+}
+
+/* Comentários */
+.comentarios {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comentario {
+  display: flex;
+  gap: 10px;
+}
+
+.comentarioCorpo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.comentarioTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.comentarioTopo strong {
+  font-weight: 600;
+}
+
+.comentarioQuando {
+  font-size: 12px;
+  color: var(--text-fraco);
+}
+
+.comentarioTexto {
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.comentar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comentar button {
+  align-self: flex-end;
+}
+
+@media (max-width: 520px) {
+  .propriedades {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .prazo {
+    margin-left: 0;
+  }
+}

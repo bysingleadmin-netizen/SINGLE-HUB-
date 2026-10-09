@@ -72,6 +72,8 @@
   position: absolute;
   inset: 0;
   display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .graficoLinha {
@@ -80,9 +82,8 @@
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 2400;
-  stroke-dashoffset: 2400;
-  animation: tracar 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s forwards;
+  /* O estado normal é a linha inteira; o traçado só existe dentro da animação */
+  animation: tracar 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s backwards;
 }
 
 .graficoPonto {
@@ -97,7 +98,12 @@
 }
 
 @keyframes tracar {
+  from {
+    stroke-dasharray: 2400;
+    stroke-dashoffset: 2400;
+  }
   to {
+    stroke-dasharray: 2400;
     stroke-dashoffset: 0;
   }
 }

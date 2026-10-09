@@ -41,9 +41,8 @@ export function GraficoMRR({ serie }: { serie: PontoDeMRR[] }) {
 
   return (
     <div ref={caixa} className={styles.grafico}>
+      {/* O tamanho vem do CSS (100% da caixa); o viewBox acompanha em pixels, então nada é esticado */}
       <svg
-        width={largura}
-        height={altura}
         viewBox={`0 0 ${largura} ${altura}`}
         role="img"
         aria-label={`MRR dos últimos ${serie.length} meses: ${descricao}`}

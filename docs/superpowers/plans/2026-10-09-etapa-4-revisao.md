@@ -28,11 +28,13 @@
 
 ## Tasks
 
-- [ ] 1. QA visual: brilho do mouse sem borda visível, contraste dos textos secundários, ícones de estado vazio (28 px, traço 1,5, opacidade 0,25), gráfico de MRR na altura do card vizinho.
-- [ ] 2. Criação central: provedor, modal com categoria, botão no cabeçalho, telas sem botões próprios; filtros em Conteúdo e em Campanhas.
-- [ ] 3. Calendário cruzado: demandas e conteúdos com data entram na grade e no painel do dia; seção Hoje do Dashboard usa a mesma agenda.
-- [ ] 4. Pagamentos recorrentes: cartões mensais calculados, confirmar com Pix ou dinheiro, cartão do mês seguinte, campo de vencimento no cadastro, migration 0002.
-- [ ] 5. Verificação final: testes, build, capturas das telas afetadas, push.
+- [x] 1. QA visual: brilho do mouse sem borda visível, contraste dos textos secundários, ícones de estado vazio (28 px, traço 1,5, opacidade 0,25), gráfico de MRR na altura do card vizinho.
+- [x] 2. Criação central: provedor, modal com categoria, botão no cabeçalho, telas sem botões próprios; filtros em Conteúdo e em Campanhas.
+- [x] 3. Calendário cruzado: demandas e conteúdos com data entram na grade e no painel do dia; seção Hoje do Dashboard usa a mesma agenda.
+- [x] 4. Pagamentos recorrentes: cartões mensais calculados, confirmar com Pix ou dinheiro, cartão do mês seguinte, campo de vencimento no cadastro, migration 0002.
+- [x] 5. Verificação final: testes, build, capturas das telas afetadas, push.
+
+Estado em 2026-10-09: as cinco tarefas estão concluídas. Fica como passo manual rodar a migration `0002_pagamentos_recorrentes.sql` no Supabase do SINGLE.
 
 ## Review Focus
 

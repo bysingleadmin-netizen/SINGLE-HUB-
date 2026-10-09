@@ -12,6 +12,9 @@ export type Tabela =
   | 'campaign_tasks'
   | 'calendar_events'
   | 'event_participants'
+  | 'expenses'
+  | 'monthly_goals'
+  | 'traffic_metrics'
 
 interface ComId {
   id: string

@@ -4,6 +4,7 @@ import { Icone } from '@/components/ui/Icone'
 import { Logotipo } from '@/components/ui/Logotipo'
 import { useAuth } from '@/features/auth/AuthContext'
 import { itensVisiveis } from './navegacao'
+import type { AvisosDoMenu } from './navegacao'
 import styles from './layout.module.css'
 
 interface SidebarProps {
@@ -11,9 +12,17 @@ interface SidebarProps {
   onAlternar: () => void
   abertaMobile: boolean
   onFecharMobile: () => void
+  /** Pendências por rota, mostradas como contagem ao lado do item */
+  avisos?: AvisosDoMenu
 }
 
-export function Sidebar({ colapsada, onAlternar, abertaMobile, onFecharMobile }: SidebarProps) {
+export function Sidebar({
+  colapsada,
+  onAlternar,
+  abertaMobile,
+  onFecharMobile,
+  avisos = {},
+}: SidebarProps) {
   const { perfil, sair } = useAuth()
   const itens = itensVisiveis(perfil?.cargo)
 
@@ -51,6 +60,12 @@ export function Sidebar({ colapsada, onAlternar, abertaMobile, onFecharMobile }:
           >
             <Icone nome={item.icone} />
             <span className={styles.rotulo}>{item.rotulo}</span>
+            {avisos[item.rota] && (
+              <span className={styles.aviso} title={avisos[item.rota].descricao}>
+                <span aria-hidden="true">{avisos[item.rota].total}</span>
+                <span className={styles.somenteLeitor}>{avisos[item.rota].descricao}</span>
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

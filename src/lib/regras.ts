@@ -151,17 +151,23 @@ export function mrrPorMes(
   hoje: string,
   meses = 6,
 ): PontoDeMRR[] {
-  const [ano, mes] = hoje.split('-').map(Number)
   const ativos = clientes.filter((c) => c.status === 'ativo')
+  return ultimosMeses(hoje, meses).map((ponto) => ({
+    ...ponto,
+    valor: ativos
+      .filter((c) => !c.data_inicio_contrato || c.data_inicio_contrato.slice(0, 7) <= ponto.mes)
+      .reduce((soma, c) => soma + Number(c.mrr), 0),
+  }))
+}
+
+/** Os últimos `meses` meses como 'AAAA-MM' com o rótulo curto, do mais antigo ao atual. */
+export function ultimosMeses(hoje: string, meses = 6): Omit<PontoDeMRR, 'valor'>[] {
+  const [ano, mes] = hoje.split('-').map(Number)
   return Array.from({ length: meses }, (_, i) => {
     const indice = ano * 12 + (mes - 1) - (meses - 1 - i)
-    const chave = `${Math.floor(indice / 12)}-${String((indice % 12) + 1).padStart(2, '0')}`
     return {
-      mes: chave,
+      mes: `${Math.floor(indice / 12)}-${String((indice % 12) + 1).padStart(2, '0')}`,
       rotulo: MESES[indice % 12],
-      valor: ativos
-        .filter((c) => !c.data_inicio_contrato || c.data_inicio_contrato.slice(0, 7) <= chave)
-        .reduce((soma, c) => soma + Number(c.mrr), 0),
     }
   })
 }

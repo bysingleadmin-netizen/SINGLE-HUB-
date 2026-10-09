@@ -264,24 +264,44 @@
   }
 }
 
-/* Tela provisória */
-.vazio {
-  max-width: 520px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 28px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+/* Contagem de pendências ao lado do item do menu */
+.aviso {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: auto;
+  padding: 0 6px;
+  background: var(--accent);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.vazioTitulo {
-  font-size: 18px;
+/* O número é decorativo; leitores de tela ouvem a frase inteira, como "3 demandas atrasadas" */
+.somenteLeitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
-.vazioTexto {
-  color: var(--text-muted);
+@media (min-width: 768px) {
+  /* Menu só com ícones: a contagem sobe para o canto do ícone */
+  .sidebar[data-colapsada] .aviso {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+  }
 }
 
 /* Cabeçalho: ações à direita e sino de notificações */

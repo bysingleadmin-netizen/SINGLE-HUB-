@@ -5,8 +5,9 @@ import { AuthContext } from '@/features/auth/AuthContext'
 import type { AuthValor } from '@/features/auth/AuthContext'
 import type { Cargo } from '@/lib/permissoes'
 import { Sidebar } from './Sidebar'
+import type { AvisosDoMenu } from './navegacao'
 
-function montar(cargo: Cargo, colapsada = false) {
+function montar(cargo: Cargo, colapsada = false, avisos?: AvisosDoMenu) {
   const valor: AuthValor = {
     sessao: { user: { id: 'u1' } } as Session,
     perfil: {
@@ -30,6 +31,7 @@ function montar(cargo: Cargo, colapsada = false) {
           onAlternar={onAlternar}
           abertaMobile={false}
           onFecharMobile={() => {}}
+          avisos={avisos}
         />
       </MemoryRouter>
     </AuthContext.Provider>,
@@ -74,6 +76,14 @@ describe('Sidebar', () => {
     montar('Designer', true)
     expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Expandir menu' })).toBeInTheDocument()
+  })
+
+  it('mostra a contagem de pendências só nos itens que têm', () => {
+    montar('Designer', false, {
+      '/app/demandas': { total: 3, descricao: '3 demandas atrasadas' },
+    })
+    expect(screen.getByRole('link', { name: /^Demandas\s*3 demandas atrasadas$/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Campanhas' })).toBeInTheDocument()
   })
 
   it('sai ao clicar em Sair', () => {

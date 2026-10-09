@@ -1,4 +1,4 @@
-import { itensVisiveis, tituloDaRota } from './navegacao'
+import { avisosDoMenu, itensVisiveis, tituloDaRota } from './navegacao'
 
 describe('itensVisiveis', () => {
   it('esconde Financeiro de quem não é liderança', () => {
@@ -28,6 +28,34 @@ describe('itensVisiveis', () => {
 
   it('esconde Financeiro sem cargo', () => {
     expect(itensVisiveis(null).some((i) => i.rotulo === 'Financeiro')).toBe(false)
+  })
+})
+
+describe('avisosDoMenu', () => {
+  const HOJE = '2026-10-09'
+
+  it('conta demandas atrasadas e otimizações pendentes', () => {
+    const avisos = avisosDoMenu(
+      [
+        { status: 'a_fazer', data_entrega: '2026-10-08' },
+        { status: 'em_andamento', data_entrega: '2026-10-01' },
+        { status: 'concluido', data_entrega: '2026-10-01' },
+        { status: 'a_fazer', data_entrega: HOJE },
+      ],
+      [
+        { status: 'em_execucao', proxima_otimizacao: HOJE },
+        { status: 'pausada', proxima_otimizacao: '2026-10-01' },
+      ],
+      HOJE,
+    )
+    expect(avisos).toEqual({
+      '/app/demandas': { total: 2, descricao: '2 demandas atrasadas' },
+      '/app/campanhas': { total: 1, descricao: '1 otimização pendente' },
+    })
+  })
+
+  it('sem pendências não há aviso', () => {
+    expect(avisosDoMenu([{ status: 'a_fazer', data_entrega: null }], [], HOJE)).toEqual({})
   })
 })
 

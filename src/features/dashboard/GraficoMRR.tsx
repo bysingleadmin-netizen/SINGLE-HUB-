@@ -12,8 +12,14 @@ function ancora(indice: number, total: number): 'start' | 'middle' | 'end' {
   return indice === total - 1 ? 'end' : 'middle'
 }
 
+interface GraficoMRRProps {
+  serie: PontoDeMRR[]
+  /** O que a série mede, para leitores de tela. O Financeiro usa o mesmo gráfico para o faturamento */
+  nome?: string
+}
+
 /** Gráfico de área do MRR mês a mês, em SVG, do tamanho do espaço que o card oferece. */
-export function GraficoMRR({ serie }: { serie: PontoDeMRR[] }) {
+export function GraficoMRR({ serie, nome = 'MRR' }: GraficoMRRProps) {
   const caixa = useRef<HTMLDivElement>(null)
   const [tamanho, setTamanho] = useState({ largura: 600, altura: 220 })
 
@@ -45,7 +51,7 @@ export function GraficoMRR({ serie }: { serie: PontoDeMRR[] }) {
       <svg
         viewBox={`0 0 ${largura} ${altura}`}
         role="img"
-        aria-label={`MRR dos últimos ${serie.length} meses: ${descricao}`}
+        aria-label={`${nome} dos últimos ${serie.length} meses: ${descricao}`}
       >
         <defs>
           <linearGradient id="mrr-area" x1="0" y1="0" x2="0" y2="1">

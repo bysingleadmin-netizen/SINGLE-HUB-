@@ -1,0 +1,235 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.paineis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.carregando {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.valor {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Formulários em linha: os campos dividem a largura e o botão fica alinhado à base */
+.campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.descricao {
+  grid-column: span 2;
+}
+
+.rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Total do período em destaque */
+.total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.totalValor {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Números do DRE e das métricas */
+.numeros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.numeros div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius-sm);
+}
+
+.numeros dt {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.numeros dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.numeros dd[data-sinal='positivo'],
+.tabela td[data-sinal='positivo'] {
+  color: var(--success);
+}
+
+.numeros dd[data-sinal='negativo'],
+.tabela td[data-sinal='negativo'] {
+  color: var(--accent-hover);
+}
+
+.mes {
+  max-width: 220px;
+}
+
+/* Tabelas: rolam de lado em telas estreitas em vez de espremer os números */
+.tabelaCaixa {
+  overflow-x: auto;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabela th,
+.tabela td {
+  padding: 12px 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tabela th:first-child,
+.tabela td:first-child {
+  text-align: left;
+}
+
+.tabela thead th {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.tabela tbody tr {
+  border-top: 1px solid var(--vidro-borda);
+}
+
+.tabela tbody th {
+  font-weight: 500;
+}
+
+/* Meta do mês */
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.metaTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.metaPercentual {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.barra {
+  height: 10px;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: 999px;
+}
+
+.barraCheia {
+  height: 100%;
+  background: linear-gradient(90deg, #c01010, #e63030);
+  border-radius: 999px;
+  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.barraCheia[data-batida] {
+  background: var(--success);
+}
+
+.formularioMeta {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.formularioMeta > div {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .paineis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .numeros {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .descricao {
+    grid-column: auto;
+  }
+
+  .formularioMeta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 520px) {
+  .kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barraCheia {
+    transition: none;
+  }
+}

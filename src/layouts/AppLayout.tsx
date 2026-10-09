@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useAvisarPrazosDeAmanha } from '@/dados/notificacoes'
+import { useCampanhas, useTarefas } from '@/dados/tabelas'
 import { CriacaoProvider } from '@/features/criar/CriacaoProvider'
+import { hojeISO } from '@/lib/datas'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
+import { avisosDoMenu } from './navegacao'
 import styles from './layout.module.css'
 
 const CHAVE_COLAPSADA = 'single:sidebar-colapsada'
@@ -21,6 +24,10 @@ export function AppLayout() {
   const [colapsada, setColapsada] = useState(lerColapsada)
   const [menuAberto, setMenuAberto] = useState(false)
   useAvisarPrazosDeAmanha()
+  // As mesmas listas das telas, então a contagem do menu acompanha o que se vê nelas
+  const tarefas = useTarefas()
+  const campanhas = useCampanhas()
+  const avisos = avisosDoMenu(tarefas.data ?? [], campanhas.data ?? [], hojeISO())
 
   const alternar = useCallback(() => {
     setColapsada((atual) => {
@@ -53,6 +60,7 @@ export function AppLayout() {
           onAlternar={alternar}
           abertaMobile={menuAberto}
           onFecharMobile={fecharMenu}
+          avisos={avisos}
         />
         {menuAberto && <div className={styles.fundo} onClick={fecharMenu} aria-hidden="true" />}
         <div className={styles.conteudo}>

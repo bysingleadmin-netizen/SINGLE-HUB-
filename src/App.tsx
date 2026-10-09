@@ -14,7 +14,7 @@ import { ConfiguracoesPage } from '@/features/configuracoes/ConfiguracoesPage'
 import { ConteudoPage } from '@/features/conteudo/ConteudoPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { DemandasPage } from '@/features/demandas/DemandasPage'
-import { EmConstrucao } from '@/features/placeholder/EmConstrucao'
+import { FinanceiroPage } from '@/features/financeiro/FinanceiroPage'
 import { AppLayout } from '@/layouts/AppLayout'
 import { queryClient } from '@/lib/queryClient'
 import { useRastroDoMouse } from '@/lib/rastroDoMouse'
@@ -41,10 +41,7 @@ export default function App() {
                   <Route path="campanhas/:id" element={<CampanhaPage />} />
                   <Route path="calendario" element={<CalendarioPage />} />
                   <Route element={<RotaLideranca />}>
-                    <Route
-                      path="financeiro/:aba?"
-                      element={<EmConstrucao tela="Financeiro" etapa={3} />}
-                    />
+                    <Route path="financeiro/:aba?" element={<FinanceiroPage />} />
                   </Route>
                   <Route path="configuracoes" element={<ConfiguracoesPage />} />
                 </Route>

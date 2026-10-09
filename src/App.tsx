@@ -8,6 +8,7 @@ import { RotaProtegida } from '@/features/auth/RotaProtegida'
 import { CampanhaPage } from '@/features/campanhas/CampanhaPage'
 import { CampanhasPage } from '@/features/campanhas/CampanhasPage'
 import { ClientesPage } from '@/features/clientes/ClientesPage'
+import { ConfiguracoesPage } from '@/features/configuracoes/ConfiguracoesPage'
 import { ConteudoPage } from '@/features/conteudo/ConteudoPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { DemandasPage } from '@/features/demandas/DemandasPage'
@@ -38,10 +39,7 @@ export default function App() {
                       element={<EmConstrucao tela="Financeiro" etapa={3} />}
                     />
                   </Route>
-                  <Route
-                    path="configuracoes"
-                    element={<EmConstrucao tela="Configurações" etapa={2} />}
-                  />
+                  <Route path="configuracoes" element={<ConfiguracoesPage />} />
                 </Route>
               </Route>
               <Route path="*" element={<Navigate to="/app/dashboard" replace />} />

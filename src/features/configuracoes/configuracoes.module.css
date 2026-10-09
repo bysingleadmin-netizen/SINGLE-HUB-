@@ -1,0 +1,79 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 760px;
+}
+
+.identidade {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.identidadeTexto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.enviar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.18s ease;
+}
+
+.enviar:hover {
+  border-color: var(--text-muted);
+}
+
+.enviar:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.enviar[aria-busy='true'] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.formulario {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.formulario > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.cargo {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .formulario {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cargo {
+    width: 100%;
+  }
+}

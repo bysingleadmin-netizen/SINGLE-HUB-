@@ -99,4 +99,15 @@
 }
 .alternar:hover {
   color: var(--branco, #fff);
+}.alternar {
+  background: none;
+  border: none;
+  color: var(--cinza-400, #888);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: center;
+}
+.alternar:hover {
+  color: var(--branco, #fff);
 }

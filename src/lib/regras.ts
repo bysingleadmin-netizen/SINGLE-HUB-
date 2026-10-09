@@ -114,6 +114,95 @@ export function tempoRelativo(iso: string, agora: Date = new Date()): string {
   return formatarData(iso)
 }
 
+/** Hora sem os minutos quando é hora cheia: "14h", "14h30". */
+function horaCurta(data: Date): string {
+  const minutos = data.getMinutes()
+  return `${data.getHours()}h${minutos === 0 ? '' : String(minutos).padStart(2, '0')}`
+}
+
+function diaLocal(data: Date): string {
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * Quando algo aconteceu, do jeito que se fala: "agora", "há 5 min", "há 2 horas",
+ * "ontem às 14h", "03/10 às 9h30".
+ */
+export function quandoAconteceu(iso: string, agora: Date = new Date()): string {
+  const data = new Date(iso)
+  const minutos = Math.floor((agora.getTime() - data.getTime()) / 60_000)
+  if (minutos < 1) return 'agora'
+  if (minutos < 60) return `há ${minutos} min`
+  const dias = diffDias(diaLocal(data), diaLocal(agora))
+  if (dias === 0) return `há ${plural(Math.floor(minutos / 60), 'hora', 'horas')}`
+  if (dias === 1) return `ontem às ${horaCurta(data)}`
+  const [ano, mes, dia] = diaLocal(data).split('-')
+  const comAno = ano === String(agora.getFullYear()) ? '' : `/${ano}`
+  return `${dia}/${mes}${comAno} às ${horaCurta(data)}`
+}
+
+export interface GrupoPorDia<T> {
+  /** 'AAAA-MM-DD' no fuso de quem vê */
+  dia: string
+  /** "Hoje", "Ontem" ou a data */
+  rotulo: string
+  itens: T[]
+}
+
+/** Separa registros por dia, mantendo a ordem em que vieram (mais recentes primeiro). */
+export function agruparPorDia<T extends { created_at: string }>(
+  registros: T[],
+  agora: Date = new Date(),
+): GrupoPorDia<T>[] {
+  const hoje = diaLocal(agora)
+  const grupos: GrupoPorDia<T>[] = []
+  for (const registro of registros) {
+    const dia = diaLocal(new Date(registro.created_at))
+    let grupo = grupos.find((g) => g.dia === dia)
+    if (!grupo) {
+      const distancia = diffDias(dia, hoje)
+      grupo = {
+        dia,
+        rotulo: distancia === 0 ? 'Hoje' : distancia === 1 ? 'Ontem' : formatarData(dia),
+        itens: [],
+      }
+      grupos.push(grupo)
+    }
+    grupo.itens.push(registro)
+  }
+  return grupos
+}
+
+export interface CargaDaPessoa {
+  id: string
+  total: number
+  /** Parte do total de itens abertos da equipe, de 0 a 1 */
+  fatia: number
+}
+
+/**
+ * Quantos itens em aberto cada pessoa tem, somando demandas, conteúdos e tarefas de anúncio.
+ * Do mais carregado para o menos; quem não tem nada em aberto não entra.
+ */
+export function cargaPorPessoa(
+  tarefas: Pick<Task, 'status' | 'responsavel_id'>[],
+  cards: Pick<ContentCard, 'etapa' | 'responsavel_id'>[],
+  tarefasDeAnuncio: Pick<CampaignTask, 'status' | 'responsavel_id'>[],
+): CargaDaPessoa[] {
+  const responsaveis = [
+    ...tarefas.filter(tarefaAberta),
+    ...cards.filter(cardAberto),
+    ...tarefasDeAnuncio.filter((t) => t.status !== 'concluido'),
+  ]
+    .map((item) => item.responsavel_id)
+    .filter((id): id is string => id != null)
+  const contagem = new Map<string, number>()
+  for (const id of responsaveis) contagem.set(id, (contagem.get(id) ?? 0) + 1)
+  return [...contagem]
+    .map(([id, total]) => ({ id, total, fatia: total / responsaveis.length }))
+    .sort((a, b) => b.total - a.total)
+}
+
 /** Converte "1.500,50", "R$ 2.000" ou "1500.5" em número. Null se inválido ou negativo. */
 export function parseMoeda(texto: string): number | null {
   let limpo = texto.replace(/R\$/i, '').replace(/\s/g, '')

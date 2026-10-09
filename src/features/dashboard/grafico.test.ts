@@ -1,4 +1,4 @@
-import { geometriaDoGrafico } from './grafico'
+import { geometriaDoGrafico, pontoMaisProximo, variacao } from './grafico'
 
 const SERIE = [
   { mes: '2026-05', rotulo: 'mai', valor: 0 },
@@ -32,5 +32,31 @@ describe('geometriaDoGrafico', () => {
   it('aguenta série de um ponto só', () => {
     const { pontos } = geometriaDoGrafico([SERIE[1]], 480, 200)
     expect(Number.isFinite(pontos[0].x)).toBe(true)
+  })
+})
+
+describe('pontoMaisProximo', () => {
+  const pontos = [{ x: 16 }, { x: 240 }, { x: 464 }]
+
+  it('acha o ponto mais perto do mouse, inclusive fora das pontas', () => {
+    expect(pontoMaisProximo(pontos, -50)).toBe(0)
+    expect(pontoMaisProximo(pontos, 130)).toBe(1)
+    expect(pontoMaisProximo(pontos, 900)).toBe(2)
+  })
+
+  it('sem pontos não há o que destacar', () => {
+    expect(pontoMaisProximo([], 10)).toBeNull()
+  })
+})
+
+describe('variacao', () => {
+  it('compara o último mês com o anterior', () => {
+    expect(variacao([{ valor: 1000 }, { valor: 1250 }])).toBe(0.25)
+    expect(variacao([{ valor: 2000 }, { valor: 1500 }])).toBe(-0.25)
+  })
+
+  it('não inventa percentual sem base de comparação', () => {
+    expect(variacao([{ valor: 500 }])).toBeNull()
+    expect(variacao([{ valor: 0 }, { valor: 500 }])).toBeNull()
   })
 })

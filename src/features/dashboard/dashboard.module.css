@@ -31,16 +31,129 @@
   gap: 10px;
 }
 
+/* Registro de atividade, agrupado por dia */
+.atividade {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.atividadeGrupo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.atividadeDia {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-fraco);
+}
+
 .iconeAtividade {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
+  border: 1px solid var(--vidro-borda);
   color: var(--text-muted);
+}
+
+.iconeAtividade[data-tom='verde'] {
+  background: rgba(62, 207, 142, 0.12);
+  border-color: rgba(62, 207, 142, 0.3);
+  color: var(--success);
+}
+
+.iconeAtividade[data-tom='vermelho'] {
+  background: var(--accent-soft);
+  border-color: rgba(230, 48, 48, 0.35);
+  color: var(--accent-hover);
+}
+
+/* Carga da equipe: uma barra por pessoa */
+.carga {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cargaLinha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cargaTexto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cargaTopo {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cargaNome {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cargaCargo {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-fraco);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cargaTotal {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cargaFatia {
+  min-width: 36px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.cargaBarra {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.cargaBarra > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #c01010, #e63030);
+  border-radius: 999px;
+  transform-origin: left;
+  animation: crescer 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
 @media (max-width: 1100px) {
@@ -60,12 +173,52 @@
   }
 }
 
-/* Gráfico de MRR: ocupa a altura que sobra no card, que acompanha o card ao lado */
+/* Gráfico de área: o resumo em cima e o desenho ocupando o que sobra do card,
+   dentro de limites para não ficar achatado nem alto demais */
+.graficoBloco {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.graficoResumo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.graficoVariacao {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.graficoVariacao[data-sinal='positivo'] {
+  background: rgba(62, 207, 142, 0.14);
+  color: var(--success);
+}
+
+.graficoVariacao[data-sinal='negativo'] {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
 .grafico {
   position: relative;
-  flex: 1 1 180px;
-  min-height: 180px;
-  overflow: hidden;
+  flex: 1 1 220px;
+  min-height: 220px;
+  max-height: 340px;
+  cursor: crosshair;
 }
 
 .grafico svg {
@@ -74,14 +227,30 @@
   display: block;
   width: 100%;
   height: 100%;
+  overflow: visible;
+}
+
+.graficoGrade {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-dasharray: 3 5;
+}
+
+.graficoGuia {
+  stroke: rgba(230, 48, 48, 0.5);
+  stroke-dasharray: 3 4;
+}
+
+.graficoArea {
+  animation: surgirArea 0.9s ease 0.35s both;
 }
 
 .graficoLinha {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 2;
+  stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 4px 10px rgba(230, 48, 48, 0.35));
   /* O estado normal é a linha inteira; o traçado só existe dentro da animação */
   animation: tracar 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s backwards;
 }
@@ -90,11 +259,48 @@
   fill: var(--bg);
   stroke: var(--accent);
   stroke-width: 2;
+  transition: r 0.15s ease;
 }
 
+.graficoPonto[data-ativo] {
+  fill: var(--accent);
+}
+
+/* Cor de texto do sistema: o cinza anterior não chegava a 4,5:1 sobre o fundo */
 .graficoRotulo {
-  fill: #666;
+  fill: var(--text-fraco);
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dica que acompanha o mouse */
+.graficoDica {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px solid rgba(230, 48, 48, 0.45);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.graficoDica strong {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.graficoDicaRotulo {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-fraco);
 }
 
 @keyframes tracar {
@@ -105,5 +311,23 @@
   to {
     stroke-dasharray: 2400;
     stroke-dashoffset: 0;
+  }
+}
+
+@keyframes surgirArea {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes crescer {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
   }
 }

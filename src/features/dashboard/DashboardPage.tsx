@@ -2,8 +2,6 @@ import { Link } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
-import { Icone } from '@/components/ui/Icone'
-import type { NomeIcone } from '@/components/ui/Icone'
 import { KpiCard } from '@/components/ui/KpiCard'
 import { Painel } from '@/components/ui/Painel'
 import { Pill } from '@/components/ui/Pill'
@@ -26,6 +24,7 @@ import { hojeISO } from '@/lib/datas'
 import { formatarData, formatarMoeda } from '@/lib/formato'
 import {
   calcularMetricas,
+  cargaPorPessoa,
   diasDeAtraso,
   mrrPorMes,
   otimizacaoPendente,
@@ -33,17 +32,11 @@ import {
   proximasEntregas,
   proximasOtimizacoes,
   tarefaAtrasada,
-  tempoRelativo,
 } from '@/lib/regras'
+import { Atividade } from './Atividade'
+import { Carga } from './Carga'
 import { GraficoMRR } from './GraficoMRR'
 import styles from './dashboard.module.css'
-
-const ICONE_DA_ENTIDADE: Record<string, NomeIcone> = {
-  clients: 'clientes',
-  tasks: 'demandas',
-  content_cards: 'conteudo',
-  campaigns: 'campanhas',
-}
 
 function Carregando() {
   return (
@@ -62,7 +55,7 @@ export function DashboardPage() {
   const campanhas = useCampanhas()
   const tarefasDeAnuncio = useTarefasDeCampanha()
   const perfis = usePerfis()
-  const atividade = useAtividadeRecente()
+  const atividade = useAtividadeRecente(20)
   const eventos = useEventos()
   const { registrar, registrando } = useRegistrarOtimizacao()
 
@@ -88,6 +81,8 @@ export function DashboardPage() {
   const entregas = proximasEntregas(tarefas.data ?? [], hoje)
   const otimizacoes = proximasOtimizacoes(campanhas.data ?? [], hoje)
   const registros = atividade.data ?? []
+  const painelCarga = juntarConsultas(tarefas, cards, tarefasDeAnuncio, perfis)
+  const carga = cargaPorPessoa(tarefas.data ?? [], cards.data ?? [], tarefasDeAnuncio.data ?? [])
   // Eventos e entregas do dia, da mesma agenda que o Calendário mostra; o que já foi entregue sai
   const agendaDeHoje = (
     agendaPorDia(montarAgenda(eventos.data ?? [], tarefas.data ?? [], cards.data ?? [])).get(hoje) ?? []
@@ -252,37 +247,39 @@ export function DashboardPage() {
         </Painel>
       </div>
 
-      <Painel titulo="Atividade recente">
-        {painelAtividade.erro ? (
-          <EstadoErro onTentar={todas.tentar} />
-        ) : painelAtividade.carregando ? (
-          <Carregando />
-        ) : registros.length === 0 ? (
-          <EstadoVazio
-            ilustracao="atividade" titulo="Nada registrado ainda."
-            texto="Clientes, demandas, conteúdos e anúncios criados pela equipe aparecem aqui."
-          />
-        ) : (
-          <ul className={`${ui.lista} stagger`}>
-            {registros.map((registro) => (
-              <li key={registro.id} className={ui.linha}>
-                <span className={styles.iconeAtividade}>
-                  <Icone nome={ICONE_DA_ENTIDADE[registro.entidade ?? ''] ?? 'dashboard'} tamanho={16} />
-                </span>
-                <p className={ui.linhaTexto}>
-                  <span>
-                    <strong>
-                      {(registro.user_id && perfilPorId.get(registro.user_id)?.nome) || 'Alguém'}
-                    </strong>{' '}
-                    {registro.descricao}
-                  </span>
-                </p>
-                <span className={ui.mudo}>{tempoRelativo(registro.created_at)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Painel>
+      <div className={styles.paineis}>
+        <Painel titulo="Carga da equipe">
+          {painelCarga.erro ? (
+            <EstadoErro onTentar={todas.tentar} />
+          ) : painelCarga.carregando ? (
+            <Carregando />
+          ) : carga.length === 0 ? (
+            <EstadoVazio
+              ilustracao="clientes"
+              titulo="Ninguém com tarefa em aberto."
+              texto="Demandas, conteúdos e tarefas de anúncio com responsável aparecem aqui."
+            />
+          ) : (
+            <Carga carga={carga} perfilPorId={perfilPorId} />
+          )}
+        </Painel>
+
+        <Painel titulo="Atividade recente">
+          {painelAtividade.erro ? (
+            <EstadoErro onTentar={todas.tentar} />
+          ) : painelAtividade.carregando ? (
+            <Carregando />
+          ) : registros.length === 0 ? (
+            <EstadoVazio
+              ilustracao="atividade"
+              titulo="Nada registrado ainda."
+              texto="Clientes, demandas, conteúdos e anúncios criados pela equipe aparecem aqui."
+            />
+          ) : (
+            <Atividade registros={registros} perfilPorId={perfilPorId} />
+          )}
+        </Painel>
+      </div>
     </div>
   )
 }

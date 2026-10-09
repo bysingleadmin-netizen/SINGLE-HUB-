@@ -1,6 +1,10 @@
 import type { Campaign, CampaignTask, Client, ContentCard, Task } from '@/types/database'
 import {
+  agruparPorDia,
   calcularMetricas,
+  cargaPorPessoa,
+  descreverPrazo,
+  quandoAconteceu,
   dataAposOtimizar,
   diasDeAtraso,
   proximasOtimizacoes,
@@ -261,5 +265,75 @@ describe('calcularMetricas', () => {
       tarefasAbertas: 0,
       conteudosAguardando: 0,
     })
+  })
+})
+
+describe('quandoAconteceu', () => {
+  // 9 de outubro de 2026, 16h20, no fuso de quem roda o teste
+  const agora = new Date(2026, 9, 9, 16, 20)
+  const em = (...partes: [number, number, number, number, number]) => new Date(...partes).toISOString()
+
+  it('fala do mesmo dia em minutos e horas', () => {
+    expect(quandoAconteceu(em(2026, 9, 9, 16, 20), agora)).toBe('agora')
+    expect(quandoAconteceu(em(2026, 9, 9, 16, 5), agora)).toBe('há 15 min')
+    expect(quandoAconteceu(em(2026, 9, 9, 15, 10), agora)).toBe('há 1 hora')
+    expect(quandoAconteceu(em(2026, 9, 9, 9, 0), agora)).toBe('há 7 horas')
+  })
+
+  it('ontem e dias anteriores levam a hora', () => {
+    expect(quandoAconteceu(em(2026, 9, 8, 14, 0), agora)).toBe('ontem às 14h')
+    expect(quandoAconteceu(em(2026, 9, 3, 9, 30), agora)).toBe('03/10 às 9h30')
+    expect(quandoAconteceu(em(2025, 11, 31, 23, 5), agora)).toBe('31/12/2025 às 23h05')
+  })
+})
+
+describe('agruparPorDia', () => {
+  it('separa em Hoje, Ontem e datas, mantendo a ordem', () => {
+    const agora = new Date(2026, 9, 9, 16, 20)
+    const registro = (id: string, dia: number, hora: number) => ({
+      id,
+      created_at: new Date(2026, 9, dia, hora).toISOString(),
+    })
+    const grupos = agruparPorDia(
+      [registro('a', 9, 15), registro('b', 9, 8), registro('c', 8, 20), registro('d', 2, 10)],
+      agora,
+    )
+    expect(grupos.map((g) => g.rotulo)).toEqual(['Hoje', 'Ontem', '02/10/2026'])
+    expect(grupos[0].itens.map((r) => r.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('cargaPorPessoa', () => {
+  it('soma o que está em aberto nas três categorias, do mais carregado para o menos', () => {
+    const carga = cargaPorPessoa(
+      [
+        { status: 'a_fazer', responsavel_id: 'u1' },
+        { status: 'concluido', responsavel_id: 'u1' },
+        { status: 'em_andamento', responsavel_id: null },
+      ],
+      [
+        { etapa: 'editar', responsavel_id: 'u1' },
+        { etapa: 'publicado', responsavel_id: 'u2' },
+      ],
+      [
+        { status: 'pendente', responsavel_id: 'u2' },
+        { status: 'pendente', responsavel_id: 'u1' },
+      ],
+    )
+    expect(carga).toEqual([
+      { id: 'u1', total: 3, fatia: 0.75 },
+      { id: 'u2', total: 1, fatia: 0.25 },
+    ])
+  })
+})
+
+describe('descreverPrazo', () => {
+  it('descreve o prazo em palavras', () => {
+    expect(descreverPrazo(null, HOJE)).toBe('Sem data de entrega')
+    expect(descreverPrazo('2026-10-05', HOJE)).toBe('3 dias de atraso')
+    expect(descreverPrazo(HOJE, HOJE)).toBe('Vence hoje')
+    expect(descreverPrazo('2026-10-09', HOJE)).toBe('Vence amanhã')
+    expect(descreverPrazo('2026-10-18', HOJE)).toBe('Vence em 10 dias')
+    expect(descreverPrazo('2026-10-01', HOJE, true)).toBe('Entregue')
   })
 })

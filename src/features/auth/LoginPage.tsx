@@ -41,60 +41,47 @@ export function LoginPage() {
   }
 
   async function cadastrar(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault()
-    setErro(null)
-    if (senha.length < 6) {
-      setErro('A senha precisa ter pelo menos 6 caracteres.')
-      return
-    }
-    if (senha !== senhaConfirm) {
-      setErro('As senhas não coincidem.')
-      return
-    }
-    setEnviando(true)
-    try {
-      const res = await supabase
-        .from('invite_codes')
-        .select('*')
-        .eq('email', email.trim().toLowerCase())
-        .eq('code', codigo.trim().toUpperCase())
-        .eq('used', false)
-        .gte('expires_at', new Date().toISOString())
-        .single()
-
-      if (res.error || !res.data) {
-        setErro('Código inválido ou expirado. Peça um novo convite ao CEO.')
-        return
-      }
-
-      const convite = res.data
-
-      const auth = await supabase.auth.signUp({
-        email: email.trim(),
-        password: senha,
-      })
-
-      if (auth.error || !auth.data.user) {
-        setErro(traduzirErroAuth(auth.error?.message))
-        return
-      }
-
-      await supabase
-        .from('invite_codes')
-        .update({ used: true, used_at: new Date().toISOString() })
-        .eq('id', convite.id)
-
-      await supabase
-        .from('profiles')
-        .update({ cargo: convite.cargo })
-        .eq('id', auth.data.user.id)
-
-    } catch (falha) {
-      setErro(traduzirErroAuth(falha instanceof Error ? falha.message : undefined))
-    } finally {
-      setEnviando(false)
-    }
+  evento.preventDefault()
+  setErro(null)
+  if (senha.length < 6) {
+    setErro('A senha precisa ter pelo menos 6 caracteres.')
+    return
   }
+  if (senha !== senhaConfirm) {
+    setErro('As senhas não coincidem.')
+    return
+  }
+  setEnviando(true)
+  try {
+    const { data: valido, error: erroVerif } = await supabase.rpc('verificar_codigo_convite', {
+      p_email: email.trim().toLowerCase(),
+      p_codigo: codigo.trim().toUpperCase(),
+    })
+    if (erroVerif || !valido) {
+      setErro('Código inválido ou expirado. Peça um novo convite ao CEO.')
+      return
+    }
+
+    const auth = await supabase.auth.signUp({ email: email.trim(), password: senha })
+    if (auth.error || !auth.data.user) {
+      setErro(traduzirErroAuth(auth.error?.message))
+      return
+    }
+
+    const { data: resultado } = await supabase.rpc('usar_codigo_convite', {
+      p_email: email.trim().toLowerCase(),
+      p_codigo: codigo.trim().toUpperCase(),
+      p_user_id: auth.data.user.id,
+    })
+    if (resultado !== 'ok') {
+      setErro('Conta criada, mas o cargo não foi aplicado. Fale com o CEO.')
+    }
+  } catch (falha) {
+    setErro(traduzirErroAuth(falha instanceof Error ? falha.message : undefined))
+  } finally {
+    setEnviando(false)
+  }
+}
 
   function alternarModo() {
     setModo(modo === 'entrar' ? 'cadastrar' : 'entrar')

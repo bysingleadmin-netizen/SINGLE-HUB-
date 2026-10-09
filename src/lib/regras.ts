@@ -10,6 +10,22 @@ export function tarefaAtrasada(tarefa: Pick<Task, 'status' | 'data_entrega'>, ho
   return tarefaAberta(tarefa) && tarefa.data_entrega != null && tarefa.data_entrega < hoje
 }
 
+export type SituacaoDoPrazo = 'atrasado' | 'proximo' | 'folgado'
+
+/**
+ * Cor do indicador de prazo: vencido, vence em até dois dias, ou com folga.
+ * Null sem data ou quando o item já foi entregue.
+ */
+export function situacaoDoPrazo(
+  dataEntrega: string | null,
+  hoje: string,
+  entregue = false,
+): SituacaoDoPrazo | null {
+  if (!dataEntrega || entregue) return null
+  if (dataEntrega < hoje) return 'atrasado'
+  return dataEntrega <= somarDias(hoje, 2) ? 'proximo' : 'folgado'
+}
+
 export function diasDeAtraso(dataISO: string, hoje: string): number {
   return Math.max(0, diffDias(dataISO, hoje))
 }

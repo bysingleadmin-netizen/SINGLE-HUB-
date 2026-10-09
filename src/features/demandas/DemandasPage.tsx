@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { CardInfo } from '@/components/quadro/CardInfo'
 import { Quadro } from '@/components/quadro/Quadro'
 import quadro from '@/components/quadro/pagina.module.css'
@@ -12,14 +13,13 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
 import { hojeISO } from '@/lib/datas'
-import { tarefaAtrasada } from '@/lib/regras'
+import { situacaoDoPrazo, tarefaAberta, tarefaAtrasada } from '@/lib/regras'
 import { COLUNAS_TAREFA, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
 import type { Task, TaskStatus, TaskTipo } from '@/types/database'
+import { TarefaDrawer } from './TarefaDrawer'
 import { TarefaModal, tituloDoStatus } from './TarefaModal'
 import { filtrarTarefas } from './tarefa'
 
-/** undefined: fechado. `status`: criando naquela coluna. `id`: editando aquela demanda. */
-type Formulario = undefined | { status: TaskStatus } | { id: string }
 
 export function DemandasPage() {
   const tarefas = useTarefas()
@@ -27,7 +27,11 @@ export function DemandasPage() {
   const perfis = usePerfis()
   const [tipo, setTipo] = useState<TaskTipo | ''>('')
   const [responsavel, setResponsavel] = useState('')
-  const [formulario, setFormulario] = useState<Formulario>()
+  /** Coluna em que o modal de nova demanda abre; undefined quando fechado */
+  const [criandoEm, setCriandoEm] = useState<TaskStatus>()
+  // A demanda aberta fica no endereço, para a busca e as notificações levarem direto a ela
+  const [parametros, setParametros] = useSearchParams()
+  const abertaId = parametros.get('abrir')
 
   const mover = useMover<Task>({
     tabela: 'tasks',
@@ -55,8 +59,8 @@ export function DemandasPage() {
   const clientePorId = porId(clientes.data)
   const perfilPorId = porId(perfis.data)
   const hoje = hojeISO()
-  const emEdicao =
-    formulario && 'id' in formulario ? todas.find((t) => t.id === formulario.id) : undefined
+  const aberta = todas.find((t) => t.id === abertaId)
+  const fecharPainel = () => setParametros({}, { replace: true })
 
   return (
     <div className={quadro.pagina}>
@@ -77,7 +81,7 @@ export function DemandasPage() {
             onChange={(evento) => setResponsavel(evento.target.value)}
           />
         </div>
-        <Button onClick={() => setFormulario({ status: 'a_fazer' })}>
+        <Button onClick={() => setCriandoEm('a_fazer')}>
           <Icone nome="mais" tamanho={16} />
           Nova demanda
         </Button>
@@ -118,35 +122,35 @@ export function DemandasPage() {
                     tarefa.responsavel_id ? perfilPorId.get(tarefa.responsavel_id) : undefined
                   }
                   dataEntrega={tarefa.data_entrega}
-                  atrasado={tarefaAtrasada(tarefa, hoje)}
+                  prazo={situacaoDoPrazo(tarefa.data_entrega, hoje, !tarefaAberta(tarefa))}
                 />
               )
             }}
             onMover={(tarefa, destino) => mover(tarefa, destino, todas)}
             onArquivar={(tarefa) => mover(tarefa, 'arquivado', todas)}
-            onCriar={(status) => setFormulario({ status: status as TaskStatus })}
-            onAbrir={(tarefa) => setFormulario({ id: tarefa.id })}
+            onCriar={(status) => setCriandoEm(status as TaskStatus)}
+            onAbrir={(tarefa) => setParametros({ abrir: tarefa.id }, { replace: true })}
           />
         </>
       )}
 
-      {formulario && 'status' in formulario && (
+      {criandoEm && (
         <TarefaModal
-          statusInicial={formulario.status}
+          statusInicial={criandoEm}
           tarefas={todas}
           clientes={clientes.data ?? []}
           perfis={perfis.data ?? []}
-          onFechar={() => setFormulario(undefined)}
+          onFechar={() => setCriandoEm(undefined)}
         />
       )}
-      {emEdicao && (
-        <TarefaModal
-          key={emEdicao.id}
-          tarefa={emEdicao}
-          tarefas={todas}
+      {aberta && (
+        <TarefaDrawer
+          key={aberta.id}
+          tarefa={aberta}
           clientes={clientes.data ?? []}
           perfis={perfis.data ?? []}
-          onFechar={() => setFormulario(undefined)}
+          onMover={(destino) => mover(aberta, destino, todas)}
+          onFechar={fecharPainel}
         />
       )}
     </div>

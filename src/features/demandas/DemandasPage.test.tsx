@@ -209,18 +209,55 @@ describe('DemandasPage', () => {
     expect(await coluna('A Fazer').findByText('Roteiro de reels')).toBeInTheDocument()
   })
 
-  it('edita pelo card e registra quando o status muda', async () => {
+  async function abrirCard() {
     popular()
     renderizar(<DemandasPage />)
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir Roteiro de reels' }))
+    return within(await screen.findByRole('dialog', { name: 'Roteiro de reels' }))
+  }
 
-    const modal = within(screen.getByRole('dialog', { name: 'Editar demanda' }))
-    expect(modal.getByLabelText('Título')).toHaveValue('Roteiro de reels')
-    expect(modal.getByLabelText('Cliente')).toHaveValue('c1')
-    fireEvent.change(modal.getByLabelText('Status'), { target: { value: 'concluido' } })
-    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+  it('clicar no card abre o painel lateral com os dados, sem botão de salvar', async () => {
+    const painel = await abrirCard()
+    expect(painel.getByLabelText('Título')).toHaveValue('Roteiro de reels')
+    expect(painel.getByLabelText('Cliente')).toHaveValue('c1')
+    expect(painel.getByLabelText('Responsável')).toHaveValue('u1')
+    expect(painel.getByLabelText('Status')).toHaveValue('a_fazer')
+    expect(painel.queryByRole('button', { name: 'Salvar' })).not.toBeInTheDocument()
+  })
 
+  it('salva o título ao sair do campo', async () => {
+    const painel = await abrirCard()
+    const titulo = painel.getByLabelText('Título')
+    fireEvent.change(titulo, { target: { value: 'Roteiro final' } })
+    fireEvent.blur(titulo)
     expect(await screen.findByText('Demanda atualizada.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.tasks[0].titulo).toBe('Roteiro final')
+  })
+
+  it('não aceita título em branco e devolve o anterior', async () => {
+    const painel = await abrirCard()
+    const titulo = painel.getByLabelText('Título')
+    fireEvent.change(titulo, { target: { value: '  ' } })
+    fireEvent.blur(titulo)
+    expect(await painel.findByText('Informe o título da demanda.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.tasks[0].titulo).toBe('Roteiro de reels')
+  })
+
+  it('seleções e data salvam na hora', async () => {
+    const painel = await abrirCard()
+    fireEvent.change(painel.getByLabelText('Tipo'), { target: { value: 'audiovisual' } })
+    await waitFor(() => expect(bancoFalso().tabelas.tasks[0].tipo).toBe('audiovisual'))
+    fireEvent.change(painel.getByLabelText('Responsável'), { target: { value: '' } })
+    await waitFor(() => expect(bancoFalso().tabelas.tasks[0].responsavel_id).toBeNull())
+    fireEvent.change(painel.getByLabelText('Data de entrega'), { target: { value: '2026-12-01' } })
+    await waitFor(() => expect(bancoFalso().tabelas.tasks[0].data_entrega).toBe('2026-12-01'))
+  })
+
+  it('trocar o status pelo painel move o card e registra a atividade', async () => {
+    const painel = await abrirCard()
+    fireEvent.change(painel.getByLabelText('Status'), { target: { value: 'concluido' } })
+
+    expect(await screen.findByText('Demanda movida para Concluído.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.tasks[0].status).toBe('concluido')
     expect(await coluna('Concluído').findByText('Roteiro de reels')).toBeInTheDocument()
     await waitFor(() =>
@@ -228,6 +265,37 @@ describe('DemandasPage', () => {
         expect.objectContaining({ acao: 'demanda_movida', entidade_id: 't1' }),
       ),
     )
+  })
+
+  it('desfaz e avisa quando o banco recusa uma edição', async () => {
+    const painel = await abrirCard()
+    bancoFalso().erroEscrita = { message: 'negado' }
+    fireEvent.change(painel.getByLabelText('Tipo'), { target: { value: 'audiovisual' } })
+    expect(await screen.findByText('Não foi possível salvar a demanda.')).toBeInTheDocument()
+    await waitFor(() => expect(painel.getByLabelText('Tipo')).toHaveValue('conteudo'))
+  })
+
+  it('abre direto a demanda pedida pelo endereço', async () => {
+    popular()
+    renderizar(<DemandasPage />, { rota: '/app/demandas?abrir=t2' })
+    expect(await screen.findByRole('dialog', { name: 'Subir campanha' })).toBeInTheDocument()
+  })
+
+  it('o card mostra o prazo em vermelho, amarelo ou verde', async () => {
+    bancoFalso().reiniciar({
+      tasks: [
+        tarefa({ id: 'a', titulo: 'Vencida', data_entrega: somarDias(HOJE, -1) }),
+        tarefa({ id: 'b', titulo: 'Para amanhã', data_entrega: somarDias(HOJE, 1), posicao: 2 }),
+        tarefa({ id: 'c', titulo: 'Com folga', data_entrega: somarDias(HOJE, 10), posicao: 3 }),
+      ],
+    })
+    renderizar(<DemandasPage />)
+    await screen.findByText('Vencida')
+    const prazo = (titulo: string) =>
+      screen.getByRole('button', { name: `Abrir ${titulo}` }).querySelector('[data-prazo]')
+    expect(prazo('Vencida')).toHaveAttribute('data-prazo', 'atrasado')
+    expect(prazo('Para amanhã')).toHaveAttribute('data-prazo', 'proximo')
+    expect(prazo('Com folga')).toHaveAttribute('data-prazo', 'folgado')
   })
 
   it('falha de leitura vira erro com tentar novamente', async () => {

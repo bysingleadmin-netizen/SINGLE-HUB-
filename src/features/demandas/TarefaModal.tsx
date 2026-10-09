@@ -15,7 +15,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import type { Erros } from '@/lib/formulario'
 import { COLUNAS_TAREFA, TIPOS_TAREFA } from '@/lib/rotulos'
 import type { Client, Profile, Task, TaskStatus, TaskTipo } from '@/types/database'
-import { formDaTarefa, formNovaTarefa, validarTarefa } from './tarefa'
+import { formNovaTarefa, validarTarefa } from './tarefa'
 import type { FormTarefa } from './tarefa'
 
 const OPCOES_STATUS = COLUNAS_TAREFA.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))
@@ -25,27 +25,18 @@ export function tituloDoStatus(status: string): string {
 }
 
 interface TarefaModalProps {
-  /** Demanda em edição; sem ela, o modal cria uma nova em `statusInicial` */
-  tarefa?: Task
-  statusInicial?: TaskStatus
+  /** Coluna em que a demanda nasce */
+  statusInicial: TaskStatus
   tarefas: Task[]
   clientes: Client[]
   perfis: Profile[]
   onFechar: () => void
 }
 
-export function TarefaModal({
-  tarefa,
-  statusInicial = 'a_fazer',
-  tarefas,
-  clientes,
-  perfis,
-  onFechar,
-}: TarefaModalProps) {
+/** Cria uma demanda. Para editar uma que já existe, o quadro abre o TarefaDrawer. */
+export function TarefaModal({ statusInicial, tarefas, clientes, perfis, onFechar }: TarefaModalProps) {
   const { perfil } = useAuth()
-  const [form, setForm] = useState<FormTarefa>(() =>
-    tarefa ? formDaTarefa(tarefa) : formNovaTarefa(statusInicial),
-  )
+  const [form, setForm] = useState<FormTarefa>(() => formNovaTarefa(statusInicial))
   const [erros, setErros] = useState<Erros<FormTarefa>>({})
   const salvar = useSalvar<Task>('tasks')
   const registrarAtividade = useRegistrarAtividade()
@@ -65,43 +56,26 @@ export function TarefaModal({
     }
     setErros({})
     const { valores } = resultado
-    const mudouDeColuna = !tarefa || tarefa.status !== valores.status
-    // Quem entra em uma coluna vai para o fim dela
-    const posicao = mudouDeColuna
-      ? proximaPosicao(tarefas.filter((t) => t.status === valores.status && t.id !== tarefa?.id))
-      : tarefa.posicao
+    // A demanda nova entra no fim da coluna
+    const posicao = proximaPosicao(tarefas.filter((t) => t.status === valores.status))
 
     salvar.mutate(
-      {
-        id: tarefa?.id,
-        valores: tarefa
-          ? { ...valores, posicao }
-          : { ...valores, posicao, created_by: perfil?.id ?? null },
-      },
+      { valores: { ...valores, posicao, created_by: perfil?.id ?? null } },
       {
         onSuccess: (salva) => {
-          toast.sucesso(tarefa ? 'Demanda atualizada.' : 'Demanda criada.')
-          if (!tarefa) {
-            void registrarAtividade({
-              acao: 'demanda_criada',
-              descricao: `criou a demanda "${salva.titulo}"`,
-              entidade: 'tasks',
-              entidadeId: salva.id,
-            })
-            void notificar([salva.responsavel_id], {
-              tipo: 'tarefa',
-              titulo: 'Nova demanda para você',
-              mensagem: `${perfil?.nome ?? 'Alguém'} atribuiu a demanda "${salva.titulo}" a você.`,
-              link: `/app/demandas?abrir=${salva.id}`,
-            })
-          } else if (mudouDeColuna) {
-            void registrarAtividade({
-              acao: 'demanda_movida',
-              descricao: `moveu a demanda "${salva.titulo}" para ${tituloDoStatus(salva.status)}`,
-              entidade: 'tasks',
-              entidadeId: salva.id,
-            })
-          }
+          toast.sucesso('Demanda criada.')
+          void registrarAtividade({
+            acao: 'demanda_criada',
+            descricao: `criou a demanda "${salva.titulo}"`,
+            entidade: 'tasks',
+            entidadeId: salva.id,
+          })
+          void notificar([salva.responsavel_id], {
+            tipo: 'tarefa',
+            titulo: 'Nova demanda para você',
+            mensagem: `${perfil?.nome ?? 'Alguém'} atribuiu a demanda "${salva.titulo}" a você.`,
+            link: `/app/demandas?abrir=${salva.id}`,
+          })
           onFechar()
         },
         onError: () => toast.erro('Não foi possível salvar a demanda.'),
@@ -110,7 +84,7 @@ export function TarefaModal({
   }
 
   return (
-    <Modal aberto titulo={tarefa ? 'Editar demanda' : 'Nova demanda'} onFechar={onFechar}>
+    <Modal aberto titulo="Nova demanda" onFechar={onFechar}>
       <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
         <Campo
           rotulo="Título"

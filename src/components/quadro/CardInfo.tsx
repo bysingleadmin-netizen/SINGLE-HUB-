@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Avatar } from '@/components/ui/Avatar'
 import { formatarData } from '@/lib/formato'
+import type { SituacaoDoPrazo } from '@/lib/regras'
 import type { Client, Profile } from '@/types/database'
 import styles from './quadro.module.css'
 
@@ -11,7 +12,8 @@ interface CardInfoProps {
   cliente: Client | undefined
   responsavel: Profile | undefined
   dataEntrega: string | null
-  atrasado?: boolean
+  /** Define a cor do indicador de prazo; null deixa neutro */
+  prazo: SituacaoDoPrazo | null
 }
 
 /** Miolo dos cards de Demandas e de Conteúdo. */
@@ -21,20 +23,20 @@ export function CardInfo({
   cliente,
   responsavel,
   dataEntrega,
-  atrasado = false,
+  prazo,
 }: CardInfoProps) {
   return (
     <span className={styles.info}>
       <span className={styles.infoTopo}>{etiqueta}</span>
       <span className={styles.infoTitulo}>{titulo}</span>
-      <span className={styles.infoLinha}>
-        <Avatar nome={cliente?.nome ?? null} url={cliente?.logo_url} tamanho={20} />
+      <span className={styles.infoCliente}>
+        <Avatar nome={cliente?.nome ?? null} url={cliente?.logo_url} tamanho={18} />
         <span className={styles.infoTexto}>{cliente?.nome ?? 'Sem cliente'}</span>
       </span>
       <span className={styles.infoLinha}>
-        <Avatar nome={responsavel?.nome ?? null} url={responsavel?.avatar_url} tamanho={20} />
+        <Avatar nome={responsavel?.nome ?? null} url={responsavel?.avatar_url} tamanho={22} />
         <span className={styles.infoTexto}>{responsavel?.nome ?? 'Sem responsável'}</span>
-        <span className={styles.infoData} data-atrasado={atrasado || undefined}>
+        <span className={styles.infoPrazo} data-prazo={prazo ?? undefined}>
           {dataEntrega ? formatarData(dataEntrega) : 'Sem data'}
         </span>
       </span>

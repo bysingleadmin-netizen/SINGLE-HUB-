@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { CardInfo } from '@/components/quadro/CardInfo'
 import { Quadro } from '@/components/quadro/Quadro'
 import quadro from '@/components/quadro/pagina.module.css'
@@ -11,13 +12,12 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useCards, useClientes, usePerfis } from '@/dados/tabelas'
 import { hojeISO } from '@/lib/datas'
+import { situacaoDoPrazo } from '@/lib/regras'
 import { COLUNAS_CONTEUDO, TIPOS_CONTEUDO, opcao } from '@/lib/rotulos'
 import type { ContentCard, ContentEtapa } from '@/types/database'
+import { CardDrawer } from './CardDrawer'
 import { CardModal } from './CardModal'
 import { atividadeDoMovimento, tituloDaEtapa } from './card'
-
-/** undefined: fechado. `etapa`: criando naquela etapa. `id`: editando aquele card. */
-type Formulario = undefined | { etapa: ContentEtapa } | { id: string }
 
 /** Passou do prazo sem ter sido publicado. */
 function cardAtrasado(card: ContentCard, hoje: string): boolean {
@@ -28,7 +28,11 @@ export function ConteudoPage() {
   const cards = useCards()
   const clientes = useClientes()
   const perfis = usePerfis()
-  const [formulario, setFormulario] = useState<Formulario>()
+  /** Etapa em que o modal de novo conteúdo abre; undefined quando fechado */
+  const [criandoEm, setCriandoEm] = useState<ContentEtapa>()
+  // O card aberto fica no endereço, para a busca levar direto a ele
+  const [parametros, setParametros] = useSearchParams()
+  const abertoId = parametros.get('abrir')
 
   const mover = useMover<ContentCard>({
     tabela: 'content_cards',
@@ -49,14 +53,13 @@ export function ConteudoPage() {
   const clientePorId = porId(clientes.data)
   const perfilPorId = porId(perfis.data)
   const hoje = hojeISO()
-  const emEdicao =
-    formulario && 'id' in formulario ? todos.find((c) => c.id === formulario.id) : undefined
+  const aberto = todos.find((c) => c.id === abertoId)
 
   return (
     <div className={quadro.pagina}>
       <div className={quadro.barra}>
         <span />
-        <Button onClick={() => setFormulario({ etapa: 'captar_material' })}>
+        <Button onClick={() => setCriandoEm('captar_material')}>
           <Icone nome="mais" tamanho={16} />
           Novo conteúdo
         </Button>
@@ -95,35 +98,35 @@ export function ConteudoPage() {
                     card.responsavel_id ? perfilPorId.get(card.responsavel_id) : undefined
                   }
                   dataEntrega={card.data_entrega}
-                  atrasado={cardAtrasado(card, hoje)}
+                  prazo={situacaoDoPrazo(card.data_entrega, hoje, card.etapa === 'publicado')}
                 />
               )
             }}
             onMover={(card, destino) => mover(card, destino, todos)}
             onArquivar={(card) => mover(card, 'arquivado', todos)}
-            onCriar={(etapa) => setFormulario({ etapa: etapa as ContentEtapa })}
-            onAbrir={(card) => setFormulario({ id: card.id })}
+            onCriar={(etapa) => setCriandoEm(etapa as ContentEtapa)}
+            onAbrir={(card) => setParametros({ abrir: card.id }, { replace: true })}
           />
         </>
       )}
 
-      {formulario && 'etapa' in formulario && (
+      {criandoEm && (
         <CardModal
-          etapaInicial={formulario.etapa}
+          etapaInicial={criandoEm}
           cards={todos}
           clientes={clientes.data ?? []}
           perfis={perfis.data ?? []}
-          onFechar={() => setFormulario(undefined)}
+          onFechar={() => setCriandoEm(undefined)}
         />
       )}
-      {emEdicao && (
-        <CardModal
-          key={emEdicao.id}
-          card={emEdicao}
-          cards={todos}
+      {aberto && (
+        <CardDrawer
+          key={aberto.id}
+          card={aberto}
           clientes={clientes.data ?? []}
           perfis={perfis.data ?? []}
-          onFechar={() => setFormulario(undefined)}
+          onMover={(destino) => mover(aberto, destino, todos)}
+          onFechar={() => setParametros({}, { replace: true })}
         />
       )}
     </div>

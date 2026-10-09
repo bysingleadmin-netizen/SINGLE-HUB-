@@ -100,23 +100,59 @@ describe('ConteudoPage', () => {
     expect(bancoFalso().tabelas.content_cards ?? []).toHaveLength(0)
   })
 
-  it('publicar pela edição registra a publicação', async () => {
+  async function abrirCard() {
     popular()
     renderizar(<ConteudoPage />)
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir Reels de lançamento' }))
+    return within(await screen.findByRole('dialog', { name: 'Reels de lançamento' }))
+  }
 
-    const modal = within(screen.getByRole('dialog', { name: 'Editar conteúdo' }))
-    expect(modal.getByLabelText('Cliente')).toHaveValue('c1')
-    fireEvent.change(modal.getByLabelText('Etapa'), { target: { value: 'publicado' } })
-    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+  it('clicar no card abre o painel lateral com os dados, sem botão de salvar', async () => {
+    const painel = await abrirCard()
+    expect(painel.getByLabelText('Título')).toHaveValue('Reels de lançamento')
+    expect(painel.getByLabelText('Cliente')).toHaveValue('c1')
+    expect(painel.getByLabelText('Tipo de conteúdo')).toHaveValue('reels')
+    expect(painel.queryByRole('button', { name: 'Salvar' })).not.toBeInTheDocument()
+  })
 
-    expect(await screen.findByText('Conteúdo atualizado.')).toBeInTheDocument()
+  it('publicar pelo painel move o card e registra a publicação', async () => {
+    const painel = await abrirCard()
+    fireEvent.change(painel.getByLabelText('Etapa'), { target: { value: 'publicado' } })
+
+    expect(await screen.findByText('Conteúdo publicado.')).toBeInTheDocument()
     expect(await coluna('Publicado').findByText('Reels de lançamento')).toBeInTheDocument()
     await waitFor(() =>
       expect(bancoFalso().tabelas.activity_log).toContainEqual(
         expect.objectContaining({ acao: 'conteudo_publicado', entidade_id: 'k1' }),
       ),
     )
+  })
+
+  it('salva observações ao sair do campo e seleções na hora', async () => {
+    const painel = await abrirCard()
+    const observacoes = painel.getByLabelText('Observações')
+    fireEvent.change(observacoes, { target: { value: 'Usar a trilha nova' } })
+    fireEvent.blur(observacoes)
+    expect(await screen.findByText('Conteúdo atualizado.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.content_cards[0].observacoes).toBe('Usar a trilha nova')
+
+    fireEvent.change(painel.getByLabelText('Tipo de conteúdo'), { target: { value: 'video' } })
+    await waitFor(() => expect(bancoFalso().tabelas.content_cards[0].tipo_conteudo).toBe('video'))
+  })
+
+  it('não aceita título em branco', async () => {
+    const painel = await abrirCard()
+    const titulo = painel.getByLabelText('Título')
+    fireEvent.change(titulo, { target: { value: '' } })
+    fireEvent.blur(titulo)
+    expect(await painel.findByText('Informe o título do conteúdo.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.content_cards[0].titulo).toBe('Reels de lançamento')
+  })
+
+  it('abre direto o conteúdo pedido pelo endereço', async () => {
+    popular()
+    renderizar(<ConteudoPage />, { rota: '/app/conteudo?abrir=k2' })
+    expect(await screen.findByRole('dialog', { name: 'Carrossel de dicas' })).toBeInTheDocument()
   })
 
   it('arquiva pelo card e some do quadro', async () => {

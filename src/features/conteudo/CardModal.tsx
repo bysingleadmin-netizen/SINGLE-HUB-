@@ -13,32 +13,23 @@ import { useSalvar } from '@/dados/base'
 import type { Erros } from '@/lib/formulario'
 import { COLUNAS_CONTEUDO, TIPOS_CONTEUDO } from '@/lib/rotulos'
 import type { Client, ContentCard, ContentEtapa, Profile, TipoConteudo } from '@/types/database'
-import { atividadeDoMovimento, formDoCard, formNovoCard, validarCard } from './card'
+import { formNovoCard, validarCard } from './card'
 import type { FormCard } from './card'
 
 const OPCOES_ETAPA = COLUNAS_CONTEUDO.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))
 
 interface CardModalProps {
-  /** Card em edição; sem ele, o modal cria um novo em `etapaInicial` */
-  card?: ContentCard
-  etapaInicial?: ContentEtapa
+  /** Etapa em que o conteúdo nasce */
+  etapaInicial: ContentEtapa
   cards: ContentCard[]
   clientes: Client[]
   perfis: Profile[]
   onFechar: () => void
 }
 
-export function CardModal({
-  card,
-  etapaInicial = 'captar_material',
-  cards,
-  clientes,
-  perfis,
-  onFechar,
-}: CardModalProps) {
-  const [form, setForm] = useState<FormCard>(() =>
-    card ? formDoCard(card) : formNovoCard(etapaInicial),
-  )
+/** Cria um conteúdo. Para editar um que já existe, o quadro abre o CardDrawer. */
+export function CardModal({ etapaInicial, cards, clientes, perfis, onFechar }: CardModalProps) {
+  const [form, setForm] = useState<FormCard>(() => formNovoCard(etapaInicial))
   const [erros, setErros] = useState<Erros<FormCard>>({})
   const salvar = useSalvar<ContentCard>('content_cards')
   const registrarAtividade = useRegistrarAtividade()
@@ -57,28 +48,20 @@ export function CardModal({
     }
     setErros({})
     const { valores } = resultado
-    const mudouDeEtapa = !card || card.etapa !== valores.etapa
-    // Quem entra em uma etapa vai para o fim dela
-    const posicao = mudouDeEtapa
-      ? proximaPosicao(cards.filter((c) => c.etapa === valores.etapa && c.id !== card?.id))
-      : card.posicao
+    // O conteúdo novo entra no fim da etapa
+    const posicao = proximaPosicao(cards.filter((c) => c.etapa === valores.etapa))
 
     salvar.mutate(
-      { id: card?.id, valores: { ...valores, posicao } },
+      { valores: { ...valores, posicao } },
       {
         onSuccess: (salvo) => {
-          toast.sucesso(card ? 'Conteúdo atualizado.' : 'Conteúdo criado.')
-          if (!card) {
-            void registrarAtividade({
-              acao: 'conteudo_criado',
-              descricao: `criou o conteúdo "${salvo.titulo}"`,
-              entidade: 'content_cards',
-              entidadeId: salvo.id,
-            })
-          } else if (mudouDeEtapa) {
-            const registro = atividadeDoMovimento(salvo, salvo.etapa)
-            if (registro) void registrarAtividade(registro)
-          }
+          toast.sucesso('Conteúdo criado.')
+          void registrarAtividade({
+            acao: 'conteudo_criado',
+            descricao: `criou o conteúdo "${salvo.titulo}"`,
+            entidade: 'content_cards',
+            entidadeId: salvo.id,
+          })
           onFechar()
         },
         onError: () => toast.erro('Não foi possível salvar o conteúdo.'),
@@ -87,7 +70,7 @@ export function CardModal({
   }
 
   return (
-    <Modal aberto titulo={card ? 'Editar conteúdo' : 'Novo conteúdo'} onFechar={onFechar}>
+    <Modal aberto titulo="Novo conteúdo" onFechar={onFechar}>
       <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
         <Campo
           rotulo="Título"

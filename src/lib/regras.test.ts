@@ -4,6 +4,7 @@ import {
   dataAposOtimizar,
   diasDeAtraso,
   proximasOtimizacoes,
+  situacaoDoPrazo,
   formatarFidelidade,
   otimizacaoPendente,
   pagamentoAtrasado,
@@ -67,6 +68,20 @@ describe('tarefas', () => {
       HOJE,
     )
     expect(lista.map((t) => t.id)).toEqual(['atrasada', 'amanha', 'limite'])
+  })
+})
+
+describe('situacaoDoPrazo', () => {
+  it('vermelho para vencido, amarelo até dois dias, verde com folga', () => {
+    expect(situacaoDoPrazo('2026-10-07', HOJE)).toBe('atrasado')
+    expect(situacaoDoPrazo(HOJE, HOJE)).toBe('proximo')
+    expect(situacaoDoPrazo('2026-10-10', HOJE)).toBe('proximo')
+    expect(situacaoDoPrazo('2026-10-11', HOJE)).toBe('folgado')
+  })
+
+  it('não há situação sem data nem para o que já foi entregue', () => {
+    expect(situacaoDoPrazo(null, HOJE)).toBeNull()
+    expect(situacaoDoPrazo('2026-10-01', HOJE, true)).toBeNull()
   })
 })
 

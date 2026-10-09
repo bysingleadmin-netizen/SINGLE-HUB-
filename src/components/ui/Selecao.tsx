@@ -8,15 +8,29 @@ interface SelecaoProps extends SelectHTMLAttributes<HTMLSelectElement> {
   /** Texto da opção sem valor, como "Sem cliente". Sem isso, não há opção vazia. */
   vazio?: string
   erro?: string
+  /** Mantém o rótulo só para leitores de tela, para seleções dentro de listas */
+  ocultarRotulo?: boolean
 }
 
-export function Selecao({ rotulo, opcoes, vazio, erro, id, className, ...resto }: SelecaoProps) {
+export function Selecao({
+  rotulo,
+  opcoes,
+  vazio,
+  erro,
+  ocultarRotulo = false,
+  id,
+  className,
+  ...resto
+}: SelecaoProps) {
   const idGerado = useId()
   const idCampo = id ?? idGerado
   const idErro = `${idCampo}-erro`
   return (
     <div className={[styles.campo, className].filter(Boolean).join(' ')}>
-      <label htmlFor={idCampo} className={styles.campoRotulo}>
+      <label
+        htmlFor={idCampo}
+        className={ocultarRotulo ? styles.somenteLeitor : styles.campoRotulo}
+      >
         {rotulo}
       </label>
       <select

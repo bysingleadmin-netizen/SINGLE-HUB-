@@ -1,0 +1,215 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.barra {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Lista */
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.18s ease;
+}
+
+.item:hover {
+  border-color: var(--text-muted);
+}
+
+.itemNome {
+  font-family: var(--font-display);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.itemNome:hover {
+  color: var(--accent-hover);
+}
+
+.itemLado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.itemValor {
+  min-width: 110px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Detalhe */
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.voltar:hover {
+  color: var(--text);
+}
+
+.cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cabecalhoTitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cabecalhoTitulo h2 {
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
+
+.cabecalhoAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dados {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.dados div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dados dt {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dados dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.alerta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--accent-soft);
+  border: 1px solid rgba(230, 48, 48, 0.5);
+  border-radius: var(--radius-sm);
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
+.titulo {
+  font-size: 16px;
+}
+
+.grupos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.grupoTitulo {
+  font-size: 15px;
+}
+
+.tarefa {
+  flex-wrap: wrap;
+}
+
+.tarefa > div {
+  flex: 1 1 130px;
+  min-width: 0;
+}
+
+.tarefaTitulo {
+  flex: 1 1 100%;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.tarefaTitulo[data-concluida] {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.novaTarefa {
+  display: flex;
+  gap: 8px;
+}
+
+.novaTarefa input {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .dados {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grupos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .dados {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .itemValor {
+    min-width: 0;
+    text-align: left;
+  }
+}

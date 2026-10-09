@@ -257,6 +257,16 @@
   line-height: 1.5;
 }
 
+/* Texto que só leitores de tela anunciam */
+.somenteLeitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* Formulários */
 .formulario {
   display: flex;

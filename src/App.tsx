@@ -5,6 +5,8 @@ import { AuthProvider } from '@/features/auth/AuthProvider'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RotaLideranca } from '@/features/auth/RotaLideranca'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
+import { CampanhaPage } from '@/features/campanhas/CampanhaPage'
+import { CampanhasPage } from '@/features/campanhas/CampanhasPage'
 import { ClientesPage } from '@/features/clientes/ClientesPage'
 import { ConteudoPage } from '@/features/conteudo/ConteudoPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
@@ -28,8 +30,8 @@ export default function App() {
                   <Route path="clientes" element={<ClientesPage />} />
                   <Route path="demandas" element={<DemandasPage />} />
                   <Route path="conteudo" element={<ConteudoPage />} />
-                  <Route path="campanhas" element={<EmConstrucao tela="Campanhas" etapa={2} />} />
-                  <Route path="campanhas/:id" element={<EmConstrucao tela="Campanha" etapa={2} />} />
+                  <Route path="campanhas" element={<CampanhasPage />} />
+                  <Route path="campanhas/:id" element={<CampanhaPage />} />
                   <Route element={<RotaLideranca />}>
                     <Route
                       path="financeiro/:aba?"

@@ -57,7 +57,7 @@ export function pagamentoAtrasado(
   return pagamento.status === 'atrasado' || pagamento.data_vencimento < hoje
 }
 
-function plural(n: number, um: string, varios: string): string {
+export function plural(n: number, um: string, varios: string): string {
   return `${n} ${n === 1 ? um : varios}`
 }
 

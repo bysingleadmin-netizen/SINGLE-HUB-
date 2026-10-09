@@ -5,6 +5,7 @@ import { AuthProvider } from '@/features/auth/AuthProvider'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RotaLideranca } from '@/features/auth/RotaLideranca'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
+import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { EmConstrucao } from '@/features/placeholder/EmConstrucao'
 import { AppLayout } from '@/layouts/AppLayout'
 import { queryClient } from '@/lib/queryClient'
@@ -20,7 +21,7 @@ export default function App() {
               <Route element={<RotaProtegida />}>
                 <Route path="/app" element={<AppLayout />}>
                   <Route index element={<Navigate to="/app/dashboard" replace />} />
-                  <Route path="dashboard" element={<EmConstrucao tela="Dashboard" etapa={2} />} />
+                  <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="clientes" element={<EmConstrucao tela="Clientes" etapa={2} />} />
                   <Route path="demandas" element={<EmConstrucao tela="Demandas" etapa={2} />} />
                   <Route path="conteudo" element={<EmConstrucao tela="Conteúdo" etapa={2} />} />

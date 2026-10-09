@@ -19,7 +19,7 @@ export interface BancoFalso {
   erroEscrita: ErroFalso | null
   /** Se definido, toda leitura falha com este erro */
   erroLeitura: ErroFalso | null
-  reiniciar: (tabelas?: Record<string, Linha[]>) => void
+  reiniciar: (tabelas?: Record<string, object[]>) => void
 }
 
 export function criarSupabaseFalso() {
@@ -29,7 +29,7 @@ export function criarSupabaseFalso() {
     erroEscrita: null,
     erroLeitura: null,
     reiniciar(tabelas = {}) {
-      banco.tabelas = structuredClone(tabelas)
+      banco.tabelas = structuredClone(tabelas) as Record<string, Linha[]>
       banco.erroEscrita = null
       banco.erroLeitura = null
     },

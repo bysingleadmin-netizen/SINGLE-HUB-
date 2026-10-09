@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { UseQueryResult } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 export type Tabela =
@@ -91,4 +92,15 @@ export function useRemover(tabela: Tabela) {
 /** Indexa uma lista por id para fazer junções no cliente. */
 export function porId<T extends ComId>(lista: T[] | undefined): Map<string, T> {
   return new Map((lista ?? []).map((item) => [item.id, item]))
+}
+
+/** Estado conjunto de várias consultas de uma tela: carregando, erro e uma ação de tentar de novo. */
+export function juntarConsultas(...consultas: UseQueryResult<unknown>[]) {
+  return {
+    carregando: consultas.some((c) => c.isLoading),
+    erro: consultas.some((c) => c.isError),
+    tentar: () => {
+      for (const consulta of consultas) if (consulta.isError) void consulta.refetch()
+    },
+  }
 }

@@ -1,8 +1,8 @@
 import { hojeISO, mesesCompletos } from '@/lib/datas'
 import { emailValido, normalizarLink, textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
-import { formatarFidelidade, pagamentoAtrasado, parseMoeda } from '@/lib/regras'
-import type { Client, ClientPayment, ClientStatus, PaymentStatus } from '@/types/database'
+import { formatarFidelidade, parseMoeda } from '@/lib/regras'
+import type { Client, ClientStatus } from '@/types/database'
 
 const VALOR_INVALIDO = 'Informe um valor como 1.500,00.'
 
@@ -11,6 +11,8 @@ export interface FormCliente {
   status: ClientStatus
   mrr: string
   data_inicio_contrato: string
+  /** '1' a '31', ou vazio para seguir o dia do início do contrato */
+  dia_vencimento: string
   instagram: string
   link_conta_anuncios: string
   contato_nome: string
@@ -27,6 +29,7 @@ export function formVazio(): FormCliente {
     status: 'ativo',
     mrr: '',
     data_inicio_contrato: '',
+    dia_vencimento: '',
     instagram: '',
     link_conta_anuncios: '',
     contato_nome: '',
@@ -46,6 +49,7 @@ export function formDoCliente(cliente: Client): FormCliente {
     status: cliente.status,
     mrr: moedaParaCampo(cliente.mrr),
     data_inicio_contrato: cliente.data_inicio_contrato ?? '',
+    dia_vencimento: cliente.dia_vencimento ? String(cliente.dia_vencimento) : '',
     instagram: cliente.instagram ?? '',
     link_conta_anuncios: cliente.link_conta_anuncios ?? '',
     contato_nome: cliente.contato_nome ?? '',
@@ -55,7 +59,14 @@ export function formDoCliente(cliente: Client): FormCliente {
   }
 }
 
-export function validarCliente(form: FormCliente): Validacao<ValoresCliente, FormCliente> {
+/**
+ * `comVencimento` diz se o banco já tem a coluna `dia_vencimento` (migration 0002).
+ * Sem ela, o campo nem entra nos valores, para o cadastro continuar salvando.
+ */
+export function validarCliente(
+  form: FormCliente,
+  { comVencimento = false }: { comVencimento?: boolean } = {},
+): Validacao<ValoresCliente, FormCliente> {
   const erros: Erros<FormCliente> = {}
   const nome = form.nome.trim()
   const mrr = form.mrr.trim() === '' ? 0 : parseMoeda(form.mrr)
@@ -66,6 +77,11 @@ export function validarCliente(form: FormCliente): Validacao<ValoresCliente, For
   if (mrr == null) erros.mrr = VALOR_INVALIDO
   if (link === undefined) erros.link_conta_anuncios = 'Informe um link válido.'
   if (email && !emailValido(email)) erros.contato_email = 'Informe um e-mail válido.'
+  const diaTexto = form.dia_vencimento.trim()
+  const dia = diaTexto === '' ? null : Number(diaTexto)
+  if (comVencimento && dia != null && !(Number.isInteger(dia) && dia >= 1 && dia <= 31)) {
+    erros.dia_vencimento = 'Informe um dia entre 1 e 31.'
+  }
   if (Object.keys(erros).length > 0 || mrr == null || link === undefined) return { erros }
 
   return {
@@ -74,6 +90,7 @@ export function validarCliente(form: FormCliente): Validacao<ValoresCliente, For
       status: form.status,
       mrr,
       data_inicio_contrato: textoOuNull(form.data_inicio_contrato),
+      ...(comVencimento ? { dia_vencimento: dia } : {}),
       instagram: textoOuNull(form.instagram),
       link_conta_anuncios: link,
       contato_nome: textoOuNull(form.contato_nome),
@@ -101,47 +118,9 @@ export function fidelidadeDoCliente(cliente: Pick<Client, 'data_inicio_contrato'
     : 'Sem data de início'
 }
 
-export interface FormPagamento {
-  /** 'AAAA-MM', como entrega o campo de mês */
-  mes: string
-  valor: string
-  vencimento: string
-}
-
-export type ValoresPagamento = Pick<
-  ClientPayment,
-  'mes_referencia' | 'valor' | 'data_vencimento' | 'status'
->
-
-export function validarPagamento(form: FormPagamento): Validacao<ValoresPagamento, FormPagamento> {
-  const erros: Erros<FormPagamento> = {}
-  const valor = parseMoeda(form.valor)
-
-  if (!/^\d{4}-\d{2}$/.test(form.mes)) erros.mes = 'Escolha o mês.'
-  if (valor == null) erros.valor = VALOR_INVALIDO
-  if (form.vencimento === '') erros.vencimento = 'Informe o vencimento.'
-  if (Object.keys(erros).length > 0 || valor == null) return { erros }
-
-  return {
-    valores: {
-      mes_referencia: `${form.mes}-01`,
-      valor,
-      data_vencimento: form.vencimento,
-      status: 'pendente',
-    },
-  }
-}
-
 /** '2026-10-01' vira '10/2026'. */
 export function formatarMes(iso: string): string {
   const [ano, mes] = iso.split('-')
   return `${mes}/${ano}`
 }
 
-/** Status a mostrar: um pendente vencido conta como atrasado. */
-export function statusDoPagamento(
-  pagamento: Pick<ClientPayment, 'status' | 'data_vencimento'>,
-  hoje: string,
-): PaymentStatus {
-  return pagamentoAtrasado(pagamento, hoje) ? 'atrasado' : pagamento.status
-}

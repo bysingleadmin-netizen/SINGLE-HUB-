@@ -5,9 +5,7 @@ import {
   formatarMes,
   linkInstagram,
   moedaParaCampo,
-  statusDoPagamento,
   validarCliente,
-  validarPagamento,
 } from './cliente'
 
 describe('validarCliente', () => {
@@ -111,42 +109,37 @@ describe('linkInstagram', () => {
   })
 })
 
-describe('pagamentos', () => {
-  it('monta o pagamento com o mês no primeiro dia', () => {
-    expect(
-      validarPagamento({ mes: '2026-10', valor: '1.500,00', vencimento: '2026-10-10' }),
-    ).toEqual({
-      valores: {
-        mes_referencia: '2026-10-01',
-        valor: 1500,
-        data_vencimento: '2026-10-10',
-        status: 'pendente',
-      },
+describe('dia de vencimento no cadastro', () => {
+  const base = { ...formVazio(), nome: 'A' }
+
+  it('só entra nos valores quando o banco já tem a coluna', () => {
+    expect(validarCliente({ ...base, dia_vencimento: '10' })).not.toHaveProperty(
+      'valores.dia_vencimento',
+    )
+    expect(validarCliente({ ...base, dia_vencimento: '10' }, { comVencimento: true })).toMatchObject({
+      valores: { dia_vencimento: 10 },
     })
   })
 
-  it('aponta o que falta', () => {
-    expect(validarPagamento({ mes: '', valor: '', vencimento: '' })).toEqual({
-      erros: {
-        mes: 'Escolha o mês.',
-        valor: 'Informe um valor como 1.500,00.',
-        vencimento: 'Informe o vencimento.',
-      },
+  it('vazio vira null e valor fora de 1 a 31 é recusado', () => {
+    expect(validarCliente(base, { comVencimento: true })).toMatchObject({
+      valores: { dia_vencimento: null },
     })
+    for (const invalido of ['0', '32', '1,5', 'dez']) {
+      expect(validarCliente({ ...base, dia_vencimento: invalido }, { comVencimento: true })).toEqual({
+        erros: { dia_vencimento: 'Informe um dia entre 1 e 31.' },
+      })
+    }
   })
 
+  it('formDoCliente traz o dia já cadastrado', () => {
+    expect(formDoCliente({ nome: 'A', mrr: 0, dia_vencimento: 5 } as Client).dia_vencimento).toBe('5')
+    expect(formDoCliente({ nome: 'A', mrr: 0 } as Client).dia_vencimento).toBe('')
+  })
+})
+
+describe('formatarMes', () => {
   it('mostra o mês como mm/aaaa', () => {
     expect(formatarMes('2026-10-01')).toBe('10/2026')
-  })
-
-  it('pendente vencido aparece como atrasado', () => {
-    const hoje = '2026-10-08'
-    expect(statusDoPagamento({ status: 'pendente', data_vencimento: '2026-10-01' }, hoje)).toBe(
-      'atrasado',
-    )
-    expect(statusDoPagamento({ status: 'pendente', data_vencimento: '2026-10-20' }, hoje)).toBe(
-      'pendente',
-    )
-    expect(statusDoPagamento({ status: 'pago', data_vencimento: '2026-10-01' }, hoje)).toBe('pago')
   })
 })

@@ -53,6 +53,12 @@ O botão "Convidar colaborador", em Configurações > Equipe, chama a função `
 
 Enquanto a função não estiver publicada, o botão mostra o aviso "A função de convite ainda não foi publicada no Supabase".
 
+### Pagamentos recorrentes (migration 0002)
+
+- [ ] Rodar `supabase/migrations/0002_pagamentos_recorrentes.sql` no SQL Editor. Ela cria `clients.dia_vencimento` e `client_payments.forma_pagamento`
+
+O app funciona sem ela: os cartões mensais são gerados do mesmo jeito, vencendo no dia do mês em que o contrato começou, e o pagamento é confirmado sem registrar se foi Pix ou dinheiro. Depois da migration, o cadastro do cliente passa a mostrar o campo "Dia do vencimento" e a forma de pagamento fica gravada. Não é preciso publicar de novo.
+
 ### Tabelas da etapa 3
 
 `calendar_events`, `event_participants` e `notifications` foram criadas direto no painel, fora de `supabase/migrations`. Confira:

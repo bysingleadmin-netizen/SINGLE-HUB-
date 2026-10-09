@@ -315,3 +315,80 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Pagamentos: cartões mensais em aberto e histórico */
+.pagamentos {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius-sm);
+}
+
+.cartao[data-status='atrasado'] {
+  border-color: rgba(230, 48, 48, 0.45);
+}
+
+.cartaoTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cartaoMes {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.cartaoValor {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cartaoAcoes {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cartaoAcao {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 8px;
+  background: var(--vidro-hover);
+  border: 1px solid var(--campo-borda);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.cartaoAcao:hover {
+  background: rgba(62, 207, 142, 0.12);
+  border-color: rgba(62, 207, 142, 0.5);
+}

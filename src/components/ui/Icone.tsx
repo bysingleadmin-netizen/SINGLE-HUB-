@@ -84,6 +84,19 @@ const DESENHOS = {
     </>
   ),
   seta: <path d="m9 6 6 6-6 6" />,
+  pix: (
+    <>
+      <path d="m12 3.5 8.5 8.5-8.5 8.5L3.5 12z" />
+      <path d="m8 8 4 4 4-4M8 16l4-4 4 4" />
+    </>
+  ),
+  dinheiro: (
+    <>
+      <rect x="3" y="6.5" width="18" height="11" rx="2" />
+      <circle cx="12" cy="12" r="2.4" />
+      <path d="M6.5 10v.01M17.5 14v.01" />
+    </>
+  ),
   instagram: (
     <>
       <rect x="4" y="4" width="16" height="16" rx="4.5" />

@@ -9,6 +9,7 @@ import { hojeISO } from '@/lib/datas'
 import type { Cargo } from '@/lib/permissoes'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
 import { ClientePage } from './ClientePage'
+import { proximoMes, vencimentoNoMes } from './cartoes'
 import { ClientesPage } from './ClientesPage'
 
 const PADARIA = {
@@ -282,54 +283,213 @@ describe('página do cliente: abas', () => {
   })
 })
 
-describe('página do cliente: pagamentos', () => {
+describe('página do cliente: pagamentos recorrentes', () => {
+  const HOJE = hojeISO()
+  const MES_ATUAL = `${HOJE.slice(0, 7)}-01`
+  const MES_QUE_VEM = proximoMes(MES_ATUAL)
+  const MES_PASSADO = (() => {
+    const [ano, mes] = MES_ATUAL.split('-').map(Number)
+    return mes === 1 ? `${ano - 1}-12-01` : `${ano}-${String(mes - 1).padStart(2, '0')}-01`
+  })()
+  // Contrato iniciado no dia 28 do mês passado: o mês passado já venceu, o atual vence dia 28
+  const CLIENTE = { ...PADARIA, data_inicio_contrato: `${MES_PASSADO.slice(0, 8)}28` }
+  const mes = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(0, 4)}`
+
+  function linhaPaga(iso: string, valor = 1500) {
+    return {
+      id: `p-${iso}`,
+      client_id: 'c1',
+      mes_referencia: iso,
+      valor,
+      data_vencimento: `${iso.slice(0, 8)}28`,
+      data_pagamento: `${iso.slice(0, 8)}27`,
+      status: 'pago',
+      created_at: '2026-01-01',
+    }
+  }
+
+  interface Cenario {
+    cliente?: Record<string, unknown>
+    pagamentos?: Record<string, unknown>[]
+    colunasAusentes?: string[]
+  }
+
+  async function abrirPagamentos({ cliente = CLIENTE, pagamentos = [], colunasAusentes = [] }: Cenario = {}) {
+    bancoFalso().reiniciar({
+      profiles: [perfilDeTeste()],
+      clients: [cliente],
+      client_payments: pagamentos,
+    })
+    bancoFalso().colunasAusentes = colunasAusentes
+    renderizar(
+      <Routes>
+        <Route path="/app/clientes/:id" element={<ClientePage />} />
+      </Routes>,
+      { rota: '/app/clientes/c1' },
+    )
+    await screen.findByRole('heading', { name: 'Padaria Sol' })
+    fireEvent.click(screen.getByRole('tab', { name: 'Pagamentos' }))
+    const painel = within(screen.getByRole('tabpanel', { name: 'Pagamentos' }))
+    await painel.findByText(/Valor e vencimento vêm do cadastro|Informe o início do contrato/)
+    return painel
+  }
+
+  async function pagar(nome: string) {
+    fireEvent.click(screen.getByRole('button', { name: nome }))
+    const confirmacao = within(screen.getByRole('dialog', { name: 'Confirmar pagamento' }))
+    fireEvent.click(confirmacao.getByRole('button', { name: 'Confirmar pagamento' }))
+  }
+
   it('a aba não existe para quem não é liderança', async () => {
     await abrirCliente('Social Media')
     expect(screen.queryByRole('tab', { name: 'Pagamentos' })).not.toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Demandas' })).toBeInTheDocument()
   })
 
-  it('a liderança vê o pagamento vencido como atrasado e marca como pago', async () => {
-    await abrirCliente('Founder')
-    const pagamentos = aba('Pagamentos')
-    expect(await pagamentos.findByText('09/2026')).toBeInTheDocument()
-    expect(pagamentos.getByText('Atrasado')).toBeInTheDocument()
+  it('gera sozinho um cartão por mês desde o início do contrato, sem cadastro manual', async () => {
+    const painel = await abrirPagamentos()
+    const abertos = within(painel.getByRole('region', { name: 'Em aberto' }))
+    const cartoes = abertos.getAllByRole('listitem')
+    expect(cartoes).toHaveLength(2)
+    expect(cartoes[0]).toHaveTextContent(mes(MES_PASSADO))
+    expect(cartoes[0]).toHaveTextContent('Atrasado')
+    expect(cartoes[0]).toHaveTextContent(/1\.500,00/)
+    expect(cartoes[1]).toHaveTextContent(mes(MES_ATUAL))
+    expect(painel.queryByRole('button', { name: 'Adicionar pagamento' })).not.toBeInTheDocument()
+    expect(painel.getByText('Nenhum pagamento confirmado ainda.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.client_payments).toHaveLength(0)
+  })
 
-    fireEvent.click(pagamentos.getByRole('button', { name: 'Marcar como pago' }))
-    expect(await screen.findByText('Pagamento marcado como pago.')).toBeInTheDocument()
+  it('confirmar por Pix leva o mês ao histórico e grava a forma de pagamento', async () => {
+    const painel = await abrirPagamentos()
+    await pagar(`Pagar ${mes(MES_PASSADO)} com Pix`)
+
+    expect(await screen.findByText('Pagamento confirmado.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.client_payments[0]).toMatchObject({
-      status: 'pago',
-      data_pagamento: hojeISO(),
-    })
-  })
-
-  it('adiciona um pagamento', async () => {
-    await abrirCliente()
-    const pagamentos = aba('Pagamentos')
-    await pagamentos.findByText('09/2026')
-    fireEvent.change(pagamentos.getByLabelText('Mês'), { target: { value: '2026-10' } })
-    fireEvent.change(pagamentos.getByLabelText('Vencimento'), { target: { value: '2026-10-10' } })
-    fireEvent.click(pagamentos.getByRole('button', { name: 'Adicionar pagamento' }))
-
-    expect(await screen.findByText('Pagamento adicionado.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.client_payments[1]).toMatchObject({
       client_id: 'c1',
-      mes_referencia: '2026-10-01',
+      mes_referencia: MES_PASSADO,
       valor: 1500,
-      data_vencimento: '2026-10-10',
-      status: 'pendente',
+      data_vencimento: `${MES_PASSADO.slice(0, 8)}28`,
+      data_pagamento: HOJE,
+      status: 'pago',
+      forma_pagamento: 'pix',
     })
+    const historico = within(painel.getByRole('region', { name: 'Histórico' }))
+    expect(await historico.findByText(mes(MES_PASSADO))).toBeInTheDocument()
+    expect(historico.getByText(/Pix/)).toBeInTheDocument()
+    await waitFor(() =>
+      expect(within(painel.getByRole('region', { name: 'Em aberto' })).getAllByRole('listitem')).toHaveLength(1),
+    )
   })
 
-  it('explica quando o mês já tem pagamento', async () => {
-    await abrirCliente()
-    const pagamentos = aba('Pagamentos')
-    await pagamentos.findByText('09/2026')
-    bancoFalso().erroEscrita = { message: 'duplicate key', code: '23505' }
-    fireEvent.change(pagamentos.getByLabelText('Mês'), { target: { value: '2026-09' } })
-    fireEvent.change(pagamentos.getByLabelText('Vencimento'), { target: { value: '2026-09-10' } })
-    fireEvent.click(pagamentos.getByRole('button', { name: 'Adicionar pagamento' }))
+  it('ao pagar o último mês em aberto, cria o cartão do mês seguinte com o mesmo valor e dia', async () => {
+    const painel = await abrirPagamentos({ pagamentos: [linhaPaga(MES_PASSADO)] })
+    await pagar(`Pagar ${mes(MES_ATUAL)} com Dinheiro`)
 
-    expect(await screen.findByText('Já existe um pagamento para esse mês.')).toBeInTheDocument()
+    expect(await screen.findByText('Pagamento confirmado.')).toBeInTheDocument()
+    const linhas = bancoFalso().tabelas.client_payments
+    expect(linhas.find((l) => l.mes_referencia === MES_ATUAL)).toMatchObject({
+      status: 'pago',
+      forma_pagamento: 'dinheiro',
+    })
+    expect(linhas.find((l) => l.mes_referencia === MES_QUE_VEM)).toMatchObject({
+      client_id: 'c1',
+      status: 'pendente',
+      valor: 1500,
+      data_vencimento: vencimentoNoMes(MES_QUE_VEM, 28),
+    })
+    const abertos = within(painel.getByRole('region', { name: 'Em aberto' }))
+    expect(await abertos.findByText(mes(MES_QUE_VEM))).toBeInTheDocument()
+    expect(abertos.getByText('Pendente')).toBeInTheDocument()
+  })
+
+  it('cancelar a confirmação não grava nada', async () => {
+    await abrirPagamentos()
+    fireEvent.click(screen.getByRole('button', { name: `Pagar ${mes(MES_PASSADO)} com Pix` }))
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Confirmar pagamento' })).getByRole('button', {
+        name: 'Cancelar',
+      }),
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(bancoFalso().tabelas.client_payments).toHaveLength(0)
+  })
+
+  it('se o banco recusa, avisa e o cartão continua em aberto', async () => {
+    const painel = await abrirPagamentos()
+    bancoFalso().erroEscrita = { message: 'negado' }
+    await pagar(`Pagar ${mes(MES_PASSADO)} com Pix`)
+
+    expect(await screen.findByText('Não foi possível confirmar o pagamento.')).toBeInTheDocument()
+    expect(
+      within(painel.getByRole('region', { name: 'Em aberto' })).getAllByRole('listitem'),
+    ).toHaveLength(2)
+  })
+
+  it('valor alterado no cadastro vale para os meses em aberto, não para o que já foi pago', async () => {
+    const painel = await abrirPagamentos({
+      cliente: { ...CLIENTE, mrr: 2000 },
+      pagamentos: [linhaPaga(MES_PASSADO, 1500)],
+    })
+    expect(within(painel.getByRole('region', { name: 'Histórico' })).getByText(/1\.500,00/)).toBeInTheDocument()
+    expect(within(painel.getByRole('region', { name: 'Em aberto' })).getByText(/2\.000,00/)).toBeInTheDocument()
+  })
+
+  it('sem data de início do contrato, explica o que falta', async () => {
+    const painel = await abrirPagamentos({ cliente: { ...CLIENTE, data_inicio_contrato: null } })
+    expect(
+      painel.getByText('Informe o início do contrato no cadastro do cliente para gerar os pagamentos.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('sem a migration 0002, confirma do mesmo jeito e avisa que a forma não foi gravada', async () => {
+    await abrirPagamentos({
+      colunasAusentes: ['clients.dia_vencimento', 'client_payments.forma_pagamento'],
+    })
+    await pagar(`Pagar ${mes(MES_PASSADO)} com Pix`)
+
+    expect(
+      await screen.findByText(/Pagamento confirmado\. A forma de pagamento não foi gravada/),
+    ).toBeInTheDocument()
+    const linha = bancoFalso().tabelas.client_payments[0]
+    expect(linha).toMatchObject({ mes_referencia: MES_PASSADO, status: 'pago' })
+    expect(linha).not.toHaveProperty('forma_pagamento')
+  })
+})
+
+describe('cadastro do cliente: dia do vencimento', () => {
+  async function abrirEdicao(colunasAusentes: string[] = []) {
+    popular()
+    bancoFalso().colunasAusentes = colunasAusentes
+    renderizar(<ClientesPage />)
+    const card = within((await screen.findByRole('link', { name: 'Padaria Sol' })).closest('article')!)
+    fireEvent.click(card.getByRole('button', { name: 'Editar Padaria Sol' }))
+    return within(screen.getByRole('dialog', { name: 'Editar cliente' }))
+  }
+
+  it('com a coluna no banco, o campo aparece e é salvo', async () => {
+    const modal = await abrirEdicao()
+    fireEvent.change(await modal.findByLabelText('Dia do vencimento'), { target: { value: '5' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    expect(await screen.findByText('Cliente atualizado.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.clients[0].dia_vencimento).toBe(5)
+  })
+
+  it('recusa dia fora de 1 a 31', async () => {
+    const modal = await abrirEdicao()
+    fireEvent.change(await modal.findByLabelText('Dia do vencimento'), { target: { value: '40' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    expect(await modal.findByText('Informe um dia entre 1 e 31.')).toBeInTheDocument()
+  })
+
+  it('sem a coluna, o campo não aparece e o cadastro continua salvando', async () => {
+    const modal = await abrirEdicao(['clients.dia_vencimento'])
+    await modal.findByText(/vencem no mesmo dia do mês/)
+    expect(modal.queryByLabelText('Dia do vencimento')).not.toBeInTheDocument()
+    fireEvent.change(modal.getByLabelText('Nome'), { target: { value: 'Padaria do Sol' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    expect(await screen.findByText('Cliente atualizado.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.clients[0]).not.toHaveProperty('dia_vencimento')
   })
 })

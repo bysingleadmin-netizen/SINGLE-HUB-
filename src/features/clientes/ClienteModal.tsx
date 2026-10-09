@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
 import { useSalvar } from '@/dados/base'
+import { useColunasOpcionais } from '@/dados/esquema'
 import type { Erros } from '@/lib/formulario'
 import { STATUS_CLIENTE } from '@/lib/rotulos'
 import type { Client, ClientStatus } from '@/types/database'
@@ -27,6 +28,7 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
   )
   const [erros, setErros] = useState<Erros<FormCliente>>({})
   const salvar = useSalvar<Client>('clients')
+  const colunas = useColunasOpcionais()
   const registrarAtividade = useRegistrarAtividade()
   const toast = useToast()
 
@@ -41,7 +43,7 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
 
   function aoEnviar(evento: FormEvent) {
     evento.preventDefault()
-    const resultado = validarCliente(form)
+    const resultado = validarCliente(form, { comVencimento: colunas.diaVencimento })
     if ('erros' in resultado) {
       setErros(resultado.erros)
       return
@@ -89,8 +91,25 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
         </div>
         <div className={ui.duasColunas}>
           <Campo rotulo="Início do contrato" type="date" {...campo('data_inicio_contrato')} />
-          <Campo rotulo="Instagram" placeholder="@perfil" {...campo('instagram')} />
+          {colunas.diaVencimento ? (
+            <Campo
+              rotulo="Dia do vencimento"
+              inputMode="numeric"
+              placeholder="1 a 31"
+              {...campo('dia_vencimento')}
+            />
+          ) : (
+            <Campo rotulo="Instagram" placeholder="@perfil" {...campo('instagram')} />
+          )}
         </div>
+        {colunas.diaVencimento && (
+          <Campo rotulo="Instagram" placeholder="@perfil" {...campo('instagram')} />
+        )}
+        <p className={ui.mudo}>
+          {colunas.diaVencimento
+            ? 'Os pagamentos mensais são gerados a partir do início do contrato. Sem dia de vencimento, vale o dia em que o contrato começou.'
+            : 'Os pagamentos mensais são gerados a partir do início do contrato e vencem no mesmo dia do mês.'}
+        </p>
         <Campo
           rotulo="Link da conta de anúncios"
           placeholder="business.facebook.com/..."

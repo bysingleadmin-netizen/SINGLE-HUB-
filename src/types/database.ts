@@ -5,6 +5,7 @@ import type { Cargo } from '@/lib/permissoes'
 
 export type ClientStatus = 'ativo' | 'pausado' | 'churn'
 export type PaymentStatus = 'pendente' | 'pago' | 'atrasado'
+export type FormaDePagamento = 'pix' | 'dinheiro'
 export type TaskTipo = 'conteudo' | 'trafego' | 'estrategia' | 'audiovisual'
 export type TaskStatus =
   | 'a_fazer'
@@ -39,6 +40,8 @@ export interface Client {
   status: ClientStatus
   mrr: number
   data_inicio_contrato: string | null
+  /** Dia do mês, 1 a 31. Só existe depois da migration 0002 */
+  dia_vencimento?: number | null
   instagram: string | null
   link_conta_anuncios: string | null
   contato_nome: string | null
@@ -56,6 +59,8 @@ export interface ClientPayment {
   data_vencimento: string
   data_pagamento: string | null
   status: PaymentStatus
+  /** Só existe depois da migration 0002 */
+  forma_pagamento?: FormaDePagamento | null
   created_at: string
 }
 

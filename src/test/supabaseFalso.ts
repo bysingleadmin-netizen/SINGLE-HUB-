@@ -19,6 +19,8 @@ export interface BancoFalso {
   erroEscrita: ErroFalso | null
   /** Se definido, toda leitura falha com este erro */
   erroLeitura: ErroFalso | null
+  /** Colunas que o banco ainda não tem, como 'clients.dia_vencimento' */
+  colunasAusentes: string[]
   /** Chamadas feitas a Edge Functions, na ordem */
   funcoesChamadas: { nome: string; body: unknown }[]
   /** Se definido, a próxima chamada de função falha com este erro */
@@ -34,6 +36,7 @@ export function criarSupabaseFalso() {
     tabelas: {},
     erroEscrita: null,
     erroLeitura: null,
+    colunasAusentes: [],
     funcoesChamadas: [],
     erroDaFuncao: null,
     respostaDaFuncao: { ok: true },
@@ -41,6 +44,7 @@ export function criarSupabaseFalso() {
       banco.tabelas = structuredClone(tabelas) as Record<string, Linha[]>
       banco.erroEscrita = null
       banco.erroLeitura = null
+      banco.colunasAusentes = []
       banco.funcoesChamadas = []
       banco.erroDaFuncao = null
       banco.respostaDaFuncao = { ok: true }
@@ -54,6 +58,10 @@ export function criarSupabaseFalso() {
     let unico = false
     let limite: number | undefined
     let ordem: { coluna: string; crescente: boolean } | undefined
+    let colunasPedidas: string[] = []
+
+    const ausente = (colunas: string[]) =>
+      colunas.find((coluna) => banco.colunasAusentes.includes(`${tabela}.${coluna}`))
 
     function executar(): Resposta {
       const linhas = (banco.tabelas[tabela] ??= [])
@@ -62,9 +70,18 @@ export function criarSupabaseFalso() {
 
       if (operacao === 'select') {
         if (banco.erroLeitura) return { data: null, error: banco.erroLeitura }
+        const falta = ausente(colunasPedidas)
+        if (falta) {
+          return { data: null, error: { code: '42703', message: `column ${tabela}.${falta} does not exist` } }
+        }
         resultado = linhas.filter(casa)
       } else {
         if (banco.erroEscrita) return { data: null, error: banco.erroEscrita }
+        const gravadas = (Array.isArray(valores) ? valores : [valores]).flatMap((linha) => Object.keys(linha))
+        const falta = ausente(gravadas)
+        if (falta) {
+          return { data: null, error: { code: 'PGRST204', message: `Could not find the '${falta}' column` } }
+        }
         if (operacao === 'insert') {
           resultado = (Array.isArray(valores) ? valores : [valores]).map((linha) => ({
             id: `novo-${sequencia++}`,
@@ -93,7 +110,12 @@ export function criarSupabaseFalso() {
     }
 
     const consulta = {
-      select: () => consulta,
+      select: (colunas?: string) => {
+        if (operacao === 'select' && colunas && colunas !== '*') {
+          colunasPedidas = colunas.split(',').map((coluna) => coluna.trim())
+        }
+        return consulta
+      },
       insert: (novos: Linha | Linha[]) => {
         operacao = 'insert'
         valores = novos

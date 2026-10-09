@@ -45,6 +45,32 @@ export function gradeDoMes(ano: number, mes: number): DiaDaGrade[] {
   })
 }
 
+export type Periodo = 'quinzena' | 'semana' | 'mes'
+
+/** Domingo da semana em que o dia cai (a grade do mês também começa no domingo). */
+export function inicioDaSemana(iso: string): string {
+  const [ano, mes, dia] = iso.split('-').map(Number)
+  return somarDias(iso, -new Date(ano, mes - 1, dia).getDay())
+}
+
+/**
+ * Dias mostrados nas visões curtas: a semana inteira em que `ancora` cai, de domingo a sábado,
+ * ou 15 dias corridos a partir de `ancora`.
+ */
+export function diasDoPeriodo(periodo: 'quinzena' | 'semana', ancora: string): string[] {
+  const inicio = periodo === 'semana' ? inicioDaSemana(ancora) : ancora
+  return Array.from({ length: periodo === 'semana' ? 7 : 15 }, (_, i) => somarDias(inicio, i))
+}
+
+/** "sex., 9" para o cabeçalho de cada dia nas visões curtas. */
+export function diaCurto(iso: string): string {
+  const [ano, mes, dia] = iso.split('-').map(Number)
+  const semana = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' }).format(
+    new Date(ano, mes - 1, dia),
+  )
+  return `${semana.replace('.', '')} ${dia}`
+}
+
 export function nomeDoMes(ano: number, mes: number): string {
   return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(
     new Date(ano, mes - 1, 1),

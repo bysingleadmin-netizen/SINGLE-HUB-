@@ -71,6 +71,11 @@ function dia(iso: string) {
   return screen.getByRole('button', { name: new RegExp(`^${nomeDoDia(iso)}`) })
 }
 
+/** A célula do dia: o botão que abre o dia e os itens marcados nele. */
+function celula(iso: string) {
+  return dia(iso).parentElement as HTMLElement
+}
+
 describe('CalendarioPage', () => {
   it('sem eventos mostra o mês atual, os dias da semana e o aviso de vazio', async () => {
     bancoFalso().reiniciar()
@@ -91,10 +96,10 @@ describe('CalendarioPage', () => {
     await screen.findAllByText('Gravação externa')
 
     expect(dia(DIA_10)).toHaveAccessibleName(`${nomeDoDia(DIA_10)}, 2 itens`)
-    expect(within(dia(DIA_10)).getByText('Reunião de pauta')).toHaveAttribute('data-tom', 'azul')
-    expect(within(dia(DIA_10)).getByText('Gravação externa')).toHaveAttribute('data-tom', 'roxo')
+    expect(within(celula(DIA_10)).getByText('Reunião de pauta')).toHaveAttribute('data-tom', 'azul')
+    expect(within(celula(DIA_10)).getByText('Gravação externa')).toHaveAttribute('data-tom', 'roxo')
     expect(dia(DIA_11)).toHaveAccessibleName(`${nomeDoDia(DIA_11)}, 1 item`)
-    expect(within(dia(DIA_11)).getByText('Gravação externa')).toBeInTheDocument()
+    expect(within(celula(DIA_11)).getByText('Gravação externa')).toBeInTheDocument()
   })
 
   it('clicar no dia abre o painel com horário, cliente e participantes', async () => {
@@ -117,8 +122,8 @@ describe('CalendarioPage', () => {
     await screen.findAllByText('Gravação externa')
 
     expect(dia(DIA_12)).toHaveAccessibleName(`${nomeDoDia(DIA_12)}, 2 itens`)
-    expect(within(dia(DIA_12)).getByText('Entregar roteiro')).toHaveAttribute('data-tom', 'vermelho')
-    expect(within(dia(DIA_12)).getByText('Publicar carrossel')).toHaveAttribute('data-concluido')
+    expect(within(celula(DIA_12)).getByText('Entregar roteiro')).toHaveAttribute('data-tom', 'vermelho')
+    expect(within(celula(DIA_12)).getByText('Publicar carrossel')).toHaveAttribute('data-concluido')
     expect(screen.queryByText('Demanda arquivada')).not.toBeInTheDocument()
     expect(screen.queryByText('Demanda sem data')).not.toBeInTheDocument()
     // Nada foi copiado para a tabela de eventos
@@ -199,7 +204,7 @@ describe('CalendarioPage', () => {
         }),
       ]),
     )
-    expect(await within(dia(DIA_11)).findByText('Alinhamento mensal')).toHaveAttribute(
+    expect(await within(celula(DIA_11)).findByText('Alinhamento mensal')).toHaveAttribute(
       'data-tom',
       'vermelho',
     )
@@ -279,4 +284,35 @@ describe('CalendarioPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
     expect(await screen.findByText('Nada marcado neste mês.')).toBeInTheDocument()
   })
-})
+  it('a entrega de uma demanda é um link direto para o card, sem passar pelo painel do dia', async () => {
+    popular()
+    renderizar(<CalendarioPage />)
+    await screen.findByText('Entregar roteiro')
+    expect(within(celula(DIA_12)).getByRole('link', { name: 'Entregar roteiro' })).toHaveAttribute(
+      'href',
+      '/app/demandas?abrir=t1',
+    )
+  })
+
+  it('os filtros de período mostram 15 dias a partir de hoje ou a semana atual', async () => {
+    bancoFalso().reiniciar()
+    renderizar(<CalendarioPage />)
+    await screen.findByText('Nada marcado neste mês.')
+    const diasVisiveis = () => screen.getAllByRole('button', { name: /de \d{4}$|de \d{4},/ })
+
+    fireEvent.click(screen.getByRole('button', { name: '15 dias' }))
+    expect(screen.getByRole('button', { name: '15 dias' })).toHaveAttribute('aria-pressed', 'true')
+    expect(diasVisiveis()).toHaveLength(15)
+    expect(diasVisiveis()[0]).toHaveAttribute('aria-current', 'date')
+    expect(screen.getByText('Nada marcado neste período.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Semana atual' }))
+    expect(diasVisiveis()).toHaveLength(7)
+    expect(screen.getByRole('button', { name: new RegExp(`^${nomeDoDia(hojeISO())}`) })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Próximo período' }))
+    expect(screen.queryByRole('button', { name: new RegExp(`^${nomeDoDia(hojeISO())}`) })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mês' }))
+    expect(diasVisiveis().length).toBeGreaterThanOrEqual(28)
+  })})

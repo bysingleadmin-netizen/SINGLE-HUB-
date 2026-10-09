@@ -55,6 +55,7 @@
 }
 
 .dia {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -77,8 +78,88 @@
   border-color: rgba(255, 255, 255, 0.14);
 }
 
+/* O botão do dia cobre a célula inteira; os itens ficam por cima e são clicáveis por si */
+.diaAbrir {
+  align-self: flex-start;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.diaAbrir::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+}
+
+.diaAbrir:focus-visible {
+  outline: none;
+}
+
+.diaAbrir:focus-visible::after {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Dias do mês vizinho: mais discretos pela cor, sem apagar o texto com opacidade */
 .dia[data-fora] {
-  opacity: 0.6;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.dia[data-fora] .diaNumero {
+  color: var(--text-fraco);
+}
+
+/* Visões de 15 dias e de semana: menos dias, células mais altas */
+.grade[data-periodo='quinzena'] {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.dia[data-curta] {
+  min-height: 170px;
+}
+
+.dia[data-curta] .diaNumero {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Filtro de período */
+.periodos {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius);
+}
+
+.periodo {
+  min-height: 34px;
+  padding: 0 14px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.periodo:hover {
+  color: var(--text);
+}
+
+.periodo[aria-pressed='true'] {
+  background: rgba(230, 48, 48, 0.15);
+  color: var(--text);
 }
 
 .diaNumero {
@@ -94,7 +175,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.dia[aria-current] .diaNumero {
+.diaAbrir[aria-current] .diaNumero {
   background: var(--accent);
   color: #fff;
 }
@@ -126,6 +207,8 @@
 }
 
 .chip {
+  position: relative;
+  z-index: 1;
   display: block;
   padding: 2px 7px;
   border-left: 2px solid var(--tom);
@@ -140,8 +223,12 @@
 }
 
 .chip[data-concluido] {
-  opacity: 0.55;
+  color: var(--text-muted);
   text-decoration: line-through;
+}
+
+a.chip:hover {
+  background: color-mix(in srgb, var(--tom) 30%, transparent);
 }
 
 .mais {
@@ -228,6 +315,36 @@
   .dia {
     min-height: 64px;
     padding: 4px;
+  }
+
+  .grade[data-periodo='quinzena'] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .grade[data-periodo='semana'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dia[data-curta] {
+    min-height: 96px;
+  }
+
+  /* Nas visões curtas há espaço para ler o item também no celular */
+  .dia[data-curta] .chip {
+    height: auto;
+    padding: 2px 6px;
+    border-left: 2px solid var(--tom);
+    background: color-mix(in srgb, var(--tom) 16%, transparent);
+    font-size: 11px;
+  }
+
+  .periodos {
+    width: 100%;
+  }
+
+  .periodo {
+    flex: 1;
+    padding: 0 6px;
   }
 
   /* No celular o dia mostra só uma marca por evento; o painel traz os detalhes */

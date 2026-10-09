@@ -4,7 +4,8 @@
   --surface-2: #1c1c21;
   --border: #26262c;
   --text: #f2f2f3;
-  --text-muted: #9a9aa5;
+  --text-muted: #b4b4be;
+  --text-fraco: #8d8d99;
   --accent: #e63030;
   --accent-hover: #f04444;
   --accent-soft: rgba(230, 48, 48, 0.14);
@@ -37,12 +38,20 @@ body,
 
 body {
   margin: 0;
-  /* Brilho que acompanha o cursor; as coordenadas vêm de useRastroDoMouse */
+  /*
+   * Luz ambiente que acompanha o cursor. É só o fundo do body: nenhum elemento é criado.
+   * Vários degraus de opacidade fazem a luz se dissolver, sem a borda de um círculo.
+   * As coordenadas vêm de useRastroDoMouse.
+   */
   background-color: var(--bg);
   background-image: radial-gradient(
     circle 600px at var(--mouse-x, 50%) var(--mouse-y, -300px),
-    rgba(230, 48, 48, 0.06),
-    transparent
+    rgba(230, 48, 48, 0.06) 0%,
+    rgba(230, 48, 48, 0.046) 18%,
+    rgba(230, 48, 48, 0.03) 38%,
+    rgba(230, 48, 48, 0.016) 58%,
+    rgba(230, 48, 48, 0.006) 78%,
+    rgba(230, 48, 48, 0) 100%
   );
   background-attachment: fixed;
   color: var(--text);

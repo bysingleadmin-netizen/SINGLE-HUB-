@@ -16,6 +16,15 @@ describe('useRastroDoMouse', () => {
     })
   })
 
+  it('não cria nenhum elemento na página: o efeito é só fundo do body', async () => {
+    const antes = document.body.querySelectorAll('*').length
+    render(<Tela />)
+    fireEvent.mouseMove(document, { clientX: 50, clientY: 60 })
+    await waitFor(() => expect(document.body.style.getPropertyValue('--mouse-x')).toBe('50px'))
+    expect(document.body.querySelectorAll('*').length - antes).toBeLessThanOrEqual(1)
+    expect(document.body.querySelector('canvas, [class*="glow"], [class*="rastro"]')).toBeNull()
+  })
+
   it('para de acompanhar quando a tela sai', async () => {
     const { unmount } = render(<Tela />)
     fireEvent.mouseMove(document, { clientX: 10, clientY: 10 })

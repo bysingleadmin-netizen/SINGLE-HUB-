@@ -90,7 +90,7 @@
 }
 
 .campoInput::placeholder {
-  color: #5d5d68;
+  color: var(--text-fraco);
 }
 
 .campoInput:hover {
@@ -483,12 +483,9 @@ a.linhaTitulo:hover {
   backdrop-filter: blur(12px);
 }
 
+/* Tamanho, traço e opacidade vêm do próprio SVG; aqui só a cor */
 .ilustracao {
-  color: #5d5d68;
-}
-
-.ilustracaoDestaque {
-  stroke: var(--accent);
+  color: var(--text);
 }
 
 .estadoTitulo {

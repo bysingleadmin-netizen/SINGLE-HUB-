@@ -403,7 +403,7 @@
 
 .sinoItemTempo {
   font-size: 12px;
-  color: #6d6d78;
+  color: var(--text-fraco);
 }
 
 /* Busca global */

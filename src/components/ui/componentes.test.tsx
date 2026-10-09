@@ -108,7 +108,17 @@ describe('Estado', () => {
       />,
     )
     expect(screen.getByText('Nenhum cliente ainda')).toBeInTheDocument()
-    expect(screen.getByTestId('ilustracao')).toBeInTheDocument()
+    const ilustracao = screen.getByTestId('ilustracao')
+    expect(Number(ilustracao.getAttribute('width'))).toBeLessThanOrEqual(28)
+    expect(Number(ilustracao.getAttribute('height'))).toBeLessThanOrEqual(28)
+    expect(ilustracao).toHaveAttribute('stroke-width', '1.5')
+    expect(ilustracao).toHaveAttribute('fill', 'none')
+    expect(ilustracao).toHaveAttribute('opacity', '0.25')
+    // Nenhuma forma preenchida, nem por atributo nem por classe de destaque
+    for (const forma of ilustracao.querySelectorAll('*')) {
+      expect(forma).not.toHaveAttribute('fill')
+      expect(forma).not.toHaveAttribute('class')
+    }
     expect(screen.getByText('Cadastre o primeiro.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Novo cliente' })).toBeInTheDocument()
   })

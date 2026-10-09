@@ -10,6 +10,14 @@
   gap: 16px;
 }
 
+/* Par de cards da mesma altura: o gráfico acompanha a seção Hoje */
+.paineisIguais {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
 .paineis {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -40,7 +48,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .paineis {
+  .paineis,
+  .paineisIguais {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -51,26 +60,28 @@
   }
 }
 
-/* Gráfico de MRR */
+/* Gráfico de MRR: ocupa a altura que sobra no card, que acompanha o card ao lado */
 .grafico {
-  display: block;
-  width: 100%;
-  height: auto;
+  position: relative;
+  flex: 1 1 180px;
+  min-height: 180px;
+  overflow: hidden;
 }
 
-.graficoBase {
-  stroke: var(--vidro-borda);
-  stroke-width: 1;
+.grafico svg {
+  position: absolute;
+  inset: 0;
+  display: block;
 }
 
 .graficoLinha {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 2.5;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 1400;
-  stroke-dashoffset: 1400;
+  stroke-dasharray: 2400;
+  stroke-dashoffset: 2400;
   animation: tracar 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s forwards;
 }
 
@@ -80,15 +91,9 @@
   stroke-width: 2;
 }
 
-.graficoValor {
-  fill: var(--text);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.graficoMes {
-  fill: var(--text-muted);
-  font-size: 12px;
+.graficoRotulo {
+  fill: #666;
+  font-size: 11px;
 }
 
 @keyframes tracar {

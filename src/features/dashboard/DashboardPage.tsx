@@ -112,7 +112,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className={styles.paineis}>
+      <div className={styles.paineisIguais}>
         <Painel titulo="Hoje">
           {painelHoje.erro ? (
             <EstadoErro onTentar={todas.tentar} />
@@ -160,7 +160,9 @@ export function DashboardPage() {
             <GraficoMRR serie={mrrPorMes(clientes.data ?? [], hoje)} />
           )}
         </Painel>
+      </div>
 
+      <div className={styles.paineis}>
         <Painel titulo="Próximas entregas">
           {painelEntregas.erro ? (
             <EstadoErro onTentar={todas.tentar} />

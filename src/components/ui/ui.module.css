@@ -689,3 +689,47 @@ a.linhaTitulo:hover {
   font-size: 13px;
   color: var(--text-muted);
 }
+
+/* Abas */
+.abas {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  align-self: flex-start;
+  max-width: 100%;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+
+.aba {
+  min-height: 36px;
+  padding: 0 14px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.aba:hover {
+  color: var(--text);
+}
+
+.aba[aria-selected='true'] {
+  background: rgba(230, 48, 48, 0.15);
+  color: var(--text);
+}
+
+.abaPainel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}

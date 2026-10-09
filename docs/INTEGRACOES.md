@@ -44,6 +44,23 @@ where email = 'seu@email.com';
 
 Depois disso, os cargos dos demais membros poderão ser ajustados pela tela Configurações (etapa 2). Até lá, use o mesmo comando trocando o cargo por um destes: `CEO`, `Founder`, `Co-Founder`, `Gestor de Tráfego`, `Social Media`, `Designer`, `Editor de Vídeo`, `Copywriter`.
 
+### Convite de colaboradores (Edge Function)
+
+O botão "Convidar colaborador", em Configurações > Equipe, chama a função `convidar-colaborador`. Ela existe porque o convite exige a chave de serviço do Supabase, que dá acesso total ao banco e não pode ficar no navegador.
+
+- [ ] Função publicada. O código está em `supabase/functions/convidar-colaborador/index.ts`. Para publicar, com a CLI do Supabase logada na conta do SINGLE: `supabase functions deploy convidar-colaborador --project-ref <ref do projeto>`. Também dá para criar pelo painel, em Edge Functions > Deploy a new function, colando o conteúdo do arquivo
+- [ ] Modelo do e-mail de convite revisado (Authentication > Emails > Invite user)
+
+Enquanto a função não estiver publicada, o botão mostra o aviso "A função de convite ainda não foi publicada no Supabase".
+
+### Tabelas da etapa 3
+
+`calendar_events`, `event_participants` e `notifications` foram criadas direto no painel, fora de `supabase/migrations`. Confira:
+
+- [ ] RLS ligado nas três, com leitura e escrita para usuários autenticados em `calendar_events` e `event_participants`
+- [ ] Em `notifications`: cada pessoa lê e atualiza só as próprias linhas (`user_id = auth.uid()`), e qualquer autenticado pode inserir, porque quem cria uma tarefa avisa o responsável
+- [ ] Se `tipo` tiver restrição de valores, ela aceita `reuniao`, `gravacao`, `entrega`, `otimizacao` e `outro` nos eventos, e `tarefa`, `evento` e `prazo` nas notificações
+
 ## GitHub (código)
 
 - [x] Repositório criado

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { Abas } from '@/components/ui/Abas'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
 import { EstadoErro } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
+import { Modal } from '@/components/ui/Modal'
 import { Painel } from '@/components/ui/Painel'
 import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
@@ -14,14 +16,23 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { ACEITA_IMAGENS, enviarImagem, validarImagem } from '@/dados/arquivos'
 import { useAtualizarOtimista, useSalvar } from '@/dados/base'
+import { useConvidar } from '@/dados/convite'
 import { usePerfis } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
+import { emailValido } from '@/lib/formulario'
 import { CARGOS, isLideranca } from '@/lib/permissoes'
 import type { Cargo } from '@/lib/permissoes'
 import type { Profile } from '@/types/database'
 import styles from './configuracoes.module.css'
 
 const OPCOES_CARGO = CARGOS.map((cargo) => ({ valor: cargo, rotulo: cargo }))
+
+const ABAS = [
+  { id: 'perfil', rotulo: 'Meu perfil' },
+  { id: 'equipe', rotulo: 'Equipe' },
+] as const
+
+type Aba = (typeof ABAS)[number]['id']
 
 function MeuPerfil({ perfil }: { perfil: Profile }) {
   const [nome, setNome] = useState(perfil.nome)
@@ -112,11 +123,63 @@ function MeuPerfil({ perfil }: { perfil: Profile }) {
   )
 }
 
+function ConviteModal({ onFechar }: { onFechar: () => void }) {
+  const [email, setEmail] = useState('')
+  const [erro, setErro] = useState<string>()
+  const convidar = useConvidar()
+  const toast = useToast()
+
+  function aoEnviar(evento: FormEvent) {
+    evento.preventDefault()
+    const limpo = email.trim()
+    if (!emailValido(limpo)) {
+      setErro('Informe um e-mail válido.')
+      return
+    }
+    setErro(undefined)
+    convidar.mutate(limpo, {
+      onSuccess: () => {
+        toast.sucesso(`Convite enviado para ${limpo}.`)
+        onFechar()
+      },
+      onError: (falha) => toast.erro(falha.message),
+    })
+  }
+
+  return (
+    <Modal aberto titulo="Convidar colaborador" onFechar={onFechar}>
+      <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
+        <p className={ui.mudo}>
+          A pessoa recebe um e-mail com o link para criar a senha. Ela entra como Social Media e o
+          cargo pode ser ajustado aqui na lista.
+        </p>
+        <Campo
+          rotulo="E-mail"
+          type="email"
+          autoFocus
+          value={email}
+          erro={erro}
+          onChange={(evento) => setEmail(evento.target.value)}
+        />
+        <div className={ui.acoes}>
+          <Button variante="fantasma" onClick={onFechar}>
+            Cancelar
+          </Button>
+          <Button type="submit" carregando={convidar.isPending}>
+            Enviar convite
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
+/** Só é montada para a liderança. */
 function Equipe({ eu }: { eu: Profile }) {
   const perfis = usePerfis()
   const atualizar = useAtualizarOtimista<Profile>('profiles')
   const toast = useToast()
-  const podeEditar = isLideranca(eu.cargo)
+  const [convidando, setConvidando] = useState(false)
 
   function trocarCargo(id: string, cargo: Cargo) {
     atualizar.mutate(
@@ -129,7 +192,15 @@ function Equipe({ eu }: { eu: Profile }) {
   }
 
   return (
-    <Painel titulo="Equipe">
+    <Painel
+      titulo="Equipe"
+      acao={
+        <Button className={ui.botaoPequeno} onClick={() => setConvidando(true)}>
+          <Icone nome="mais" tamanho={14} />
+          Convidar colaborador
+        </Button>
+      }
+    >
       {perfis.isError ? (
         <EstadoErro onTentar={() => void perfis.refetch()} />
       ) : perfis.isLoading ? (
@@ -144,7 +215,7 @@ function Equipe({ eu }: { eu: Profile }) {
                 <span className={ui.mudo}>{membro.email}</span>
               </div>
               {/* Ninguém muda o próprio cargo, para a equipe nunca ficar sem liderança por engano */}
-              {podeEditar && membro.id !== eu.id ? (
+              {membro.id !== eu.id ? (
                 <Selecao
                   className={styles.cargo}
                   rotulo={`Cargo de ${membro.nome}`}
@@ -160,18 +231,30 @@ function Equipe({ eu }: { eu: Profile }) {
           ))}
         </ul>
       )}
+      {convidando && <ConviteModal onFechar={() => setConvidando(false)} />}
     </Painel>
   )
 }
 
 export function ConfiguracoesPage() {
   const { perfil } = useAuth()
+  const [aba, setAba] = useState<Aba>('perfil')
   if (!perfil) return null
+
+  // Sem liderança não há aba Equipe, então também não há por que mostrar abas
+  if (!isLideranca(perfil.cargo)) {
+    return (
+      <div className={styles.pagina}>
+        <MeuPerfil perfil={perfil} />
+      </div>
+    )
+  }
 
   return (
     <div className={styles.pagina}>
-      <MeuPerfil perfil={perfil} />
-      <Equipe eu={perfil} />
+      <Abas rotulo="Seções de configurações" abas={ABAS} ativa={aba} onMudar={setAba}>
+        {aba === 'perfil' ? <MeuPerfil perfil={perfil} /> : <Equipe eu={perfil} />}
+      </Abas>
     </div>
   )
 }

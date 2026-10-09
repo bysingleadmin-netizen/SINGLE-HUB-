@@ -18,17 +18,18 @@ function abrir(cargo: Cargo = 'CEO') {
   return renderizar(<ConfiguracoesPage />, { cargo })
 }
 
-function equipe() {
-  return within(screen.getByRole('region', { name: 'Equipe' }))
+async function abrirEquipe(cargo: Cargo = 'CEO') {
+  abrir(cargo)
+  fireEvent.click(screen.getByRole('tab', { name: 'Equipe' }))
+  return within(await screen.findByRole('tabpanel', { name: 'Equipe' }))
 }
 
 describe('meu perfil', () => {
   it('mostra nome, e-mail e cargo', async () => {
     abrir('Social Media')
-    const perfil = within(screen.getByRole('region', { name: 'Meu perfil' }))
-    expect(perfil.getByLabelText('Nome')).toHaveValue('Luan Uliana')
-    expect(perfil.getByText('luan@single.com')).toBeInTheDocument()
-    expect(perfil.getByText('Social Media')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nome')).toHaveValue('Luan Uliana')
+    expect(screen.getByText('luan@single.com')).toBeInTheDocument()
+    expect(screen.getByText('Social Media')).toBeInTheDocument()
   })
 
   it('salva o nome', async () => {
@@ -74,12 +75,25 @@ describe('meu perfil', () => {
   })
 })
 
-describe('equipe', () => {
-  it('a liderança troca o cargo dos outros, mas não o próprio', async () => {
-    abrir('Founder')
-    const cargoDaBia = await equipe().findByLabelText('Cargo de Bia Souza')
+describe('aba Equipe', () => {
+  it('não existe para quem não é da liderança', () => {
+    abrir('Designer')
+    expect(screen.queryByRole('tab', { name: 'Equipe' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Convidar colaborador' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Bia Souza')).not.toBeInTheDocument()
+  })
+
+  it.each(['CEO', 'Founder', 'Co-Founder'] as const)('aparece para %s', (cargo) => {
+    abrir(cargo)
+    expect(screen.getByRole('tab', { name: 'Equipe' })).toBeInTheDocument()
+  })
+
+  it('lista a equipe e troca o cargo dos outros direto na lista, mas não o próprio', async () => {
+    const equipe = await abrirEquipe('Founder')
+    const cargoDaBia = await equipe.findByLabelText('Cargo de Bia Souza')
     expect(cargoDaBia).toHaveValue('Designer')
-    expect(equipe().queryByLabelText('Cargo de Luan Uliana')).not.toBeInTheDocument()
+    expect(equipe.getByText('bia@single.com')).toBeInTheDocument()
+    expect(equipe.queryByLabelText('Cargo de Luan Uliana')).not.toBeInTheDocument()
 
     fireEvent.change(cargoDaBia, { target: { value: 'Copywriter' } })
     expect(await screen.findByText('Cargo atualizado.')).toBeInTheDocument()
@@ -87,30 +101,75 @@ describe('equipe', () => {
   })
 
   it('desfaz e avisa quando o banco recusa a troca de cargo', async () => {
-    abrir('CEO')
-    const cargoDaBia = await equipe().findByLabelText('Cargo de Bia Souza')
+    const equipe = await abrirEquipe()
+    const cargoDaBia = await equipe.findByLabelText('Cargo de Bia Souza')
     bancoFalso().erroEscrita = { message: 'Apenas a liderança pode alterar cargos.' }
     fireEvent.change(cargoDaBia, { target: { value: 'Copywriter' } })
 
     expect(await screen.findByText('Não foi possível atualizar o cargo.')).toBeInTheDocument()
-    await waitFor(() => expect(equipe().getByLabelText('Cargo de Bia Souza')).toHaveValue('Designer'))
-  })
-
-  it('quem não é liderança vê a equipe sem poder editar', async () => {
-    abrir('Designer')
-    expect(await equipe().findByText('Bia Souza')).toBeInTheDocument()
-    expect(equipe().queryByRole('combobox')).not.toBeInTheDocument()
-    expect(equipe().getByText('bia@single.com')).toBeInTheDocument()
+    await waitFor(() => expect(equipe.getByLabelText('Cargo de Bia Souza')).toHaveValue('Designer'))
   })
 
   it('falha de leitura vira erro com tentar novamente', async () => {
     bancoFalso().reiniciar({ profiles: [perfilDeTeste()] })
     bancoFalso().erroLeitura = { message: 'sem rede' }
     renderizar(<ConfiguracoesPage />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Equipe' }))
     expect(await screen.findByRole('alert')).toBeInTheDocument()
 
     bancoFalso().erroLeitura = null
     fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
-    expect(await equipe().findByText('Luan Uliana')).toBeInTheDocument()
+    expect(
+      await within(screen.getByRole('tabpanel', { name: 'Equipe' })).findByText('Luan Uliana'),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('convidar colaborador', () => {
+  async function abrirConvite() {
+    const equipe = await abrirEquipe()
+    fireEvent.click(equipe.getByRole('button', { name: 'Convidar colaborador' }))
+    return within(screen.getByRole('dialog', { name: 'Convidar colaborador' }))
+  }
+
+  it('pede o convite à função do servidor e confirma', async () => {
+    const convite = await abrirConvite()
+    fireEvent.change(convite.getByLabelText('E-mail'), { target: { value: ' ana@single.com ' } })
+    fireEvent.click(convite.getByRole('button', { name: 'Enviar convite' }))
+
+    expect(await screen.findByText('Convite enviado para ana@single.com.')).toBeInTheDocument()
+    expect(bancoFalso().funcoesChamadas).toEqual([
+      { nome: 'convidar-colaborador', body: { email: 'ana@single.com' } },
+    ])
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('não envia e-mail inválido', async () => {
+    const convite = await abrirConvite()
+    fireEvent.change(convite.getByLabelText('E-mail'), { target: { value: 'ana' } })
+    fireEvent.click(convite.getByRole('button', { name: 'Enviar convite' }))
+    expect(await convite.findByText('Informe um e-mail válido.')).toBeInTheDocument()
+    expect(bancoFalso().funcoesChamadas).toHaveLength(0)
+  })
+
+  it('explica quando a função de convite ainda não foi publicada', async () => {
+    const convite = await abrirConvite()
+    bancoFalso().erroDaFuncao = { message: 'Not found', context: { status: 404 } }
+    fireEvent.change(convite.getByLabelText('E-mail'), { target: { value: 'ana@single.com' } })
+    fireEvent.click(convite.getByRole('button', { name: 'Enviar convite' }))
+    expect(
+      await screen.findByText(
+        'A função de convite ainda não foi publicada no Supabase. Veja docs/INTEGRACOES.md.',
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Convidar colaborador' })).toBeInTheDocument()
+  })
+
+  it('mostra o motivo quando o servidor recusa', async () => {
+    const convite = await abrirConvite()
+    bancoFalso().respostaDaFuncao = { erro: 'Este e-mail já tem acesso ao sistema.' }
+    fireEvent.change(convite.getByLabelText('E-mail'), { target: { value: 'bia@single.com' } })
+    fireEvent.click(convite.getByRole('button', { name: 'Enviar convite' }))
+    expect(await screen.findByText('Este e-mail já tem acesso ao sistema.')).toBeInTheDocument()
   })
 })

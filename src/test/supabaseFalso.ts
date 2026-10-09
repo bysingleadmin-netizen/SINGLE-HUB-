@@ -19,6 +19,12 @@ export interface BancoFalso {
   erroEscrita: ErroFalso | null
   /** Se definido, toda leitura falha com este erro */
   erroLeitura: ErroFalso | null
+  /** Chamadas feitas a Edge Functions, na ordem */
+  funcoesChamadas: { nome: string; body: unknown }[]
+  /** Se definido, a próxima chamada de função falha com este erro */
+  erroDaFuncao: (ErroFalso & { context?: { status?: number } }) | null
+  /** Corpo devolvido pelas funções; por padrão `{ ok: true }` */
+  respostaDaFuncao: unknown
   reiniciar: (tabelas?: Record<string, object[]>) => void
 }
 
@@ -28,10 +34,16 @@ export function criarSupabaseFalso() {
     tabelas: {},
     erroEscrita: null,
     erroLeitura: null,
+    funcoesChamadas: [],
+    erroDaFuncao: null,
+    respostaDaFuncao: { ok: true },
     reiniciar(tabelas = {}) {
       banco.tabelas = structuredClone(tabelas) as Record<string, Linha[]>
       banco.erroEscrita = null
       banco.erroLeitura = null
+      banco.funcoesChamadas = []
+      banco.erroDaFuncao = null
+      banco.respostaDaFuncao = { ok: true }
     },
   }
 
@@ -131,7 +143,15 @@ export function criarSupabaseFalso() {
     }),
   }
 
-  return { from, storage, banco }
+  const functions = {
+    invoke: async (nome: string, opcoes?: { body?: unknown }) => {
+      if (banco.erroDaFuncao) return { data: null, error: banco.erroDaFuncao }
+      banco.funcoesChamadas.push({ nome, body: opcoes?.body })
+      return { data: banco.respostaDaFuncao, error: null }
+    },
+  }
+
+  return { from, storage, functions, banco }
 }
 
 export type SupabaseFalso = ReturnType<typeof criarSupabaseFalso>

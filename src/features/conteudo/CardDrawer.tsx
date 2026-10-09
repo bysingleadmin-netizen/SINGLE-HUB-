@@ -28,6 +28,12 @@ export function CardDrawer({ card, clientes, perfis, onMover, onFechar }: CardDr
   const salvar = useEdicaoInline<ContentCard>('content_cards', card.id, {
     sucesso: 'Conteúdo atualizado.',
     erro: 'Não foi possível salvar o conteúdo.',
+    atividade: {
+      acao: 'conteudo_editado',
+      descricao: `editou o conteúdo "${card.titulo}"`,
+      entidade: 'content_cards',
+      entidadeId: card.id,
+    },
   })
 
   function salvarTitulo() {

@@ -83,7 +83,7 @@ export function Resumo() {
           ) : (
             <ul className={`${ui.lista} stagger`}>
               {atrasos.map((atraso) => (
-                <li key={`${atraso.cliente.id}-${atraso.mes}`} className={ui.linha}>
+                <li key={`${atraso.cliente.id}-${atraso.mes}`} className={`${ui.linha} ${ui.linhaClicavel}`}>
                   <div className={ui.linhaTexto}>
                     <Link to={`/app/clientes/${atraso.cliente.id}`} className={ui.linhaTitulo}>
                       {atraso.cliente.nome}
@@ -110,7 +110,7 @@ export function Resumo() {
           ) : (
             <ol className={`${ui.lista} stagger`}>
               {fieis.map(({ cliente, meses }) => (
-                <li key={cliente.id} className={ui.linha}>
+                <li key={cliente.id} className={`${ui.linha} ${ui.linhaClicavel}`}>
                   <div className={ui.linhaTexto}>
                     <Link to={`/app/clientes/${cliente.id}`} className={ui.linhaTitulo}>
                       {cliente.nome}

@@ -262,7 +262,7 @@ describe('DemandasPage', () => {
     expect(await coluna('Concluído').findByText('Roteiro de reels')).toBeInTheDocument()
     await waitFor(() =>
       expect(bancoFalso().tabelas.activity_log).toContainEqual(
-        expect.objectContaining({ acao: 'demanda_movida', entidade_id: 't1' }),
+        expect.objectContaining({ acao: 'demanda_concluida', entidade_id: 't1' }),
       ),
     )
   })

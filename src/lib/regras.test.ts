@@ -1,4 +1,4 @@
-import type { Campaign, Client, ContentCard, Task } from '@/types/database'
+import type { Campaign, CampaignTask, Client, ContentCard, Task } from '@/types/database'
 import {
   calcularMetricas,
   dataAposOtimizar,
@@ -243,10 +243,13 @@ describe('calcularMetricas', () => {
       { etapa: 'publicado' },
     ] as ContentCard[]
 
-    expect(calcularMetricas(clientes, tarefas, cards)).toEqual({
+    const deAnuncio = [{ status: 'pendente' }, { status: 'concluido' }] as CampaignTask[]
+
+    // Abertas: 2 demandas, 2 conteúdos em produção e 1 tarefa de anúncio
+    expect(calcularMetricas(clientes, tarefas, cards, deAnuncio)).toEqual({
       mrrTotal: 4000.5,
       clientesAtivos: 2,
-      tarefasAbertas: 2,
+      tarefasAbertas: 5,
       conteudosAguardando: 2,
     })
   })

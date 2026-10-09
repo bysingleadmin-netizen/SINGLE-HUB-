@@ -28,6 +28,12 @@ export function TarefaDrawer({ tarefa, clientes, perfis, onMover, onFechar }: Ta
   const salvar = useEdicaoInline<Task>('tasks', tarefa.id, {
     sucesso: 'Demanda atualizada.',
     erro: 'Não foi possível salvar a demanda.',
+    atividade: {
+      acao: 'demanda_editada',
+      descricao: `editou a demanda "${tarefa.titulo}"`,
+      entidade: 'tasks',
+      entidadeId: tarefa.id,
+    },
   })
 
   function salvarTitulo() {

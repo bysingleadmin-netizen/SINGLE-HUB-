@@ -5,6 +5,7 @@ import { Icone } from '@/components/ui/Icone'
 import { Selecao } from '@/components/ui/Selecao'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
+import { useRegistrarAtividade } from '@/dados/atividade'
 import { porId, useAtualizarOtimista, useRemover, useSalvar } from '@/dados/base'
 import type { Valores } from '@/dados/base'
 import { STATUS_TAREFA_CAMPANHA } from '@/lib/rotulos'
@@ -24,6 +25,7 @@ function Grupo({ grupo, campanhaId, perfis }: GrupoProps) {
   const salvar = useSalvar<CampaignTask>('campaign_tasks')
   const atualizar = useAtualizarOtimista<CampaignTask>('campaign_tasks')
   const remover = useRemover('campaign_tasks')
+  const registrarAtividade = useRegistrarAtividade()
   const toast = useToast()
   const perfilPorId = porId(perfis)
   const opcoesDePerfil = perfis.map((p) => ({ valor: p.id, rotulo: p.nome }))
@@ -42,20 +44,35 @@ function Grupo({ grupo, campanhaId, perfis }: GrupoProps) {
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: (salva) => {
           toast.sucesso('Tarefa adicionada.')
           setTitulo('')
+          void registrarAtividade({
+            acao: 'tarefa_de_anuncio_criada',
+            descricao: `criou a tarefa de anúncio "${salva.titulo}"`,
+            entidade: 'campaigns',
+            entidadeId: campanhaId,
+          })
         },
         onError: () => toast.erro('Não foi possível adicionar a tarefa.'),
       },
     )
   }
 
-  function atualizarTarefa(id: string, valores: Valores<CampaignTask>) {
+  function atualizarTarefa(tarefa: CampaignTask, valores: Valores<CampaignTask>) {
+    const concluiu = valores.status === 'concluido'
     atualizar.mutate(
-      { id, valores },
+      { id: tarefa.id, valores },
       {
-        onSuccess: () => toast.sucesso('Tarefa atualizada.'),
+        onSuccess: () => {
+          toast.sucesso('Tarefa atualizada.')
+          void registrarAtividade({
+            acao: concluiu ? 'tarefa_de_anuncio_concluida' : 'tarefa_de_anuncio_editada',
+            descricao: `${concluiu ? 'concluiu' : 'editou'} a tarefa de anúncio "${tarefa.titulo}"`,
+            entidade: 'campaigns',
+            entidadeId: campanhaId,
+          })
+        },
         onError: () => toast.erro('Não foi possível atualizar a tarefa.'),
       },
     )
@@ -90,7 +107,7 @@ function Grupo({ grupo, campanhaId, perfis }: GrupoProps) {
                 opcoes={STATUS_TAREFA_CAMPANHA}
                 value={tarefa.status}
                 onChange={(evento) =>
-                  atualizarTarefa(tarefa.id, { status: evento.target.value as CampaignTaskStatus })
+                  atualizarTarefa(tarefa, { status: evento.target.value as CampaignTaskStatus })
                 }
               />
               <Selecao
@@ -104,7 +121,7 @@ function Grupo({ grupo, campanhaId, perfis }: GrupoProps) {
                     : ''
                 }
                 onChange={(evento) =>
-                  atualizarTarefa(tarefa.id, { responsavel_id: evento.target.value || null })
+                  atualizarTarefa(tarefa, { responsavel_id: evento.target.value || null })
                 }
               />
               <button

@@ -1,4 +1,11 @@
-import type { Campaign, Client, ClientPayment, ContentCard, Task } from '@/types/database'
+import type {
+  Campaign,
+  CampaignTask,
+  Client,
+  ClientPayment,
+  ContentCard,
+  Task,
+} from '@/types/database'
 import { diffDias, somarDias } from './datas'
 import { formatarData } from './formato'
 
@@ -117,16 +124,29 @@ export interface Metricas {
   conteudosAguardando: number
 }
 
+/** Conteúdo ainda em produção: nem publicado, nem arquivado. */
+export function cardAberto(card: Pick<ContentCard, 'etapa'>): boolean {
+  return card.etapa !== 'publicado' && card.etapa !== 'arquivado'
+}
+
+/**
+ * "Tarefas abertas" soma as três categorias da criação central: demandas, conteúdos em produção
+ * e tarefas de anúncio. Contar só as demandas mostrava zero para quem cria tudo pelas outras duas.
+ */
 export function calcularMetricas(
   clientes: Pick<Client, 'status' | 'mrr'>[],
   tarefas: Pick<Task, 'status'>[],
   cards: Pick<ContentCard, 'etapa'>[],
+  tarefasDeAnuncio: Pick<CampaignTask, 'status'>[] = [],
 ): Metricas {
   const ativos = clientes.filter((c) => c.status === 'ativo')
   return {
     mrrTotal: ativos.reduce((soma, c) => soma + Number(c.mrr), 0),
     clientesAtivos: ativos.length,
-    tarefasAbertas: tarefas.filter(tarefaAberta).length,
+    tarefasAbertas:
+      tarefas.filter(tarefaAberta).length +
+      cards.filter(cardAberto).length +
+      tarefasDeAnuncio.filter((t) => t.status !== 'concluido').length,
     conteudosAguardando: cards.filter((c) => c.etapa === 'aguardando_aprovacao').length,
   }
 }

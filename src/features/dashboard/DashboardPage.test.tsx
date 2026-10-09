@@ -73,6 +73,10 @@ function popular() {
         created_at: '2026-01-02',
       },
     ],
+    campaign_tasks: [
+      { id: 'ct1', campaign_id: 'g1', funcao: 'copy', titulo: 'Copy', status: 'pendente' },
+      { id: 'ct2', campaign_id: 'g1', funcao: 'copy', titulo: 'Feita', status: 'concluido' },
+    ],
     calendar_events: [
       {
         id: 'e1',
@@ -140,7 +144,8 @@ describe('DashboardPage', () => {
     expect(await screen.findByText(/4\.000,50/)).toBeInTheDocument()
     const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
     expect(valorDe('Clientes ativos')).toHaveTextContent('2')
-    expect(valorDe('Tarefas abertas')).toHaveTextContent('3')
+    // 3 demandas, 2 conteúdos em produção e 1 tarefa de anúncio
+    expect(valorDe('Tarefas abertas')).toHaveTextContent('6')
     expect(valorDe('Conteúdos aguardando aprovação')).toHaveTextContent('1')
   })
 

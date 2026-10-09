@@ -6,6 +6,7 @@ import { Campo } from '@/components/ui/Campo'
 import { Selecao } from '@/components/ui/Selecao'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
+import { useRegistrarAtividade } from '@/dados/atividade'
 import { useSalvar } from '@/dados/base'
 import { useNotificar } from '@/dados/notificacoes'
 import { useCampanhas, useClientes, usePerfis } from '@/dados/tabelas'
@@ -37,6 +38,7 @@ export function FormTarefaDeCampanha({
   const [erros, setErros] = useState<{ campanha?: string; titulo?: string }>({})
   const salvar = useSalvar<CampaignTask>('campaign_tasks')
   const notificar = useNotificar()
+  const registrarAtividade = useRegistrarAtividade()
   const toast = useToast()
 
   function aoEnviar(evento: FormEvent) {
@@ -62,6 +64,12 @@ export function FormTarefaDeCampanha({
       {
         onSuccess: (salva) => {
           toast.sucesso('Tarefa adicionada à campanha.')
+          void registrarAtividade({
+            acao: 'tarefa_de_anuncio_criada',
+            descricao: `criou a tarefa de anúncio "${salva.titulo}"`,
+            entidade: 'campaigns',
+            entidadeId: salva.campaign_id,
+          })
           void notificar([salva.responsavel_id], {
             tipo: 'tarefa',
             titulo: 'Nova tarefa de campanha para você',

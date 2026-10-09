@@ -425,6 +425,35 @@ a.linhaTitulo:hover {
   color: var(--accent-hover);
 }
 
+/* Linha inteira clicável: o link do título se estende sobre a linha toda, e os botões
+   e campos da linha ficam por cima dele para continuarem funcionando */
+.linhaClicavel {
+  position: relative;
+  cursor: pointer;
+}
+
+.linhaClicavel a.linhaTitulo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+}
+
+.linhaClicavel a.linhaTitulo:focus-visible {
+  outline: none;
+}
+
+.linhaClicavel a.linhaTitulo:focus-visible::after {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.linhaClicavel button,
+.linhaClicavel select {
+  position: relative;
+  z-index: 1;
+}
+
 .mudo {
   font-size: 13px;
   color: var(--text-muted);

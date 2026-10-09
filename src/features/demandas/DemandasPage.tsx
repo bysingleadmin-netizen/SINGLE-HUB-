@@ -41,8 +41,11 @@ export function DemandasPage() {
       destino === 'arquivado'
         ? null
         : {
-            acao: 'demanda_movida',
-            descricao: `moveu a demanda "${tarefa.titulo}" para ${tituloDoStatus(destino)}`,
+            acao: destino === 'concluido' ? 'demanda_concluida' : 'demanda_movida',
+            descricao:
+              destino === 'concluido'
+                ? `concluiu a demanda "${tarefa.titulo}"`
+                : `moveu a demanda "${tarefa.titulo}" para ${tituloDoStatus(destino)}`,
             entidade: 'tasks',
             entidadeId: tarefa.id,
           },

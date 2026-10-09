@@ -13,7 +13,14 @@ import { useAtividadeRecente } from '@/dados/atividade'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useEventos } from '@/dados/eventos'
 import { useRegistrarOtimizacao } from '@/dados/otimizacao'
-import { useCampanhas, useCards, useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
+import {
+  useCampanhas,
+  useCards,
+  useClientes,
+  usePerfis,
+  useTarefas,
+  useTarefasDeCampanha,
+} from '@/dados/tabelas'
 import { agendaPorDia, montarAgenda } from '@/features/calendario/calendario'
 import { hojeISO } from '@/lib/datas'
 import { formatarData, formatarMoeda } from '@/lib/formato'
@@ -53,6 +60,7 @@ export function DashboardPage() {
   const tarefas = useTarefas()
   const cards = useCards()
   const campanhas = useCampanhas()
+  const tarefasDeAnuncio = useTarefasDeCampanha()
   const perfis = usePerfis()
   const atividade = useAtividadeRecente()
   const eventos = useEventos()
@@ -65,13 +73,18 @@ export function DashboardPage() {
     (id && clientePorId.get(id)?.nome) || 'Sem cliente'
 
   const todas = juntarConsultas(clientes, tarefas, cards, campanhas, perfis, atividade, eventos)
-  const kpis = juntarConsultas(clientes, tarefas, cards)
+  const kpis = juntarConsultas(clientes, tarefas, cards, tarefasDeAnuncio)
   const painelEntregas = juntarConsultas(tarefas, clientes, perfis)
   const painelOtimizacoes = juntarConsultas(campanhas, clientes)
   const painelAtividade = juntarConsultas(atividade, perfis)
   const painelHoje = juntarConsultas(tarefas, cards, eventos)
 
-  const metricas = calcularMetricas(clientes.data ?? [], tarefas.data ?? [], cards.data ?? [])
+  const metricas = calcularMetricas(
+    clientes.data ?? [],
+    tarefas.data ?? [],
+    cards.data ?? [],
+    tarefasDeAnuncio.data ?? [],
+  )
   const entregas = proximasEntregas(tarefas.data ?? [], hoje)
   const otimizacoes = proximasOtimizacoes(campanhas.data ?? [], hoje)
   const registros = atividade.data ?? []
@@ -121,7 +134,7 @@ export function DashboardPage() {
           ) : (
             <ul className={`${ui.lista} stagger`}>
               {agendaDeHoje.map((item) => (
-                <li key={item.chave} className={ui.linha}>
+                <li key={item.chave} className={`${ui.linha} ${ui.linhaClicavel}`}>
                   <div className={ui.linhaTexto}>
                     <Link to={item.rota ?? `/app/calendario?dia=${hoje}`} className={ui.linhaTitulo}>
                       {item.titulo}
@@ -172,10 +185,10 @@ export function DashboardPage() {
                   : undefined
                 const prazo = tarefa.data_entrega as string
                 return (
-                  <li key={tarefa.id} className={ui.linha}>
+                  <li key={tarefa.id} className={`${ui.linha} ${ui.linhaClicavel}`}>
                     <Avatar nome={responsavel?.nome ?? null} url={responsavel?.avatar_url} tamanho={32} />
                     <div className={ui.linhaTexto}>
-                      <Link to="/app/demandas" className={ui.linhaTitulo}>
+                      <Link to={`/app/demandas?abrir=${tarefa.id}`} className={ui.linhaTitulo}>
                         {tarefa.titulo}
                       </Link>
                       <span className={ui.mudo}>
@@ -213,7 +226,7 @@ export function DashboardPage() {
           ) : (
             <ul className={`${ui.lista} stagger`}>
               {otimizacoes.map((campanha) => (
-                <li key={campanha.id} className={ui.linha}>
+                <li key={campanha.id} className={`${ui.linha} ${ui.linhaClicavel}`}>
                   <div className={ui.linhaTexto}>
                     <Link to={`/app/campanhas/${campanha.id}`} className={ui.linhaTitulo}>
                       {campanha.nome}

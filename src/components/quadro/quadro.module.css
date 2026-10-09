@@ -135,7 +135,8 @@
   border: 0;
   border-radius: var(--radius-sm);
   text-align: left;
-  cursor: inherit;
+  /* O card inteiro abre o detalhe; a mãozinha de arrastar só aparece durante o arraste */
+  cursor: pointer;
 }
 
 .cardArquivar {

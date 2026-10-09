@@ -51,13 +51,16 @@ Depois disso, os cargos dos demais membros poderão ser ajustados pela tela Conf
 
 ## Vercel (hospedagem)
 
-- [x] Variáveis de ambiente cadastradas no projeto `singlehub` (produção, preview e desenvolvimento)
-- [x] Framework ajustado para Vite
-- [x] Primeira publicação feita pela CLI (`vercel deploy --prod`), em https://singlehub-singlehub.vercel.app
-- [x] Proteção de Deploy desligada: o site abre para qualquer pessoa com o link (o acesso aos dados continua exigindo login)
-- [x] Conexão antiga com o repositório `useFindash` removida
-- [ ] Repositório `SINGLE-HUB-` conectado ao projeto. A Vercel recusou: a conta do GitHub ligada à Vercel (`saasownerbr`) não tem acesso de escrita ao repositório, que pertence a `bysingleadmin-netizen`. Enquanto isso, cada publicação é feita com `vercel deploy --prod`
+O SINGLE fica na conta Vercel nova, ligada ao GitHub `bysingleadmin-netizen`. Ela publica sozinha a cada push em `main` do repositório `SINGLE-HUB-`.
+
+- [x] Repositório `SINGLE-HUB-` conectado
+- [x] Variáveis de ambiente cadastradas no projeto `singlehub.os` (https://singlehubos.vercel.app)
+- [ ] Apagar os seis projetos duplicados criados a partir do mesmo repositório (`singlehub`, `single.os`, `singleos`, `singlehub1`, `single.system`, `single.system.hub`). Eles não têm as variáveis do Supabase e mostram "Configuração pendente". Em cada um: Settings > General > Delete Project
 - [ ] Domínio próprio (opcional)
+
+Para publicar, basta enviar o código para `main`. Não use `vercel deploy` neste computador: a CLI está logada na conta antiga (`saasownerbr`, onde ficam `usefindash` e `vyo.clin`), que não é do SINGLE.
+
+- [ ] Decidir o destino do projeto `singlehub` da conta antiga (https://singlehub.vercel.app). Ele recebeu as publicações das etapas 1 e 2 por engano e continua no ar
 
 Configuração esperada do projeto na Vercel: framework Vite, comando de build `npm run build`, pasta de saída `dist`. O arquivo `vercel.json` já redireciona todas as rotas para o app, então recarregar a página em `/app/clientes` funciona.
 

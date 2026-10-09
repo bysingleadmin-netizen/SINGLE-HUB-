@@ -1,5 +1,5 @@
 import type { Task } from '@/types/database'
-import { filtrarTarefas, formDaTarefa, formNovaTarefa, validarTarefa } from './tarefa'
+import { filtrarTarefas, formNovaTarefa, validarTarefa } from './tarefa'
 
 describe('validarTarefa', () => {
   it('exige o título', () => {
@@ -26,29 +26,6 @@ describe('validarTarefa', () => {
         status: 'em_andamento',
         data_entrega: null,
       },
-    })
-  })
-})
-
-describe('formDaTarefa', () => {
-  it('prepara a demanda para edição', () => {
-    const tarefa = {
-      titulo: 'Roteiro',
-      descricao: null,
-      client_id: null,
-      responsavel_id: 'u1',
-      tipo: 'trafego',
-      status: 'concluido',
-      data_entrega: '2026-10-10',
-    } as Task
-    expect(formDaTarefa(tarefa)).toEqual({
-      titulo: 'Roteiro',
-      descricao: '',
-      client_id: '',
-      responsavel_id: 'u1',
-      tipo: 'trafego',
-      status: 'concluido',
-      data_entrega: '2026-10-10',
     })
   })
 })

@@ -22,7 +22,10 @@
   min-width: 190px;
   font-size: 18px;
   text-align: center;
-  text-transform: capitalize;
+}
+
+.mes::first-letter {
+  text-transform: uppercase;
 }
 
 .calendario {

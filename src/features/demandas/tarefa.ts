@@ -29,18 +29,6 @@ export function formNovaTarefa(status: TaskStatus): FormTarefa {
   }
 }
 
-export function formDaTarefa(tarefa: Task): FormTarefa {
-  return {
-    titulo: tarefa.titulo,
-    descricao: tarefa.descricao ?? '',
-    client_id: tarefa.client_id ?? '',
-    responsavel_id: tarefa.responsavel_id ?? '',
-    tipo: tarefa.tipo,
-    status: tarefa.status,
-    data_entrega: tarefa.data_entrega ?? '',
-  }
-}
-
 export function validarTarefa(form: FormTarefa): Validacao<ValoresTarefa, FormTarefa> {
   const titulo = form.titulo.trim()
   if (titulo === '') {

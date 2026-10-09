@@ -36,16 +36,18 @@ Não foi possível ler as restrições de `tipo` nem as políticas de RLS. O app
 
 ## Tasks
 
-- [ ] 1. Logo em cor única.
-- [ ] 2. Redesign visual: rastro do mouse, vidro fosco, campos, entradas com stagger de 50 ms, hovers, botão primário, sidebar, scrollbar, ilustrações nos estados vazios, toasts de 3 s.
-- [ ] 3. Notificações: sino com contagem, lista das 20 mais recentes, marcar como lida e navegar; disparos por tarefa atribuída, evento com participantes e prazo de amanhã.
-- [ ] 4. Calendário: rota, item na sidebar, grade mensal com chips por tipo, painel do dia, modal de evento com cliente e participantes.
-- [ ] 5. Configurações com abas; aba Equipe só para a liderança, com cargo inline e convite.
-- [ ] 6. Quadro: indicador de prazo colorido, chip de cliente, drawer de edição em Demandas e Conteúdo.
-- [ ] 7. Clientes: ações rápidas no card e página de detalhe com abas.
-- [ ] 8. Dashboard: gráfico de MRR e seção Hoje.
-- [ ] 9. Busca global com Ctrl+K.
-- [ ] 10. Verificação final: testes, build, colunas contra a API, push.
+- [x] 1. Logo em cor única.
+- [x] 2. Redesign visual: rastro do mouse, vidro fosco, campos, entradas com stagger de 50 ms, hovers, botão primário, sidebar, scrollbar, ilustrações nos estados vazios, toasts de 3 s.
+- [x] 3. Notificações: sino com contagem, lista das 20 mais recentes, marcar como lida e navegar; disparos por tarefa atribuída, evento com participantes e prazo de amanhã.
+- [x] 4. Calendário: rota, item na sidebar, grade mensal com chips por tipo, painel do dia, modal de evento com cliente e participantes.
+- [x] 5. Configurações com abas; aba Equipe só para a liderança, com cargo inline e convite.
+- [x] 6. Quadro: indicador de prazo colorido, chip de cliente, drawer de edição em Demandas e Conteúdo.
+- [x] 7. Clientes: ações rápidas no card e página de detalhe com abas.
+- [x] 8. Dashboard: gráfico de MRR e seção Hoje.
+- [x] 9. Busca global com Ctrl+K.
+- [x] 10. Verificação final: testes, build, colunas contra a API, push.
+
+Estado em 2026-10-08: as dez tarefas estão concluídas. Ficam fora do código, como passos manuais no Supabase do SINGLE: publicar a Edge Function `convidar-colaborador` e conferir RLS e valores de `tipo` das três tabelas novas (lista em `docs/INTEGRACOES.md`).
 
 ## Review Focus
 

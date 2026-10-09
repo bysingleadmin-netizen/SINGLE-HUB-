@@ -1,5 +1,4 @@
-import type { ContentCard } from '@/types/database'
-import { atividadeDoMovimento, formDoCard, formNovoCard, validarCard } from './card'
+import { atividadeDoMovimento, formNovoCard, validarCard } from './card'
 
 describe('validarCard', () => {
   it('exige o título', () => {
@@ -27,29 +26,6 @@ describe('validarCard', () => {
         data_entrega: '2026-10-20',
         observacoes: null,
       },
-    })
-  })
-})
-
-describe('formDoCard', () => {
-  it('prepara o card para edição', () => {
-    const card = {
-      titulo: 'Carrossel',
-      tipo_conteudo: 'carrossel',
-      client_id: 'c1',
-      responsavel_id: null,
-      etapa: 'editar',
-      data_entrega: null,
-      observacoes: 'Usar fotos novas',
-    } as ContentCard
-    expect(formDoCard(card)).toEqual({
-      titulo: 'Carrossel',
-      tipo_conteudo: 'carrossel',
-      client_id: 'c1',
-      responsavel_id: '',
-      etapa: 'editar',
-      data_entrega: '',
-      observacoes: 'Usar fotos novas',
     })
   })
 })

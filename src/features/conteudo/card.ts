@@ -37,18 +37,6 @@ export function formNovoCard(etapa: ContentEtapa): FormCard {
   }
 }
 
-export function formDoCard(card: ContentCard): FormCard {
-  return {
-    titulo: card.titulo,
-    tipo_conteudo: card.tipo_conteudo,
-    client_id: card.client_id ?? '',
-    responsavel_id: card.responsavel_id ?? '',
-    etapa: card.etapa,
-    data_entrega: card.data_entrega ?? '',
-    observacoes: card.observacoes ?? '',
-  }
-}
-
 export function validarCard(form: FormCard): Validacao<ValoresCard, FormCard> {
   const titulo = form.titulo.trim()
   if (titulo === '') {

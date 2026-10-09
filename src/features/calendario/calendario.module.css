@@ -139,6 +139,11 @@
   white-space: nowrap;
 }
 
+.chip[data-concluido] {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
 .mais {
   font-size: 12px;
   color: var(--text-muted);
@@ -185,6 +190,15 @@
 .eventoTitulo {
   font-weight: 600;
   overflow-wrap: anywhere;
+}
+
+.eventoLink:hover {
+  color: var(--accent-hover);
+}
+
+.evento[data-concluido] .eventoTitulo {
+  color: var(--text-muted);
+  text-decoration: line-through;
 }
 
 .marcar {

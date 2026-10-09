@@ -1,7 +1,9 @@
 import { hojeISO, somarDias } from '@/lib/datas'
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
-import type { CalendarEvent, TipoEvento } from '@/types/database'
+import { TIPOS_EVENTO, opcao } from '@/lib/rotulos'
+import type { Tom } from '@/lib/rotulos'
+import type { CalendarEvent, ContentCard, Task, TipoEvento } from '@/types/database'
 
 // Eventos são guardados como timestamps com fuso. Na tela, o dia de um evento
 // é sempre o dia no relógio de quem está olhando.
@@ -65,25 +67,6 @@ export function diasDoEvento(evento: Pick<CalendarEvent, 'data_inicio' | 'data_f
   return dias
 }
 
-/** Eventos de cada dia: os de dia inteiro primeiro, depois por horário. */
-export function eventosPorDia(eventos: CalendarEvent[]): Map<string, CalendarEvent[]> {
-  const mapa = new Map<string, CalendarEvent[]>()
-  for (const evento of eventos) {
-    for (const dia of diasDoEvento(evento)) {
-      const lista = mapa.get(dia)
-      if (lista) lista.push(evento)
-      else mapa.set(dia, [evento])
-    }
-  }
-  for (const lista of mapa.values()) {
-    lista.sort(
-      (a, b) =>
-        Number(b.dia_inteiro) - Number(a.dia_inteiro) || a.data_inicio.localeCompare(b.data_inicio),
-    )
-  }
-  return mapa
-}
-
 function hora(timestamp: string): string {
   const data = new Date(timestamp)
   return `${doisDigitos(data.getHours())}:${doisDigitos(data.getMinutes())}`
@@ -96,6 +79,101 @@ export function horarioDoEvento(
   return evento.data_fim
     ? `${hora(evento.data_inicio)} às ${hora(evento.data_fim)}`
     : hora(evento.data_inicio)
+}
+
+/** Uma linha da agenda: um evento do calendário ou a entrega de uma demanda ou de um conteúdo. */
+export interface ItemDeAgenda {
+  /** Única entre as três origens, para servir de key */
+  chave: string
+  origem: 'evento' | 'demanda' | 'conteudo'
+  titulo: string
+  /** 'Reunião', 'Demanda', 'Conteúdo'... */
+  rotulo: string
+  tom: Tom
+  /** Dias locais que o item ocupa */
+  dias: string[]
+  horario: string
+  /** Entrega já feita: aparece apagada */
+  concluido: boolean
+  /** Para onde o item leva; eventos não têm tela própria */
+  rota: string | null
+  clientId: string | null
+  /** O evento de origem, quando o item é um evento */
+  evento: CalendarEvent | null
+  /** Posição dentro do dia: dia inteiro, entregas e depois os com horário */
+  ordem: string
+}
+
+/**
+ * Junta eventos e entregas em uma lista só. As entregas são calculadas na hora a partir das
+ * demandas e dos conteúdos com data; nada é copiado para a tabela de eventos, então não há
+ * como um item aparecer duas vezes. Arquivados ficam de fora.
+ */
+export function montarAgenda(
+  eventos: CalendarEvent[],
+  tarefas: Pick<Task, 'id' | 'titulo' | 'status' | 'client_id' | 'data_entrega'>[],
+  cards: Pick<ContentCard, 'id' | 'titulo' | 'etapa' | 'client_id' | 'data_entrega'>[],
+): ItemDeAgenda[] {
+  const deEventos = eventos.map((evento): ItemDeAgenda => {
+    const tipo = opcao(TIPOS_EVENTO, evento.tipo)
+    return {
+      chave: `evento-${evento.id}`,
+      origem: 'evento',
+      titulo: evento.titulo,
+      rotulo: tipo.rotulo,
+      tom: tipo.tom,
+      dias: diasDoEvento(evento),
+      horario: horarioDoEvento(evento),
+      concluido: false,
+      rota: null,
+      clientId: evento.client_id,
+      evento,
+      ordem: evento.dia_inteiro ? '0' : `2${evento.data_inicio}`,
+    }
+  })
+
+  const entrega = (
+    origem: 'demanda' | 'conteudo',
+    item: { id: string; titulo: string; client_id: string | null; data_entrega: string | null },
+    concluido: boolean,
+  ): ItemDeAgenda => ({
+    chave: `${origem}-${item.id}`,
+    origem,
+    titulo: item.titulo,
+    rotulo: origem === 'demanda' ? 'Demanda' : 'Conteúdo',
+    tom: 'vermelho',
+    dias: [item.data_entrega as string],
+    horario: 'Entrega',
+    concluido,
+    rota: origem === 'demanda' ? `/app/demandas?abrir=${item.id}` : `/app/conteudo?abrir=${item.id}`,
+    clientId: item.client_id,
+    evento: null,
+    ordem: '1',
+  })
+
+  return [
+    ...deEventos,
+    ...tarefas
+      .filter((t) => t.data_entrega && t.status !== 'arquivado')
+      .map((t) => entrega('demanda', t, t.status === 'concluido')),
+    ...cards
+      .filter((c) => c.data_entrega && c.etapa !== 'arquivado')
+      .map((c) => entrega('conteudo', c, c.etapa === 'publicado')),
+  ]
+}
+
+/** Itens de cada dia, já na ordem em que aparecem. */
+export function agendaPorDia(itens: ItemDeAgenda[]): Map<string, ItemDeAgenda[]> {
+  const mapa = new Map<string, ItemDeAgenda[]>()
+  for (const item of itens) {
+    for (const dia of item.dias) {
+      const lista = mapa.get(dia)
+      if (lista) lista.push(item)
+      else mapa.set(dia, [item])
+    }
+  }
+  for (const lista of mapa.values()) lista.sort((a, b) => a.ordem.localeCompare(b.ordem))
+  return mapa
 }
 
 export interface FormEvento {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Drawer } from '@/components/ui/Drawer'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
@@ -10,18 +10,17 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { juntarConsultas, porId, useRemover } from '@/dados/base'
 import { useEventos, useParticipantes } from '@/dados/eventos'
-import { useClientes, usePerfis } from '@/dados/tabelas'
+import { useCards, useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
 import { hojeISO } from '@/lib/datas'
 import { plural } from '@/lib/regras'
-import { TIPOS_EVENTO, opcao } from '@/lib/rotulos'
 import type { CalendarEvent } from '@/types/database'
 import { EventoModal } from './EventoModal'
 import {
-  eventosPorDia,
+  agendaPorDia,
   gradeDoMes,
-  horarioDoEvento,
   mesDe,
   mesVizinho,
+  montarAgenda,
   nomeDoDia,
   nomeDoMes,
 } from './calendario'
@@ -34,6 +33,8 @@ const DIA_VALIDO = /^\d{4}-\d{2}-\d{2}$/
 export function CalendarioPage() {
   const eventos = useEventos()
   const participantes = useParticipantes()
+  const tarefas = useTarefas()
+  const cards = useCards()
   const clientes = useClientes()
   const perfis = usePerfis()
   const remover = useRemover('calendar_events')
@@ -47,8 +48,9 @@ export function CalendarioPage() {
   /** Dia em que o modal de novo evento abre; null quando fechado */
   const [criandoEm, setCriandoEm] = useState<string | null>(null)
 
-  const consultas = juntarConsultas(eventos, participantes, clientes, perfis)
-  const porDia = eventosPorDia(eventos.data ?? [])
+  const consultas = juntarConsultas(eventos, participantes, tarefas, cards, clientes, perfis)
+  // Eventos do calendário e entregas de demandas e conteúdos, juntos, sem copiar nada no banco
+  const porDia = agendaPorDia(montarAgenda(eventos.data ?? [], tarefas.data ?? [], cards.data ?? []))
   const grade = gradeDoMes(mes.ano, mes.mes)
   const mesVazio = !grade.some((dia) => dia.doMes && porDia.has(dia.iso))
   const clientePorId = porId(clientes.data)
@@ -100,7 +102,7 @@ export function CalendarioPage() {
             Hoje
           </Button>
         </div>
-        <Button onClick={() => setCriandoEm(hoje)}>
+        <Button variante="secundario" onClick={() => setCriandoEm(hoje)}>
           <Icone nome="mais" tamanho={16} />
           Novo evento
         </Button>
@@ -130,19 +132,20 @@ export function CalendarioPage() {
                     aria-current={dia.iso === hoje ? 'date' : undefined}
                     aria-label={
                       lista.length > 0
-                        ? `${nomeDoDia(dia.iso)}, ${plural(lista.length, 'evento', 'eventos')}`
+                        ? `${nomeDoDia(dia.iso)}, ${plural(lista.length, 'item', 'itens')}`
                         : nomeDoDia(dia.iso)
                     }
                     onClick={() => abrirDia(dia.iso)}
                   >
                     <span className={styles.diaNumero}>{Number(dia.iso.slice(8))}</span>
-                    {lista.slice(0, CHIPS_POR_DIA).map((evento) => (
+                    {lista.slice(0, CHIPS_POR_DIA).map((item) => (
                       <span
-                        key={evento.id}
+                        key={item.chave}
                         className={styles.chip}
-                        data-tom={opcao(TIPOS_EVENTO, evento.tipo).tom}
+                        data-tom={item.tom}
+                        data-concluido={item.concluido || undefined}
                       >
-                        {evento.titulo}
+                        {item.titulo}
                       </span>
                     ))}
                     {lista.length > CHIPS_POR_DIA && (
@@ -156,8 +159,8 @@ export function CalendarioPage() {
           {mesVazio && (
             <EstadoVazio
               ilustracao="calendario"
-              titulo="Nenhum evento neste mês."
-              texto="Clique em um dia ou em Novo evento para marcar reuniões, gravações e entregas."
+              titulo="Nada marcado neste mês."
+              texto="Demandas e conteúdos com data de entrega aparecem aqui sozinhos. Reuniões e gravações entram por Novo evento."
             />
           )}
         </>
@@ -167,30 +170,43 @@ export function CalendarioPage() {
         <Drawer aberto titulo={nomeDoDia(diaAberto)} onFechar={() => abrirDia(null)}>
           <div className={styles.painel}>
             {doDia.length === 0 ? (
-              <EstadoVazio ilustracao="calendario" titulo="Nenhum evento neste dia." />
+              <EstadoVazio ilustracao="calendario" titulo="Nada marcado neste dia." />
             ) : (
               <ul className={`${styles.eventos} stagger`}>
-                {doDia.map((evento) => {
-                  const tipo = opcao(TIPOS_EVENTO, evento.tipo)
-                  const cliente = evento.client_id ? clientePorId.get(evento.client_id) : undefined
-                  const nomes = nomesDosParticipantes(evento)
+                {doDia.map((item) => {
+                  const cliente = item.clientId ? clientePorId.get(item.clientId) : undefined
+                  const evento = item.evento
+                  const nomes = evento ? nomesDosParticipantes(evento) : ''
                   return (
-                    <li key={evento.id} className={styles.evento} data-tom={tipo.tom}>
+                    <li
+                      key={item.chave}
+                      className={styles.evento}
+                      data-tom={item.tom}
+                      data-concluido={item.concluido || undefined}
+                    >
                       <div className={styles.eventoTopo}>
-                        <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>
-                        <span className={ui.mudo}>{horarioDoEvento(evento)}</span>
-                        <button
-                          type="button"
-                          className={ui.botaoIcone}
-                          aria-label={`Excluir ${evento.titulo}`}
-                          title="Excluir"
-                          onClick={() => excluir(evento)}
-                        >
-                          <Icone nome="lixeira" tamanho={16} />
-                        </button>
+                        <Pill tom={item.tom}>{item.rotulo}</Pill>
+                        <span className={ui.mudo}>{item.horario}</span>
+                        {evento && (
+                          <button
+                            type="button"
+                            className={ui.botaoIcone}
+                            aria-label={`Excluir ${item.titulo}`}
+                            title="Excluir"
+                            onClick={() => excluir(evento)}
+                          >
+                            <Icone nome="lixeira" tamanho={16} />
+                          </button>
+                        )}
                       </div>
-                      <p className={styles.eventoTitulo}>{evento.titulo}</p>
-                      {evento.descricao && <p className={ui.mudo}>{evento.descricao}</p>}
+                      {item.rota ? (
+                        <Link to={item.rota} className={`${styles.eventoTitulo} ${styles.eventoLink}`}>
+                          {item.titulo}
+                        </Link>
+                      ) : (
+                        <p className={styles.eventoTitulo}>{item.titulo}</p>
+                      )}
+                      {evento?.descricao && <p className={ui.mudo}>{evento.descricao}</p>}
                       {cliente && <p className={ui.mudo}>Cliente: {cliente.nome}</p>}
                       {nomes && <p className={ui.mudo}>Com {nomes}</p>}
                     </li>

@@ -14,6 +14,7 @@ const MES = mesDe(HOJE)
 /** Um dia fixo do mês corrente, para os testes não dependerem de que dia é hoje */
 const DIA_10 = `${HOJE.slice(0, 8)}10`
 const DIA_11 = `${HOJE.slice(0, 8)}11`
+const DIA_12 = `${HOJE.slice(0, 8)}12`
 
 function local(iso: string, hora: number, minuto = 0): string {
   const [ano, mes, dia] = iso.split('-').map(Number)
@@ -55,6 +56,14 @@ function popular() {
       },
     ],
     event_participants: [{ event_id: 'e1', profile_id: 'u2' }],
+    tasks: [
+      { id: 't1', titulo: 'Entregar roteiro', status: 'em_andamento', tipo: 'conteudo', client_id: 'c1', responsavel_id: null, data_entrega: DIA_12, posicao: 1, created_at: '2026-10-01' },
+      { id: 't2', titulo: 'Demanda arquivada', status: 'arquivado', tipo: 'conteudo', client_id: null, responsavel_id: null, data_entrega: DIA_12, posicao: 1, created_at: '2026-10-02' },
+      { id: 't3', titulo: 'Demanda sem data', status: 'a_fazer', tipo: 'conteudo', client_id: null, responsavel_id: null, data_entrega: null, posicao: 2, created_at: '2026-10-03' },
+    ],
+    content_cards: [
+      { id: 'k1', titulo: 'Publicar carrossel', tipo_conteudo: 'carrossel', etapa: 'publicado', client_id: null, responsavel_id: null, data_entrega: DIA_12, posicao: 1, created_at: '2026-10-01' },
+    ],
   })
 }
 
@@ -67,7 +76,7 @@ describe('CalendarioPage', () => {
     bancoFalso().reiniciar()
     renderizar(<CalendarioPage />)
 
-    expect(await screen.findByText('Nenhum evento neste mês.')).toBeInTheDocument()
+    expect(await screen.findByText('Nada marcado neste mês.')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: nomeDoMes(MES.ano, MES.mes) })).toBeInTheDocument()
     for (const nome of ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']) {
       expect(screen.getByText(nome)).toBeInTheDocument()
@@ -81,10 +90,10 @@ describe('CalendarioPage', () => {
     renderizar(<CalendarioPage />)
     await screen.findAllByText('Gravação externa')
 
-    expect(dia(DIA_10)).toHaveAccessibleName(`${nomeDoDia(DIA_10)}, 2 eventos`)
+    expect(dia(DIA_10)).toHaveAccessibleName(`${nomeDoDia(DIA_10)}, 2 itens`)
     expect(within(dia(DIA_10)).getByText('Reunião de pauta')).toHaveAttribute('data-tom', 'azul')
     expect(within(dia(DIA_10)).getByText('Gravação externa')).toHaveAttribute('data-tom', 'roxo')
-    expect(dia(DIA_11)).toHaveAccessibleName(`${nomeDoDia(DIA_11)}, 1 evento`)
+    expect(dia(DIA_11)).toHaveAccessibleName(`${nomeDoDia(DIA_11)}, 1 item`)
     expect(within(dia(DIA_11)).getByText('Gravação externa')).toBeInTheDocument()
   })
 
@@ -102,13 +111,47 @@ describe('CalendarioPage', () => {
     expect(painel.getByText('Reunião')).toBeInTheDocument()
   })
 
+  it('demandas e conteúdos com data de entrega aparecem sozinhos no dia', async () => {
+    popular()
+    renderizar(<CalendarioPage />)
+    await screen.findAllByText('Gravação externa')
+
+    expect(dia(DIA_12)).toHaveAccessibleName(`${nomeDoDia(DIA_12)}, 2 itens`)
+    expect(within(dia(DIA_12)).getByText('Entregar roteiro')).toHaveAttribute('data-tom', 'vermelho')
+    expect(within(dia(DIA_12)).getByText('Publicar carrossel')).toHaveAttribute('data-concluido')
+    expect(screen.queryByText('Demanda arquivada')).not.toBeInTheDocument()
+    expect(screen.queryByText('Demanda sem data')).not.toBeInTheDocument()
+    // Nada foi copiado para a tabela de eventos
+    expect(bancoFalso().tabelas.calendar_events).toHaveLength(2)
+  })
+
+  it('no painel do dia, a entrega leva à demanda e não pode ser excluída por ali', async () => {
+    popular()
+    renderizar(<CalendarioPage />)
+    await screen.findAllByText('Gravação externa')
+    fireEvent.click(dia(DIA_12))
+
+    const painel = within(screen.getByRole('dialog', { name: nomeDoDia(DIA_12) }))
+    expect(painel.getByRole('link', { name: 'Entregar roteiro' })).toHaveAttribute(
+      'href',
+      '/app/demandas?abrir=t1',
+    )
+    expect(painel.getByRole('link', { name: 'Publicar carrossel' })).toHaveAttribute(
+      'href',
+      '/app/conteudo?abrir=k1',
+    )
+    expect(painel.getByText('Demanda')).toBeInTheDocument()
+    expect(painel.getByText(/Padaria Sol/)).toBeInTheDocument()
+    expect(painel.queryByRole('button', { name: /^Excluir/ })).not.toBeInTheDocument()
+  })
+
   it('dia sem eventos abre o painel vazio com a ação de criar', async () => {
     popular()
     renderizar(<CalendarioPage />)
     await screen.findAllByText('Gravação externa')
     fireEvent.click(dia(`${HOJE.slice(0, 8)}20`))
     const painel = within(screen.getByRole('dialog'))
-    expect(painel.getByText('Nenhum evento neste dia.')).toBeInTheDocument()
+    expect(painel.getByText('Nada marcado neste dia.')).toBeInTheDocument()
     expect(painel.getByRole('button', { name: 'Novo evento neste dia' })).toBeInTheDocument()
   })
 
@@ -196,7 +239,7 @@ describe('CalendarioPage', () => {
   it('anda entre os meses e volta para hoje', async () => {
     bancoFalso().reiniciar()
     renderizar(<CalendarioPage />)
-    await screen.findByText('Nenhum evento neste mês.')
+    await screen.findByText('Nada marcado neste mês.')
     const proximo = mesVizinho(MES, 1)
     fireEvent.click(screen.getByRole('button', { name: 'Próximo mês' }))
     expect(
@@ -234,6 +277,6 @@ describe('CalendarioPage', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument()
     bancoFalso().erroLeitura = null
     fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
-    expect(await screen.findByText('Nenhum evento neste mês.')).toBeInTheDocument()
+    expect(await screen.findByText('Nada marcado neste mês.')).toBeInTheDocument()
   })
 })

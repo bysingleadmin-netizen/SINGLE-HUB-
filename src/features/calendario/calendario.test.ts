@@ -1,11 +1,12 @@
-import type { CalendarEvent } from '@/types/database'
+import type { CalendarEvent, ContentCard, Task } from '@/types/database'
 import {
+  agendaPorDia,
   diasDoEvento,
-  eventosPorDia,
   formNovoEvento,
   gradeDoMes,
   horarioDoEvento,
   mesVizinho,
+  montarAgenda,
   nomeDoDia,
   nomeDoMes,
   validarEvento,
@@ -100,16 +101,100 @@ describe('diasDoEvento', () => {
   })
 })
 
-describe('eventosPorDia', () => {
-  it('agrupa por dia, com dia inteiro primeiro e depois por horário', () => {
-    const mapa = eventosPorDia([
-      evento({ id: 'tarde', data_inicio: local(2026, 10, 8, 16) }),
-      evento({ id: 'manha', data_inicio: local(2026, 10, 8, 9) }),
-      evento({ id: 'dia', dia_inteiro: true, data_inicio: local(2026, 10, 8) }),
-      evento({ id: 'outro-dia', data_inicio: local(2026, 10, 9, 9) }),
+describe('agenda: eventos e entregas na mesma lista', () => {
+  const tarefa = (parcial: Partial<Task>) =>
+    ({ id: 't', titulo: 'Tarefa', status: 'a_fazer', client_id: null, data_entrega: '2026-10-08', ...parcial }) as Task
+  const card = (parcial: Partial<ContentCard>) =>
+    ({ id: 'k', titulo: 'Card', etapa: 'editar', client_id: null, data_entrega: '2026-10-08', ...parcial }) as ContentCard
+
+  it('toda demanda e todo conteúdo com data de entrega entram, levando ao item de origem', () => {
+    const agenda = montarAgenda(
+      [],
+      [tarefa({ id: 't1', titulo: 'Roteiro', client_id: 'c1' })],
+      [card({ id: 'k1', titulo: 'Carrossel' })],
+    )
+    expect(agenda).toEqual([
+      expect.objectContaining({
+        chave: 'demanda-t1',
+        origem: 'demanda',
+        titulo: 'Roteiro',
+        rotulo: 'Demanda',
+        tom: 'vermelho',
+        dias: ['2026-10-08'],
+        horario: 'Entrega',
+        rota: '/app/demandas?abrir=t1',
+        clientId: 'c1',
+        concluido: false,
+      }),
+      expect.objectContaining({
+        chave: 'conteudo-k1',
+        origem: 'conteudo',
+        rotulo: 'Conteúdo',
+        rota: '/app/conteudo?abrir=k1',
+      }),
     ])
-    expect(mapa.get('2026-10-08')?.map((e) => e.id)).toEqual(['dia', 'manha', 'tarde'])
-    expect(mapa.get('2026-10-09')?.map((e) => e.id)).toEqual(['outro-dia'])
+  })
+
+  it('fica de fora o que não tem data ou está arquivado; o que foi entregue entra marcado', () => {
+    const agenda = montarAgenda(
+      [],
+      [
+        tarefa({ id: 'sem-data', data_entrega: null }),
+        tarefa({ id: 'arquivada', status: 'arquivado' }),
+        tarefa({ id: 'feita', status: 'concluido' }),
+      ],
+      [card({ id: 'arquivado', etapa: 'arquivado' }), card({ id: 'publicado', etapa: 'publicado' })],
+    )
+    expect(agenda.map((item) => [item.chave, item.concluido])).toEqual([
+      ['demanda-feita', true],
+      ['conteudo-publicado', true],
+    ])
+  })
+
+  it('evento vira item com a cor do tipo e sem rota própria', () => {
+    const [item] = montarAgenda([evento({ id: 'e1', tipo: 'gravacao', client_id: 'c2' })], [], [])
+    expect(item).toMatchObject({
+      chave: 'evento-e1',
+      origem: 'evento',
+      rotulo: 'Gravação',
+      tom: 'roxo',
+      horario: '14:00',
+      rota: null,
+      clientId: 'c2',
+    })
+    expect(item.evento?.id).toBe('e1')
+  })
+
+  it('nada se duplica: cada evento e cada entrega aparece uma vez por dia', () => {
+    const agenda = montarAgenda(
+      [evento({ id: 'e1', titulo: 'Entrega do roteiro', tipo: 'entrega' })],
+      [tarefa({ id: 't1', titulo: 'Entrega do roteiro' })],
+      [],
+    )
+    const doDia = agendaPorDia(agenda).get('2026-10-08') ?? []
+    expect(doDia.map((item) => item.chave).sort()).toEqual(['demanda-t1', 'evento-e1'])
+  })
+
+  it('no dia, vêm primeiro os de dia inteiro, depois as entregas, depois os com horário', () => {
+    const mapa = agendaPorDia(
+      montarAgenda(
+        [
+          evento({ id: 'tarde', data_inicio: local(2026, 10, 8, 16) }),
+          evento({ id: 'manha', data_inicio: local(2026, 10, 8, 9) }),
+          evento({ id: 'dia', dia_inteiro: true, data_inicio: local(2026, 10, 8) }),
+          evento({ id: 'outro-dia', data_inicio: local(2026, 10, 9, 9) }),
+        ],
+        [tarefa({ id: 't1' })],
+        [],
+      ),
+    )
+    expect(mapa.get('2026-10-08')?.map((item) => item.chave)).toEqual([
+      'evento-dia',
+      'demanda-t1',
+      'evento-manha',
+      'evento-tarde',
+    ])
+    expect(mapa.get('2026-10-09')?.map((item) => item.chave)).toEqual(['evento-outro-dia'])
     expect(mapa.get('2026-10-10')).toBeUndefined()
   })
 })

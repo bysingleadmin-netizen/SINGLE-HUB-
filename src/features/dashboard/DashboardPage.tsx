@@ -14,7 +14,7 @@ import { juntarConsultas, porId } from '@/dados/base'
 import { useEventos } from '@/dados/eventos'
 import { useRegistrarOtimizacao } from '@/dados/otimizacao'
 import { useCampanhas, useCards, useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
-import { eventosPorDia, horarioDoEvento } from '@/features/calendario/calendario'
+import { agendaPorDia, montarAgenda } from '@/features/calendario/calendario'
 import { hojeISO } from '@/lib/datas'
 import { formatarData, formatarMoeda } from '@/lib/formato'
 import {
@@ -25,11 +25,9 @@ import {
   plural,
   proximasEntregas,
   proximasOtimizacoes,
-  tarefaAberta,
   tarefaAtrasada,
   tempoRelativo,
 } from '@/lib/regras'
-import { TIPOS_EVENTO, opcao } from '@/lib/rotulos'
 import { GraficoMRR } from './GraficoMRR'
 import styles from './dashboard.module.css'
 
@@ -71,16 +69,16 @@ export function DashboardPage() {
   const painelEntregas = juntarConsultas(tarefas, clientes, perfis)
   const painelOtimizacoes = juntarConsultas(campanhas, clientes)
   const painelAtividade = juntarConsultas(atividade, perfis)
-  const painelHoje = juntarConsultas(tarefas, eventos)
+  const painelHoje = juntarConsultas(tarefas, cards, eventos)
 
   const metricas = calcularMetricas(clientes.data ?? [], tarefas.data ?? [], cards.data ?? [])
   const entregas = proximasEntregas(tarefas.data ?? [], hoje)
   const otimizacoes = proximasOtimizacoes(campanhas.data ?? [], hoje)
   const registros = atividade.data ?? []
-  const eventosDeHoje = eventosPorDia(eventos.data ?? []).get(hoje) ?? []
-  const entregasDeHoje = (tarefas.data ?? []).filter(
-    (tarefa) => tarefaAberta(tarefa) && tarefa.data_entrega === hoje,
-  )
+  // Eventos e entregas do dia, da mesma agenda que o Calendário mostra; o que já foi entregue sai
+  const agendaDeHoje = (
+    agendaPorDia(montarAgenda(eventos.data ?? [], tarefas.data ?? [], cards.data ?? [])).get(hoje) ?? []
+  ).filter((item) => !item.concluido)
 
   return (
     <div className={styles.pagina}>
@@ -118,33 +116,22 @@ export function DashboardPage() {
             <EstadoErro onTentar={todas.tentar} />
           ) : painelHoje.carregando ? (
             <Carregando />
-          ) : eventosDeHoje.length + entregasDeHoje.length === 0 ? (
+          ) : agendaDeHoje.length === 0 ? (
             <EstadoVazio ilustracao="calendario" titulo="Nada marcado para hoje." />
           ) : (
             <ul className={`${ui.lista} stagger`}>
-              {eventosDeHoje.map((evento) => {
-                const tipo = opcao(TIPOS_EVENTO, evento.tipo)
-                return (
-                  <li key={evento.id} className={ui.linha}>
-                    <div className={ui.linhaTexto}>
-                      <Link to={`/app/calendario?dia=${hoje}`} className={ui.linhaTitulo}>
-                        {evento.titulo}
-                      </Link>
-                      <span className={ui.mudo}>{horarioDoEvento(evento)}</span>
-                    </div>
-                    <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>
-                  </li>
-                )
-              })}
-              {entregasDeHoje.map((tarefa) => (
-                <li key={tarefa.id} className={ui.linha}>
+              {agendaDeHoje.map((item) => (
+                <li key={item.chave} className={ui.linha}>
                   <div className={ui.linhaTexto}>
-                    <Link to={`/app/demandas?abrir=${tarefa.id}`} className={ui.linhaTitulo}>
-                      {tarefa.titulo}
+                    <Link to={item.rota ?? `/app/calendario?dia=${hoje}`} className={ui.linhaTitulo}>
+                      {item.titulo}
                     </Link>
-                    <span className={ui.mudo}>{nomeDoCliente(tarefa.client_id)}</span>
+                    <span className={ui.mudo}>
+                      {item.horario}
+                      {item.clientId && `, ${nomeDoCliente(item.clientId)}`}
+                    </span>
                   </div>
-                  <Pill tom="amarelo">Entrega hoje</Pill>
+                  <Pill tom={item.tom}>{item.rotulo}</Pill>
                 </li>
               ))}
             </ul>

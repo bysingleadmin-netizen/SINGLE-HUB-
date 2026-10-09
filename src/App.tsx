@@ -6,6 +6,7 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { RotaLideranca } from '@/features/auth/RotaLideranca'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
 import { ClientesPage } from '@/features/clientes/ClientesPage'
+import { ConteudoPage } from '@/features/conteudo/ConteudoPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { DemandasPage } from '@/features/demandas/DemandasPage'
 import { EmConstrucao } from '@/features/placeholder/EmConstrucao'
@@ -26,7 +27,7 @@ export default function App() {
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="clientes" element={<ClientesPage />} />
                   <Route path="demandas" element={<DemandasPage />} />
-                  <Route path="conteudo" element={<EmConstrucao tela="Conteúdo" etapa={2} />} />
+                  <Route path="conteudo" element={<ConteudoPage />} />
                   <Route path="campanhas" element={<EmConstrucao tela="Campanhas" etapa={2} />} />
                   <Route path="campanhas/:id" element={<EmConstrucao tela="Campanha" etapa={2} />} />
                   <Route element={<RotaLideranca />}>

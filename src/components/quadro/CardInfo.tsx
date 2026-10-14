@@ -49,7 +49,7 @@ export function CardInfo({
     <span className={styles.info}>
       <span className={styles.infoTopo}>
         {etiqueta}
-        {prioridade && <Pill tom={prioridade.tom}>{prioridade.rotulo}</Pill>}
+        {prioridade && <Pill tom={prioridade.tom} cor={prioridade.cor}>{prioridade.rotulo}</Pill>}
       </span>
       <span className={styles.infoTitulo}>{titulo}</span>
 

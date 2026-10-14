@@ -129,7 +129,7 @@ export function ConteudoPage() {
             titulo: 'Prioridade',
             render: (c: ContentCard) => {
               const nivel = prioridades.opcao(c.prioridade ?? 'media')
-              return nivel ? <Pill tom={nivel.tom}>{nivel.rotulo}</Pill> : null
+              return nivel ? <Pill tom={nivel.tom} cor={nivel.cor}>{nivel.rotulo}</Pill> : null
             },
             ordem: (c: ContentCard) =>
               -prioridades.opcoes.findIndex((p) => p.valor === (c.prioridade ?? 'media')),
@@ -234,7 +234,7 @@ export function ConteudoPage() {
                 return (
                   <CardInfo
                     titulo={card.titulo}
-                    etiqueta={tipoDoCard && <Pill tom={tipoDoCard.tom}>{tipoDoCard.rotulo}</Pill>}
+                    etiqueta={tipoDoCard && <Pill tom={tipoDoCard.tom} cor={tipoDoCard.cor}>{tipoDoCard.rotulo}</Pill>}
                     cliente={clienteDo(card)}
                     responsavel={responsavelDo(card)}
                     dataEntrega={card.data_entrega}

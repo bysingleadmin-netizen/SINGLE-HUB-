@@ -131,7 +131,7 @@ export function DemandasPage() {
             titulo: 'Prioridade',
             render: (t: Task) => {
               const nivel = prioridades.opcao(t.prioridade ?? 'media')
-              return nivel ? <Pill tom={nivel.tom}>{nivel.rotulo}</Pill> : null
+              return nivel ? <Pill tom={nivel.tom} cor={nivel.cor}>{nivel.rotulo}</Pill> : null
             },
             // Negativo para a primeira ordenação trazer o que é urgente para cima
             ordem: (t: Task) =>

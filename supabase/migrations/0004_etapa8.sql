@@ -36,4 +36,14 @@ update public.client_payments
 set valor_pago = valor, pago_em = coalesce(pago_em, data_pagamento)
 where status = 'pago' and valor_pago = 0;
 
+-- ---------------------------------------------------------------------------
+-- 3. Quadros por tipo e cores dos status
+-- ---------------------------------------------------------------------------
+-- Cor de cada opção configurável (status, prioridade, tipo de conteúdo), em #rrggbb.
+-- Sem cor gravada, o app usa a cor padrão da opção.
+alter table public.card_options add column if not exists cor text;
+alter table public.card_options drop constraint if exists card_options_cor_check;
+alter table public.card_options
+  add constraint card_options_cor_check check (cor is null or cor ~ '^#[0-9a-fA-F]{6}$');
+
 commit;

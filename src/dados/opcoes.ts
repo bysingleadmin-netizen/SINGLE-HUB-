@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/Toast'
+import { useColunasOpcionais } from '@/dados/esquema'
 import type { Tom } from '@/lib/rotulos'
 import { supabase } from '@/lib/supabase'
 import type { CampoConfiguravel, CardOption } from '@/types/database'
@@ -22,6 +23,8 @@ export interface OpcaoDeCampo {
   tom: Tom
   /** Criada pela equipe; pode ser removida */
   personalizada?: boolean
+  /** #rrggbb escolhida na engrenagem; sem ela vale a cor do tom */
+  cor?: string
 }
 
 // Códigos da API e do Postgres para "tabela não existe"
@@ -30,7 +33,7 @@ const TABELA_AUSENTE = new Set(['PGRST205', '42P01'])
 /** Junta as opções fixas com o que a equipe salvou: a ordem e os nomes salvos valem. */
 export function montarOpcoes(
   padrao: readonly OpcaoDeCampo[],
-  salvas: Pick<CardOption, 'chave' | 'titulo' | 'posicao'>[],
+  salvas: Pick<CardOption, 'chave' | 'titulo' | 'posicao' | 'cor'>[],
 ): OpcaoDeCampo[] {
   if (salvas.length === 0) return [...padrao]
   const fixas = new Map(padrao.map((opcao) => [opcao.valor, opcao]))
@@ -38,9 +41,10 @@ export function montarOpcoes(
     .sort((a, b) => a.posicao - b.posicao)
     .map((linha): OpcaoDeCampo => {
       const fixa = fixas.get(linha.chave)
+      const cor = linha.cor ?? undefined
       return fixa
-        ? { ...fixa, rotulo: linha.titulo }
-        : { valor: linha.chave, rotulo: linha.titulo, tom: 'cinza', personalizada: true }
+        ? { ...fixa, rotulo: linha.titulo, cor }
+        : { valor: linha.chave, rotulo: linha.titulo, tom: 'cinza', personalizada: true, cor }
     })
   const presentes = new Set(ordenadas.map((opcao) => opcao.valor))
   return [...ordenadas, ...padrao.filter((opcao) => !presentes.has(opcao.valor))]
@@ -50,10 +54,13 @@ export interface EdicaoDeOpcoes {
   renomear: (valor: string, rotulo: string) => void
   criar: (rotulo: string) => void
   remover: (valor: string) => void
+  /** Só com a coluna de cor no banco (migration 0004) */
+  colorir?: (valor: string, cor: string) => void
 }
 
 export function useOpcoes(campo: CampoConfiguravel, padrao: readonly OpcaoDeCampo[]) {
   const queryClient = useQueryClient()
+  const esquema = useColunasOpcionais()
   const toast = useToast()
   const consulta = useQuery({
     queryKey: ['card_options'],
@@ -84,7 +91,15 @@ export function useOpcoes(campo: CampoConfiguravel, padrao: readonly OpcaoDeCamp
     if (salvas.length > 0) return
     const { error } = await supabase
       .from('card_options')
-      .insert(opcoes.map((item, i) => ({ campo, chave: item.valor, titulo: item.rotulo, posicao: i + 1 })))
+      .insert(
+        opcoes.map((item, i) => ({
+          campo,
+          chave: item.valor,
+          titulo: item.rotulo,
+          posicao: i + 1,
+          ...(esquema.corDasOpcoes ? { cor: item.cor ?? null } : {}),
+        })),
+      )
     if (error) throw error
   }
 
@@ -132,6 +147,19 @@ export function useOpcoes(campo: CampoConfiguravel, padrao: readonly OpcaoDeCamp
                 .eq('chave', valor)
               if (error) throw error
             }, 'Opção removida.'),
+          ...(esquema.corDasOpcoes
+            ? {
+                colorir: (valor: string, cor: string) =>
+                  void executar(async () => {
+                    const { error } = await supabase
+                      .from('card_options')
+                      .update({ cor })
+                      .eq('campo', campo)
+                      .eq('chave', valor)
+                    if (error) throw error
+                  }, 'Cor salva.'),
+              }
+            : {}),
         }
 
   return { opcoes, opcao, edicao }

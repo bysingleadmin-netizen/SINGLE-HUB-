@@ -1,6 +1,6 @@
 import { venceuOPrazoVisivel } from '@/components/quadro/ciclo'
 import type { OpcaoDeCampo } from '@/dados/opcoes'
-import type { Tom } from '@/lib/rotulos'
+import { COR_DO_TOM } from '@/lib/rotulos'
 import type { ContentCard, Task } from '@/types/database'
 
 // Distribuição dos status dos cards de Demandas e Conteúdo para o gráfico de rosca do Dashboard.
@@ -12,17 +12,6 @@ export interface FatiaDeStatus {
   rotulo: string
   cor: string
   total: number
-}
-
-// As mesmas cores dos selos (ui.module.css, .pill)
-const COR_DO_TOM: Record<Tom, string> = {
-  verde: '#3ecf8e',
-  amarelo: '#e6a630',
-  laranja: '#f08a3c',
-  vermelho: '#f04444',
-  azul: '#4a9eff',
-  roxo: '#a855f7',
-  cinza: '#8d8d99',
 }
 
 // Status criados pela equipe não têm cor própria; cada um recebe uma destas, em ordem
@@ -52,10 +41,13 @@ export function contarStatus(
   const fatias: FatiaDeStatus[] = opcoes.map((opcao) => ({
     valor: opcao.valor,
     rotulo: opcao.rotulo,
+    // A cor escolhida na engrenagem vale; sem ela, os status criados pela equipe ganham uma cor
+    // da paleta em ordem, para não ficarem todos cinza
     cor:
-      opcao.personalizada || opcao.tom === 'cinza'
+      opcao.cor ??
+      (opcao.personalizada || opcao.tom === 'cinza'
         ? CORES_PERSONALIZADAS[personalizadas++ % CORES_PERSONALIZADAS.length]
-        : COR_DO_TOM[opcao.tom],
+        : COR_DO_TOM[opcao.tom]),
     total: contagem.get(opcao.valor) ?? 0,
   }))
 

@@ -102,9 +102,9 @@ export function CardDrawer({
     <Drawer aberto titulo={card.titulo} onFechar={onFechar}>
       <div className={styles.detalhe}>
         <div className={styles.resumo}>
-          {tipo && <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>}
+          {tipo && <Pill tom={tipo.tom} cor={tipo.cor}>{tipo.rotulo}</Pill>}
           {esquema.prioridadeConteudo && prioridade && (
-            <Pill tom={prioridade.tom}>Prioridade {prioridade.rotulo}</Pill>
+            <Pill tom={prioridade.tom} cor={prioridade.cor}>Prioridade {prioridade.rotulo}</Pill>
           )}
           <span
             className={styles.prazo}

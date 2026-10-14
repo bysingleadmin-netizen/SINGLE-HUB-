@@ -3,6 +3,7 @@ vi.mock('@/lib/supabase', async () => {
   return { supabase: criarSupabaseFalso() }
 })
 
+import { COR_DO_TOM, SITUACOES, corDe } from '@/lib/rotulos'
 import { montarOpcoes } from './opcoes'
 import type { OpcaoDeCampo } from './opcoes'
 
@@ -37,5 +38,19 @@ describe('montarOpcoes', () => {
     })
     // As fixas que não foram salvas continuam disponíveis, depois das salvas
     expect(opcoes.slice(1)).toEqual(PADRAO)
+  })
+})
+
+describe('cor das opções', () => {
+  it('a cor salva vale; sem cor salva, vale a do tom de fábrica', () => {
+    const opcoes = montarOpcoes(SITUACOES, [
+      { chave: 'travado', titulo: 'Travado', posicao: 1, cor: '#123456' },
+      { chave: 'em_andamento', titulo: 'Em andamento', posicao: 2, cor: null },
+    ])
+    expect(opcoes[0].cor).toBe('#123456')
+    expect(opcoes[1].cor).toBeUndefined()
+    expect(corDe(opcoes[0])).toBe('#123456')
+    expect(corDe(opcoes[1])).toBe('#4a9eff')
+    expect(COR_DO_TOM.verde).toBe('#3ecf8e')
   })
 })

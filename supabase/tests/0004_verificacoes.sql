@@ -39,3 +39,14 @@ begin
     raise exception 'cobrança paga antiga não ganhou valor_pago';
   end if;
 end $$;
+
+-- 3a. Cor das opções
+do $$
+begin
+  insert into public.card_options (campo, chave, titulo, cor) values ('situacao', 'cor_ok', 'Cor ok', '#4a9eff');
+  begin
+    insert into public.card_options (campo, chave, titulo, cor) values ('situacao', 'cor_ruim', 'Cor ruim', 'azul');
+    raise exception 'cor aceitou texto livre';
+  exception when check_violation then null;
+  end;
+end $$;

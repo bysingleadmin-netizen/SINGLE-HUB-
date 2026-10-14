@@ -16,6 +16,22 @@ import type {
 
 export type Tom = 'verde' | 'amarelo' | 'laranja' | 'vermelho' | 'cinza' | 'azul' | 'roxo'
 
+/** As cores de cada tom, as mesmas dos selos (ui.module.css, .pill) */
+export const COR_DO_TOM: Record<Tom, string> = {
+  verde: '#3ecf8e',
+  amarelo: '#e6a630',
+  laranja: '#f08a3c',
+  vermelho: '#f04444',
+  azul: '#4a9eff',
+  roxo: '#a855f7',
+  cinza: '#8d8d99',
+}
+
+/** Cor de uma opção: a escolhida pela equipe ou a do tom de fábrica. */
+export function corDe(opcao: { tom: Tom; cor?: string }): string {
+  return opcao.cor ?? COR_DO_TOM[opcao.tom]
+}
+
 interface Opcao<T extends string> {
   valor: T
   rotulo: string
@@ -52,7 +68,7 @@ export const PRIORIDADES: readonly Opcao<Prioridade>[] = [
 /** Status do card dentro da coluna. 'feito' é a chave que faz o card andar para a coluna seguinte. */
 export const SITUACOES: readonly Opcao<SituacaoDoCard>[] = [
   { valor: 'travado', rotulo: 'Travado', tom: 'vermelho' },
-  { valor: 'em_andamento', rotulo: 'Em andamento', tom: 'amarelo' },
+  { valor: 'em_andamento', rotulo: 'Em andamento', tom: 'azul' },
   { valor: 'feito', rotulo: 'Feito', tom: 'verde' },
 ]
 

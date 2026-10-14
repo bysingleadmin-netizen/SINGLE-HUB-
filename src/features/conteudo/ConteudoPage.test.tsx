@@ -248,6 +248,22 @@ describe('ConteudoPage', () => {
     expect(modal.getByRole('button', { name: 'Remover Podcast' })).toBeInTheDocument()
   })
 
+  it('escolhe a cor de um status pela engrenagem e o selo do card usa a cor', async () => {
+    const painel = await abrirCard()
+    fireEvent.click(await painel.findByRole('button', { name: 'Configurar status' }))
+    const modal = within(await screen.findByRole('dialog', { name: 'Configurar status' }))
+    fireEvent.change(await modal.findByLabelText('Cor de Travado'), { target: { value: '#123456' } })
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.card_options).toContainEqual(
+        expect.objectContaining({ campo: 'situacao', chave: 'travado', cor: '#123456' }),
+      ),
+    )
+    // As outras opções vão para o banco com a cor de fábrica em branco
+    expect(bancoFalso().tabelas.card_options).toContainEqual(
+      expect.objectContaining({ campo: 'situacao', chave: 'feito', cor: null }),
+    )
+  })
+
   it('sem as tabelas novas, o painel abre sem subtarefas e sem engrenagens', async () => {
     popular()
     bancoFalso().tabelasAusentes = ['card_subtarefas', 'card_options']

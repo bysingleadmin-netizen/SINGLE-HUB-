@@ -106,7 +106,7 @@ export function TarefaDrawer({
         <div className={styles.resumo}>
           <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>
           {esquema.prioridadeTarefa && prioridade && (
-            <Pill tom={prioridade.tom}>Prioridade {prioridade.rotulo}</Pill>
+            <Pill tom={prioridade.tom} cor={prioridade.cor}>Prioridade {prioridade.rotulo}</Pill>
           )}
           <span
             className={styles.prazo}

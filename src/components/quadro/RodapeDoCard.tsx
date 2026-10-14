@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Icone } from '@/components/ui/Icone'
 import { Modal } from '@/components/ui/Modal'
 import { rotuloDoAnexo } from '@/dados/anexos'
 import type { OpcaoDeCampo } from '@/dados/opcoes'
+import { corDe } from '@/lib/rotulos'
 import type { CardAttachment, QuadroId, SituacaoDoCard } from '@/types/database'
 import { Anexos } from './Anexos'
 import styles from './anexos.module.css'
@@ -41,13 +43,15 @@ export function RodapeDoCard({
   const [anexando, setAnexando] = useState(false)
   const visiveis = (anexos ?? []).slice(0, MINIATURAS)
   const resto = (anexos?.length ?? 0) - visiveis.length
+  const atual = situacoes.find((opcao) => opcao.valor === situacao)
 
   return (
     <div className={styles.rodape}>
       <select
         className={styles.situacao}
         data-situacao={situacao ?? undefined}
-        data-tom={situacoes.find((opcao) => opcao.valor === situacao)?.tom}
+        data-tom={atual?.tom}
+        style={atual ? ({ '--tom': corDe(atual) } as CSSProperties) : undefined}
         aria-label={`Status de ${titulo}`}
         value={situacao ?? ''}
         onChange={(evento) => onSituacao((evento.target.value || null) as SituacaoDoCard | null)}

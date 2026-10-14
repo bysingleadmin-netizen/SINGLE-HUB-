@@ -36,6 +36,8 @@ const SONDAS = {
   contratoMeses: ['clients', 'contrato_meses'],
   // migration 0004: pagamento parcial, data do recebimento, observação e valor manual
   pagamentoParcial: ['client_payments', 'valor_pago'],
+  // migration 0004: cor de cada opção configurável
+  corDasOpcoes: ['card_options', 'cor'],
 } as const satisfies Record<string, readonly [Tabela, string]>
 
 export type ColunaOpcional = keyof typeof SONDAS

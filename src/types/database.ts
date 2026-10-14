@@ -260,6 +260,8 @@ export interface CardOption {
   chave: string
   titulo: string
   posicao: number
+  /** #rrggbb escolhida na engrenagem. Migration 0004 */
+  cor?: string | null
   created_at: string
 }
 

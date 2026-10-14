@@ -5,7 +5,7 @@ vi.mock('@/lib/supabase', async () => {
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
-import { hojeISO } from '@/lib/datas'
+import { hojeISO, somarDias } from '@/lib/datas'
 import type { Cargo } from '@/lib/permissoes'
 import { SincronizarCobrancas } from '@/dados/pagamentos'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
@@ -543,5 +543,45 @@ describe('cadastro do cliente: dia do vencimento', () => {
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
     expect(await screen.findByText('Cliente atualizado.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.clients[0]).not.toHaveProperty('dia_vencimento')
+  })
+})
+
+describe('contrato de fidelidade', () => {
+  it('mostra o tempo de casa e o encerramento do contrato, amarelo perto do fim', async () => {
+    // 6 meses contados de 170 dias atrás vencem em cerca de 12 dias
+    const inicio = somarDias(hojeISO(), -170)
+    bancoFalso().reiniciar({
+      profiles: [perfilDeTeste()],
+      clients: [
+        { id: 'c1', nome: 'Scofield', status: 'ativo', mrr: 2870, data_inicio_contrato: inicio, contrato_meses: 6, created_at: '2026-01-01' },
+      ],
+    })
+    renderizar(<ClientesPage />)
+    const selo = await screen.findByText(/^Encerra em /)
+    expect(selo).toHaveAttribute('data-tom', 'amarelo')
+    expect(screen.getByText(/5 meses de casa/)).toBeInTheDocument()
+  })
+
+  it('cadastra a duração do contrato', async () => {
+    bancoFalso().reiniciar({ profiles: [perfilDeTeste()], clients: [] })
+    renderizar(<ClientesPage />)
+    fireEvent.click((await screen.findAllByRole('button', { name: /Novo cliente/ }))[0])
+    const modal = within(screen.getByRole('dialog', { name: 'Novo cliente' }))
+    fireEvent.change(modal.getByLabelText('Nome'), { target: { value: 'Scofield' } })
+    fireEvent.change(await modal.findByLabelText('Duração do contrato'), { target: { value: '12' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.clients[0]).toMatchObject({ nome: 'Scofield', contrato_meses: 12 }),
+    )
+  })
+
+  it('sem a coluna no banco, a duração não aparece', async () => {
+    bancoFalso().reiniciar({ profiles: [perfilDeTeste()], clients: [] })
+    bancoFalso().colunasAusentes = ['clients.contrato_meses']
+    renderizar(<ClientesPage />)
+    fireEvent.click((await screen.findAllByRole('button', { name: /Novo cliente/ }))[0])
+    const modal = within(screen.getByRole('dialog', { name: 'Novo cliente' }))
+    await modal.findByText(/gerados a partir do início do contrato/)
+    expect(modal.queryByLabelText('Duração do contrato')).not.toBeInTheDocument()
   })
 })

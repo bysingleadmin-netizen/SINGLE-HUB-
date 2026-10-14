@@ -49,6 +49,8 @@ export interface Client {
   data_inicio_contrato: string | null
   /** Dia do mês, 1 a 31. Só existe depois da migration 0002 */
   dia_vencimento?: number | null
+  /** Duração da fidelidade em meses (3, 6, 12 ou 15). Só existe depois da migration 0004 */
+  contrato_meses?: number | null
   instagram: string | null
   link_conta_anuncios: string | null
   contato_nome: string | null

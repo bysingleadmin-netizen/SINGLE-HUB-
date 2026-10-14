@@ -18,6 +18,7 @@ import { ACEITA_IMAGENS, enviarImagem, validarImagem } from '@/dados/arquivos'
 import { juntarConsultas, useAtualizarOtimista } from '@/dados/base'
 import { useCampanhas, useCards, useClientes, useTarefas } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
+import { hojeISO } from '@/lib/datas'
 import { formatarData, formatarMoeda } from '@/lib/formato'
 import { textoOuNull } from '@/lib/formulario'
 import { isLideranca } from '@/lib/permissoes'
@@ -32,6 +33,7 @@ import type { Client, ClientStatus } from '@/types/database'
 import { ClienteModal } from './ClienteModal'
 import { Pagamentos } from './Pagamentos'
 import { fidelidadeDoCliente, linkInstagram } from './cliente'
+import { seloDoContrato } from './contrato'
 import styles from './clientes.module.css'
 
 type Aba = 'visao' | 'pagamentos' | 'demandas' | 'campanhas' | 'conteudos'
@@ -65,6 +67,8 @@ function VisaoGeral({ cliente }: { cliente: Client }) {
     )
   }
 
+  const selo = seloDoContrato(cliente, hojeISO())
+
   function salvarObservacoes() {
     const novas = textoOuNull(observacoes)
     if (novas === (cliente.observacoes ?? null)) return
@@ -89,8 +93,12 @@ function VisaoGeral({ cliente }: { cliente: Client }) {
           <dd>{formatarMoeda(mrr * 12)}</dd>
         </div>
         <div>
-          <dt>Fidelidade</dt>
+          <dt>Tempo de casa</dt>
           <dd>{fidelidadeDoCliente(cliente)}</dd>
+        </div>
+        <div>
+          <dt>Contrato</dt>
+          <dd>{selo ? <Pill tom={selo.tom}>{selo.texto}</Pill> : 'Sem duração definida'}</dd>
         </div>
       </dl>
 

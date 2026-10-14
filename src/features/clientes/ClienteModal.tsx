@@ -14,6 +14,7 @@ import type { Erros } from '@/lib/formulario'
 import { STATUS_CLIENTE } from '@/lib/rotulos'
 import type { Client, ClientStatus } from '@/types/database'
 import { formDoCliente, formVazio, validarCliente } from './cliente'
+import { DURACOES } from './contrato'
 import type { FormCliente } from './cliente'
 
 interface ClienteModalProps {
@@ -43,7 +44,10 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
 
   function aoEnviar(evento: FormEvent) {
     evento.preventDefault()
-    const resultado = validarCliente(form, { comVencimento: colunas.diaVencimento })
+    const resultado = validarCliente(form, {
+      comVencimento: colunas.diaVencimento,
+      comContrato: colunas.contratoMeses,
+    })
     if ('erros' in resultado) {
       setErros(resultado.erros)
       return
@@ -90,7 +94,7 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
           />
         </div>
         <div className={ui.duasColunas}>
-          <Campo rotulo="Início do contrato" type="date" {...campo('data_inicio_contrato')} />
+          <Campo rotulo="Data de início do contrato" type="date" {...campo('data_inicio_contrato')} />
           {colunas.diaVencimento ? (
             <Campo
               rotulo="Dia do vencimento"
@@ -102,6 +106,17 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
             <Campo rotulo="Instagram" placeholder="@perfil" {...campo('instagram')} />
           )}
         </div>
+        {colunas.contratoMeses && (
+          <Selecao
+            rotulo="Duração do contrato"
+            vazio="Sem fidelidade"
+            opcoes={DURACOES.map((meses) => ({ valor: String(meses), rotulo: `${meses} meses` }))}
+            value={form.contrato_meses}
+            onChange={(evento) =>
+              setForm((atual) => ({ ...atual, contrato_meses: evento.target.value }))
+            }
+          />
+        )}
         {colunas.diaVencimento && (
           <Campo rotulo="Instagram" placeholder="@perfil" {...campo('instagram')} />
         )}

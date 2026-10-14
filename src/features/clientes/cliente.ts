@@ -13,6 +13,8 @@ export interface FormCliente {
   data_inicio_contrato: string
   /** '1' a '31', ou vazio para seguir o dia do início do contrato */
   dia_vencimento: string
+  /** '3', '6', '12', '15' ou vazio */
+  contrato_meses: string
   instagram: string
   link_conta_anuncios: string
   contato_nome: string
@@ -30,6 +32,7 @@ export function formVazio(): FormCliente {
     mrr: '',
     data_inicio_contrato: '',
     dia_vencimento: '',
+    contrato_meses: '',
     instagram: '',
     link_conta_anuncios: '',
     contato_nome: '',
@@ -50,6 +53,7 @@ export function formDoCliente(cliente: Client): FormCliente {
     mrr: moedaParaCampo(cliente.mrr),
     data_inicio_contrato: cliente.data_inicio_contrato ?? '',
     dia_vencimento: cliente.dia_vencimento ? String(cliente.dia_vencimento) : '',
+    contrato_meses: cliente.contrato_meses ? String(cliente.contrato_meses) : '',
     instagram: cliente.instagram ?? '',
     link_conta_anuncios: cliente.link_conta_anuncios ?? '',
     contato_nome: cliente.contato_nome ?? '',
@@ -60,12 +64,13 @@ export function formDoCliente(cliente: Client): FormCliente {
 }
 
 /**
- * `comVencimento` diz se o banco já tem a coluna `dia_vencimento` (migration 0002).
+ * `comVencimento` diz se o banco já tem a coluna `dia_vencimento` (migration 0002), e
+ * `comContrato`, a `contrato_meses` (migration 0004).
  * Sem ela, o campo nem entra nos valores, para o cadastro continuar salvando.
  */
 export function validarCliente(
   form: FormCliente,
-  { comVencimento = false }: { comVencimento?: boolean } = {},
+  { comVencimento = false, comContrato = false }: { comVencimento?: boolean; comContrato?: boolean } = {},
 ): Validacao<ValoresCliente, FormCliente> {
   const erros: Erros<FormCliente> = {}
   const nome = form.nome.trim()
@@ -91,6 +96,9 @@ export function validarCliente(
       mrr,
       data_inicio_contrato: textoOuNull(form.data_inicio_contrato),
       ...(comVencimento ? { dia_vencimento: dia } : {}),
+      ...(comContrato
+        ? { contrato_meses: form.contrato_meses === '' ? null : Number(form.contrato_meses) }
+        : {}),
       instagram: textoOuNull(form.instagram),
       link_conta_anuncios: link,
       contato_nome: textoOuNull(form.contato_nome),

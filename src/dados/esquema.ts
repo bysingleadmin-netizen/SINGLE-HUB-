@@ -1,78 +1,56 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import type { Tabela } from './base'
 
-// Códigos que o Postgres e a API devolvem quando a coluna pedida não existe
-const COLUNA_AUSENTE = new Set(['42703', 'PGRST204'])
+// Códigos que o Postgres e a API devolvem quando a coluna pedida (ou a tabela inteira) não existe
+const AUSENTE = new Set(['42703', 'PGRST204', 'PGRST205', '42P01'])
 
-type TabelaSondada = 'clients' | 'client_payments' | 'tasks' | 'content_cards'
-
-async function existe(tabela: TabelaSondada, coluna: string): Promise<boolean> {
+async function existe(tabela: Tabela, coluna: string): Promise<boolean> {
   const { error } = await supabase.from(tabela).select(coluna).limit(0)
   if (!error) return true
-  if (COLUNA_AUSENTE.has(error.code)) return false
+  if (AUSENTE.has(error.code)) return false
   throw error
 }
 
 /**
- * Diz o que o banco já tem das migrations opcionais (0002 e 0003). O app funciona sem elas;
- * cada coluna só acrescenta um detalhe, e a tela correspondente se adapta:
- *   diaVencimento, formaPagamento  -> migration 0002 (repetidas na 0003)
- *   arquivado                      -> migration 0003: histórico de pagamentos e status "cancelado"
- *   prioridadeTarefa               -> já existe no banco do SINGLE, criada pelo painel
- *   prioridadeConteudo             -> migration 0003
- *   situacaoTarefa, situacaoConteudo -> migration 0003: Travado, Em andamento e Feito no card
- *   cicloTarefa, cicloConteudo       -> migration 0003: concluded_at e archived_at (arquivo automático)
- * Enquanto a checagem não termina, `pronto` vem false e tudo conta como ausente.
+ * O que o banco já tem das migrations opcionais. O app funciona sem elas; cada coluna só
+ * acrescenta um detalhe, e a tela correspondente se adapta.
  */
-export function useColunasOpcionais() {
+const SONDAS = {
+  // migration 0002 (repetidas na 0003)
+  diaVencimento: ['clients', 'dia_vencimento'],
+  formaPagamento: ['client_payments', 'forma_pagamento'],
+  // migration 0003: histórico de pagamentos e status "cancelado"
+  arquivado: ['client_payments', 'arquivado'],
+  // já existe no banco do SINGLE, criada pelo painel
+  prioridadeTarefa: ['tasks', 'prioridade'],
+  // migration 0003
+  prioridadeConteudo: ['content_cards', 'prioridade'],
+  // migration 0003: Travado, Em andamento e Feito no card
+  situacaoTarefa: ['tasks', 'situacao'],
+  situacaoConteudo: ['content_cards', 'situacao'],
+  // migration 0003: concluded_at e archived_at (arquivo automático)
+  cicloTarefa: ['tasks', 'concluded_at'],
+  cicloConteudo: ['content_cards', 'concluded_at'],
+  // migration 0004: duração do contrato de fidelidade
+  contratoMeses: ['clients', 'contrato_meses'],
+} as const satisfies Record<string, readonly [Tabela, string]>
+
+export type ColunaOpcional = keyof typeof SONDAS
+
+/** Enquanto a checagem não termina, `pronto` vem false e tudo conta como ausente. */
+export function useColunasOpcionais(): Record<ColunaOpcional, boolean> & { pronto: boolean } {
   const consulta = useQuery({
     queryKey: ['esquema'],
     staleTime: Infinity,
     queryFn: async () => {
-      const [
-        diaVencimento,
-        formaPagamento,
-        arquivado,
-        prioridadeTarefa,
-        prioridadeConteudo,
-        situacaoTarefa,
-        situacaoConteudo,
-        cicloTarefa,
-        cicloConteudo,
-      ] = await Promise.all([
-        existe('clients', 'dia_vencimento'),
-        existe('client_payments', 'forma_pagamento'),
-        existe('client_payments', 'arquivado'),
-        existe('tasks', 'prioridade'),
-        existe('content_cards', 'prioridade'),
-        existe('tasks', 'situacao'),
-        existe('content_cards', 'situacao'),
-        existe('tasks', 'concluded_at'),
-        existe('content_cards', 'concluded_at'),
-      ])
-      return {
-        diaVencimento,
-        formaPagamento,
-        arquivado,
-        prioridadeTarefa,
-        prioridadeConteudo,
-        situacaoTarefa,
-        situacaoConteudo,
-        cicloTarefa,
-        cicloConteudo,
-      }
+      const nomes = Object.keys(SONDAS) as ColunaOpcional[]
+      const resultados = await Promise.all(nomes.map((nome) => existe(SONDAS[nome][0], SONDAS[nome][1])))
+      return Object.fromEntries(nomes.map((nome, i) => [nome, resultados[i]])) as Record<ColunaOpcional, boolean>
     },
   })
-  return {
-    diaVencimento: consulta.data?.diaVencimento ?? false,
-    formaPagamento: consulta.data?.formaPagamento ?? false,
-    arquivado: consulta.data?.arquivado ?? false,
-    prioridadeTarefa: consulta.data?.prioridadeTarefa ?? false,
-    prioridadeConteudo: consulta.data?.prioridadeConteudo ?? false,
-    situacaoTarefa: consulta.data?.situacaoTarefa ?? false,
-    situacaoConteudo: consulta.data?.situacaoConteudo ?? false,
-    cicloTarefa: consulta.data?.cicloTarefa ?? false,
-    cicloConteudo: consulta.data?.cicloConteudo ?? false,
-    pronto: !consulta.isPending,
-  }
+  const colunas = Object.fromEntries(
+    (Object.keys(SONDAS) as ColunaOpcional[]).map((nome) => [nome, consulta.data?.[nome] ?? false]),
+  ) as Record<ColunaOpcional, boolean>
+  return { ...colunas, pronto: !consulta.isPending }
 }

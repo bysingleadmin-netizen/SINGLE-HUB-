@@ -140,6 +140,14 @@
   color: var(--text-muted);
 }
 
+/* Tempo de casa e selo de encerramento do contrato, lado a lado */
+.cardContrato {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Detalhe */
 .detalhe {
   display: flex;

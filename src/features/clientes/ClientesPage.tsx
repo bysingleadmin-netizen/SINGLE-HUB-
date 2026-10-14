@@ -7,11 +7,13 @@ import { Icone } from '@/components/ui/Icone'
 import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useClientes } from '@/dados/tabelas'
+import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
 import { plural } from '@/lib/regras'
 import { STATUS_CLIENTE, opcao } from '@/lib/rotulos'
 import { ClienteModal } from './ClienteModal'
 import { fidelidadeDoCliente, linkInstagram } from './cliente'
+import { seloDoContrato } from './contrato'
 import styles from './clientes.module.css'
 
 /** undefined: fechado. 'novo': cadastro. Um id: edição daquele cliente. */
@@ -60,6 +62,7 @@ export function ClientesPage() {
           {lista.map((cliente) => {
             const status = opcao(STATUS_CLIENTE, cliente.status)
             const instagram = linkInstagram(cliente.instagram)
+            const selo = seloDoContrato(cliente, hojeISO())
             return (
               <article key={cliente.id} className={styles.card}>
                 <div className={styles.cardTopo}>
@@ -71,7 +74,14 @@ export function ClientesPage() {
                   <Pill tom={status.tom}>{status.rotulo}</Pill>
                 </div>
                 <span className={styles.cardValor}>{formatarMoeda(Number(cliente.mrr))}</span>
-                <span className={styles.cardFidelidade}>{fidelidadeDoCliente(cliente)}</span>
+                <div className={styles.cardContrato}>
+                  <span className={styles.cardFidelidade}>
+                    {cliente.data_inicio_contrato
+                      ? `${fidelidadeDoCliente(cliente)} de casa`
+                      : 'Sem data de início'}
+                  </span>
+                  {selo && <Pill tom={selo.tom}>{selo.texto}</Pill>}
+                </div>
 
                 <div className={styles.cardAcoes}>
                   <button

@@ -35,7 +35,7 @@ import {
   proximasOtimizacoes,
   tarefaAtrasada,
 } from '@/lib/regras'
-import { Atividade } from './Atividade'
+import { AtividadeRecente } from './AtividadeRecente'
 import { Carga } from './Carga'
 import { GraficoStatus } from './GraficoStatus'
 import { contarStatus } from './statusDosCards'
@@ -58,7 +58,7 @@ export function DashboardPage() {
   const campanhas = useCampanhas()
   const tarefasDeAnuncio = useTarefasDeCampanha()
   const perfis = usePerfis()
-  const atividade = useAtividadeRecente(20)
+  const atividade = useAtividadeRecente(100)
   const eventos = useEventos()
   const { registrar, registrando } = useRegistrarOtimizacao()
   const situacoes = useOpcoes('situacao', SITUACOES)
@@ -293,7 +293,7 @@ export function DashboardPage() {
               texto="Clientes, demandas, conteúdos e anúncios criados pela equipe aparecem aqui."
             />
           ) : (
-            <Atividade registros={registros} perfilPorId={perfilPorId} />
+            <AtividadeRecente registros={registros} perfilPorId={perfilPorId} />
           )}
         </Painel>
       </div>

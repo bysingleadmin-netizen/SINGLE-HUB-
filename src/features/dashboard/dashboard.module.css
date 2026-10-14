@@ -78,6 +78,44 @@
   color: var(--accent-hover);
 }
 
+/* Rodapé da atividade: expandir/recolher à esquerda, histórico completo discreto à direita */
+.atividadeRodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.atividadeAlternar,
+.atividadeHistorico {
+  min-height: 36px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.atividadeAlternar {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.atividadeHistorico {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-fraco);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.atividadeAlternar:hover,
+.atividadeHistorico:hover {
+  color: var(--accent-hover);
+}
+
 /* Carga da equipe: uma barra por pessoa */
 .carga {
   display: flex;

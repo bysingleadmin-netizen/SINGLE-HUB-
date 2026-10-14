@@ -43,6 +43,24 @@ export function useAtividadeRecente(limite = 10) {
   })
 }
 
+/** Histórico inteiro, do mais recente ao mais antigo, em lotes que crescem com "Carregar mais". */
+export function useHistoricoDeAtividade(quantidade: number, ativo = true) {
+  return useQuery({
+    queryKey: ['activity_log', 'historico', quantidade],
+    enabled: ativo,
+    placeholderData: (anterior) => anterior,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activity_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(quantidade)
+      if (error) throw error
+      return (data ?? []) as ActivityLog[]
+    },
+  })
+}
+
 export const FALHA_NO_REGISTRO = 'A ação foi salva, mas não entrou no registro de atividade.'
 
 /**

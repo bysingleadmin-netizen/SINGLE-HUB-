@@ -381,8 +381,21 @@
 
 .cartaoAcoes {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 8px;
+}
+
+.cartaoAtraso {
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
+.cartaoObservacao {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
 
 .cartaoAcao {

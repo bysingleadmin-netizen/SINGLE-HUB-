@@ -6,10 +6,15 @@ import { Pill } from '@/components/ui/Pill'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { porId } from '@/dados/base'
+import { useColunasOpcionais } from '@/dados/esquema'
 import { useConfirmarPagamento, useMensagemDePagamento } from '@/dados/pagamentos'
+import { diffDias, hojeISO } from '@/lib/datas'
 import { formatarData, formatarMoeda } from '@/lib/formato'
-import { STATUS_PAGAMENTO, opcao } from '@/lib/rotulos'
+import { plural } from '@/lib/regras'
+import { SITUACOES_PAGAMENTO, opcao } from '@/lib/rotulos'
 import type { Client, ClientPayment, FormaDePagamento } from '@/types/database'
+import { EditarPagamentoModal } from './EditarPagamentoModal'
+import { restante } from './cartoes'
 import type { CartaoDePagamento } from './cartoes'
 import { formatarMes } from './cliente'
 import styles from './clientes.module.css'
@@ -37,6 +42,9 @@ export function CobrancasEmAberto({ cartoes, clientes, pagamentos, comCliente = 
   const mensagem = useMensagemDePagamento()
   const toast = useToast()
   const [escolha, setEscolha] = useState<{ cartao: CartaoDePagamento; forma: FormaDePagamento }>()
+  const [editando, setEditando] = useState<CartaoDePagamento>()
+  const esquema = useColunasOpcionais()
+  const hoje = hojeISO()
   const clientePorId = porId(clientes)
   const nomeDe = (cartao: CartaoDePagamento) =>
     clientePorId.get(cartao.clienteId)?.nome ?? 'Cliente removido'
@@ -62,18 +70,33 @@ export function CobrancasEmAberto({ cartoes, clientes, pagamentos, comCliente = 
     <>
       <ul className={`${styles.cartoes} stagger`}>
         {cartoes.map((cartao) => {
-          const status = opcao(STATUS_PAGAMENTO, cartao.status)
+          const selo = opcao(SITUACOES_PAGAMENTO, cartao.situacao)
+          const diasDeAtraso = cartao.status === 'atrasado' ? diffDias(cartao.vencimento, hoje) : 0
           const mes = formatarMes(cartao.mes)
           const alvo = comCliente ? `${mes} de ${nomeDe(cartao)}` : mes
           return (
             <li key={cartao.id} className={styles.cartao} data-status={cartao.status}>
               <div className={styles.cartaoTopo}>
                 <span className={styles.cartaoMes}>{mes}</span>
-                <Pill tom={status.tom}>{status.rotulo}</Pill>
+                <Pill tom={selo.tom}>{selo.rotulo}</Pill>
               </div>
               {comCliente && <span className={styles.cartaoCliente}>{nomeDe(cartao)}</span>}
               <span className={styles.cartaoValor}>{formatarMoeda(cartao.valor)}</span>
-              <span className={ui.mudo}>Vence em {formatarData(cartao.vencimento)}</span>
+              {cartao.situacao === 'parcial' && (
+                <span className={ui.mudo}>
+                  {formatarMoeda(cartao.valorPago)} pagos, faltam{' '}
+                  {formatarMoeda(restante(cartao.valor, cartao.valorPago))}
+                </span>
+              )}
+              <span className={ui.mudo}>
+                Vence em {formatarData(cartao.vencimento)}
+                {diasDeAtraso > 0 && (
+                  <span className={styles.cartaoAtraso}>
+                    , {plural(diasDeAtraso, 'dia', 'dias')} de atraso
+                  </span>
+                )}
+              </span>
+              {cartao.observacao && <span className={styles.cartaoObservacao}>{cartao.observacao}</span>}
               <div className={styles.cartaoAcoes}>
                 {FORMAS.map((forma) => (
                   <button
@@ -88,6 +111,18 @@ export function CobrancasEmAberto({ cartoes, clientes, pagamentos, comCliente = 
                     {forma.rotulo}
                   </button>
                 ))}
+                {esquema.pagamentoParcial && (
+                  <button
+                    type="button"
+                    className={styles.cartaoAcao}
+                    aria-label={`Editar ${alvo}`}
+                    title="Editar cobrança"
+                    onClick={() => setEditando(cartao)}
+                  >
+                    <Icone nome="editar" tamanho={18} />
+                    Editar
+                  </button>
+                )}
               </div>
             </li>
           )
@@ -98,7 +133,8 @@ export function CobrancasEmAberto({ cartoes, clientes, pagamentos, comCliente = 
         <Modal aberto titulo="Confirmar pagamento" onFechar={() => setEscolha(undefined)}>
           <div className={ui.formulario}>
             <p>
-              Confirmar o recebimento de <strong>{formatarMoeda(escolha.cartao.valor)}</strong>
+              Confirmar o recebimento de{' '}
+              <strong>{formatarMoeda(restante(escolha.cartao.valor, escolha.cartao.valorPago))}</strong>
               {comCliente && (
                 <>
                   {' '}
@@ -122,6 +158,14 @@ export function CobrancasEmAberto({ cartoes, clientes, pagamentos, comCliente = 
             </div>
           </div>
         </Modal>
+      )}
+
+      {editando && (
+        <EditarPagamentoModal
+          cartao={editando}
+          deQuem={comCliente ? `de ${nomeDe(editando)}` : undefined}
+          onFechar={() => setEditando(undefined)}
+        />
       )}
     </>
   )

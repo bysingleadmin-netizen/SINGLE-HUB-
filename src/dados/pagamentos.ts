@@ -10,6 +10,7 @@ import {
   vencimentoNoMes,
 } from '@/features/clientes/cartoes'
 import type { CartaoDePagamento } from '@/features/clientes/cartoes'
+import type { ValoresEdicao } from '@/features/clientes/edicaoDePagamento'
 import { hojeISO } from '@/lib/datas'
 import { isLideranca } from '@/lib/permissoes'
 import { supabase } from '@/lib/supabase'
@@ -103,6 +104,7 @@ export function useConfirmarPagamento() {
           data_pagamento: hojeISO(),
           ...(esquema.formaPagamento ? { forma_pagamento: forma } : {}),
           ...(esquema.arquivado ? { arquivado: true } : {}),
+          ...(esquema.pagamentoParcial ? { valor_pago: cartao.valor, pago_em: hojeISO() } : {}),
         })
         .eq('id', cartao.id)
       if (error) throw error
@@ -133,4 +135,35 @@ export function useMensagemDePagamento() {
   return esquema.formaPagamento
     ? 'Pagamento confirmado.'
     : 'Pagamento confirmado. A forma de pagamento não foi gravada: falta rodar a migration 0003.'
+}
+
+/**
+ * Edita uma cobrança: valor total, quanto já entrou, data e observação. Quitada (pago igual ao
+ * total), ela vai para o histórico como o Pix e o Dinheiro fazem; abaixo disso volta a pendente
+ * (o atraso é calculado pela data). Valor total diferente do original fica marcado como manual
+ * para a sincronização com o cadastro não desfazer.
+ */
+export function useEditarPagamento() {
+  const queryClient = useQueryClient()
+  const esquema = useColunasOpcionais()
+  return useMutation({
+    mutationFn: async ({ cartao, valores }: { cartao: CartaoDePagamento; valores: ValoresEdicao }) => {
+      const quitada = valores.valorPago >= valores.valor
+      const { error } = await supabase
+        .from('client_payments')
+        .update({
+          valor: valores.valor,
+          valor_pago: valores.valorPago,
+          pago_em: valores.pagoEm,
+          observacao_pagamento: valores.observacao,
+          valor_manual: cartao.valorManual || valores.valor !== cartao.valor,
+          status: quitada ? 'pago' : 'pendente',
+          data_pagamento: quitada ? (valores.pagoEm ?? hojeISO()) : null,
+          ...(esquema.arquivado ? { arquivado: quitada } : {}),
+        })
+        .eq('id', cartao.id)
+      if (error) throw error
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['client_payments'] }),
+  })
 }

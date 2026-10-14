@@ -152,7 +152,8 @@ describe('Pagamentos', () => {
     const cartoes = lista.getAllByRole('listitem')
     expect(cartoes).toHaveLength(2)
     expect(cartoes[0]).toHaveTextContent('Clínica Aurora')
-    expect(cartoes[0]).toHaveTextContent('Atrasado')
+    expect(cartoes[0]).toHaveTextContent('Pendente')
+    expect(cartoes[0]).toHaveTextContent('2 dias de atraso')
     expect(cartoes[1]).toHaveTextContent('Padaria Sol')
     expect(lista.getByText('2 cobranças em aberto')).toBeInTheDocument()
     expect(lista.getByText(moeda(2800))).toBeInTheDocument()
@@ -179,6 +180,78 @@ describe('Pagamentos', () => {
     fireEvent.click(lista.getByRole('button', { name: 'Histórico' }))
     expect(lista.getByText('2 pagamentos recebidos')).toBeInTheDocument()
     expect(lista.getByText(`Padaria Sol, ${mesAtual}`)).toBeInTheDocument()
+  })
+
+  it('edita uma cobrança com pagamento parcial e mostra o selo Parcial', async () => {
+    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
+    const lista = await painelPronto('Pagamentos')
+    fireEvent.click(await lista.findByRole('button', { name: `Editar ${mesAtual} de Padaria Sol` }))
+    const modal = within(screen.getByRole('dialog', { name: `Editar cobrança de ${mesAtual} de Padaria Sol` }))
+    expect(modal.getByLabelText('Valor total da cobrança')).toHaveValue('800,00')
+    fireEvent.change(modal.getByLabelText('Valor já pago'), { target: { value: '300,00' } })
+    fireEvent.change(modal.getByLabelText('Data do pagamento'), { target: { value: HOJE } })
+    expect(modal.getByText(moeda(500))).toBeInTheDocument()
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+
+    expect(await screen.findByText('Cobrança atualizada.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.client_payments.find((l) => l.id === 'p2')).toMatchObject({
+      valor_pago: 300,
+      pago_em: HOJE,
+      status: 'pendente',
+      data_pagamento: null,
+      valor_manual: false,
+    })
+    await waitFor(() => {
+      const cartao = lista.getAllByRole('listitem').find((li) => li.textContent?.includes('Padaria Sol'))!
+      expect(cartao).toHaveTextContent('Parcial')
+      expect(cartao).toHaveTextContent(`${moeda(300)} pagos, faltam ${moeda(500)}`)
+    })
+  })
+
+  it('pagar o total pela edição quita e manda para o histórico', async () => {
+    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
+    const lista = await painelPronto('Pagamentos')
+    fireEvent.click(await lista.findByRole('button', { name: `Editar ${mesAtual} de Padaria Sol` }))
+    const modal = within(screen.getByRole('dialog', { name: /^Editar cobrança/ }))
+    fireEvent.change(modal.getByLabelText('Valor já pago'), { target: { value: '800,00' } })
+    fireEvent.change(modal.getByLabelText('Data do pagamento'), { target: { value: HOJE } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.client_payments.find((l) => l.id === 'p2')).toMatchObject({
+        status: 'pago',
+        valor_pago: 800,
+        data_pagamento: HOJE,
+        arquivado: true,
+      }),
+    )
+  })
+
+  it('mudar o valor total marca a cobrança como manual', async () => {
+    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
+    const lista = await painelPronto('Pagamentos')
+    fireEvent.click(await lista.findByRole('button', { name: `Editar ${mesAtual} de Padaria Sol` }))
+    const modal = within(screen.getByRole('dialog', { name: /^Editar cobrança/ }))
+    fireEvent.change(modal.getByLabelText('Valor total da cobrança'), { target: { value: '650,00' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.client_payments.find((l) => l.id === 'p2')).toMatchObject({
+        valor: 650,
+        valor_manual: true,
+      }),
+    )
+  })
+
+  it('confirmar pelo Pix grava o valor recebido', async () => {
+    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
+    const lista = await painelPronto('Pagamentos')
+    fireEvent.click(lista.getByRole('button', { name: `Pagar ${mesAtual} de Padaria Sol com Pix` }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Confirmar pagamento' })).getByRole('button', { name: 'Confirmar pagamento' }))
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.client_payments.find((l) => l.id === 'p2')).toMatchObject({
+        valor_pago: 800,
+        pago_em: HOJE,
+      }),
+    )
   })
 
   it('o histórico guarda o que foi pago e filtra por cliente', async () => {

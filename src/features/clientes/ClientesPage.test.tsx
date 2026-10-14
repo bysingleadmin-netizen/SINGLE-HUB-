@@ -392,7 +392,8 @@ describe('página do cliente: pagamentos recorrentes', () => {
     const painel = await abrirPagamentos({ pagamentos: [cobranca(MES_PASSADO)] })
     const primeiro = (await emAberto(painel).findAllByRole('listitem'))[0]
     expect(primeiro).toHaveTextContent(mes(MES_PASSADO))
-    expect(primeiro).toHaveTextContent('Atrasado')
+    expect(primeiro).toHaveTextContent('Pendente')
+    expect(primeiro).toHaveTextContent(/de atraso/)
   })
 
   it('confirmar por Pix leva a cobrança ao histórico, com a forma e a data de hoje', async () => {

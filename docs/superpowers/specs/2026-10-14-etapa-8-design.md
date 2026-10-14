@@ -13,7 +13,7 @@ Arquivo único `supabase/migrations/0004_etapa8.sql`, idempotente (pode rodar ma
 | Bloco | Mudança |
 |---|---|
 | Contrato | `clients.contrato_meses smallint check (contrato_meses in (3, 6, 12, 15))` |
-| Pagamentos | `client_payments.valor_pago numeric(12,2) not null default 0 check (valor_pago >= 0)`, `pago_em date`, `observacao_pagamento text`; preenche `valor_pago = valor` e `pago_em = data_pagamento` onde `status = 'pago'` |
+| Pagamentos | `client_payments.valor_pago numeric(12,2) not null default 0 check (valor_pago >= 0)`, `pago_em date`, `observacao_pagamento text`, `valor_manual boolean not null default false` (a sincronização automática das cobranças reescreve o valor das em aberto quando o cadastro muda; cobrança com valor editado à mão ou já parcialmente paga fica de fora); preenche `valor_pago = valor` e `pago_em = data_pagamento` onde `status = 'pago'` |
 | Quadros | `tasks.quadro text not null default 'demandas' check (quadro in ('demandas', 'tarefas'))`; `tasks.tipo` deixa de ser obrigatório (Tarefas não tem tipo); a lista fechada de `campaign_tasks.status` sai (colunas personalizadas) e fica `status <> ''`; os checks de `quadro` em `board_columns`, `card_attachments`, `card_subtarefas` passam a aceitar `('demandas', 'conteudo', 'tarefas', 'anuncios')`; `card_options.cor text` (hex `#rrggbb`) |
 | CRM | tabelas `leads` e `lead_historico`, função `converter_lead`, RLS só liderança; `leads` e `clients` entram na publicação `supabase_realtime` |
 
@@ -43,6 +43,7 @@ Não é criada `clients.contrato_inicio`: o início do contrato é a `data_inici
   - Selo: Pago verde, Parcial amarelo, Pendente vermelho. O atraso continua como texto ao lado ("3 dias de atraso").
 - Botão "Editar" em cada cobrança abre `EditarPagamentoModal`: valor total, valor já pago, data do pagamento parcial, observação; o restante (total menos pago) é mostrado ao vivo e não aceita pago maior que o total. Salvar com pago igual ao total marca `status = 'pago'`, `data_pagamento = pago_em` e arquiva como hoje; abaixo disso, volta a `pendente` (ou `atrasado`, pela data).
 - Pix e Dinheiro continuam e quitam o restante (`valor_pago = valor`).
+- Limite conhecido: a cobrança guarda um valor pago e uma data. Um recebimento parcial seguido da quitação em outro mês conta tudo no mês da quitação.
 - Visão "Por cliente" em `PagamentosDosClientes`, ao lado de "Em aberto" e "Histórico": um seletor de mês (padrão: mês atual) e uma linha por cliente com barra de progresso: "Scofield: R$ 2.000,00 pagos de R$ 2.870,00 (69%)". Conta as cobranças com `mes_referencia` no mês escolhido, exceto as canceladas.
 - Resumo do Financeiro: "Recebido" soma só `valor_pago` com `pago_em` (ou `data_pagamento`) no mês; "A receber" mostra à parte a soma dos restantes em aberto e nunca entra no recebido, na DRE nem no faturamento.
 - Sem a migration: o botão Editar não aparece e tudo segue como hoje.
@@ -52,7 +53,7 @@ Não é criada `clients.contrato_inicio`: o início do contrato é a `data_inici
 - Menu, grupo "Produção": Tarefas (`/app/tarefas`), Demandas, Conteúdo, Anúncios. Cada um abre direto o seu quadro.
 - **Tarefas:** página nova sobre a mesma tabela `tasks`, filtrada por `quadro = 'tarefas'`, com colunas próprias (`board_columns.quadro = 'tarefas'`) e o mesmo painel, comentários, subtarefas, anexos e ciclo de arquivamento. O campo e o filtro "Tipo" não aparecem. Demandas passa a filtrar `quadro = 'demandas'`. A página de Demandas é generalizada para receber o quadro (`'demandas' | 'tarefas'`), e as duas rotas usam o mesmo componente.
 - **Anúncios:** `/app/anuncios` abre o quadro das tarefas de anúncio (`campaign_tasks`), usando o componente `Quadro`, com colunas próprias (`board_columns.quadro = 'anuncios'`, padrão Pendente, Em andamento, Concluído). A lista de campanhas vira a aba "Campanhas" da mesma página; `/app/anuncios/:id` não muda. A lista de tarefas que existia continua como a visão "Lista".
-- **"+ Criar":** o botão do cabeçalho aparece só em `/app/tarefas`, `/app/demandas`, `/app/conteudo` e `/app/anuncios` (e subrotas). O atalho de teclado segue a mesma regra. No modal, o campo "Categoria" vira "Tipo", com as opções Tarefa, Conteúdo, Demanda e Anúncio; a página atual define o tipo inicial.
+- **"+ Criar":** o botão do cabeçalho aparece só em `/app/tarefas`, `/app/demandas`, `/app/conteudo` e `/app/anuncios` (e subrotas). No modal, o campo "Categoria" vira "Tipo", com as opções Tarefa, Conteúdo, Demanda e Anúncio; a página atual define o tipo inicial.
 - **Cor dos status:** `card_options.cor`. A engrenagem (`ConfigurarOpcoes`) ganha um `<input type="color">` por opção. A cor aparece no selo do card, no seletor de status (fundo e borda tingidos, como hoje com o tom) e na rosca do Dashboard. Opções sem cor salva usam a padrão do código: Travado `#f04444`, Em andamento `#4a9eff` (antes amarelo), Feito `#3ecf8e`; as criadas pela equipe começam em cinza `#8d8d99`. As cores valem também para prioridade e tipo de conteúdo, que usam o mesmo modal.
 - "Status" de cada quadro são as colunas dele, que já são separadas por quadro. O selo Travado/Em andamento/Feito continua sendo uma lista só, compartilhada.
 

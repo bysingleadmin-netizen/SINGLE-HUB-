@@ -15,6 +15,8 @@ interface ConfigMover<T> {
   erro: string
   /** O que gravar no registro de atividade; null para não registrar */
   atividade: (item: T, destino: string) => Registro | null
+  /** Outros campos que acompanham toda mudança de coluna, como as datas do ciclo de vida */
+  extras?: (item: T, destino: string) => Valores<T> | undefined
 }
 
 /**
@@ -30,9 +32,9 @@ export function useMover<T extends ItemQuadro>(config: ConfigMover<T>) {
 
   return useCallback(
     (item: T, destino: string, itens: T[], extras?: Valores<T>) => {
-      const { campo, sucesso, erro, atividade } = atual.current
+      const { campo, sucesso, erro, atividade, extras: doQuadro } = atual.current
       const vizinhos = itens.filter((outro) => outro[campo] === destino && outro.id !== item.id)
-      const valores = { ...extras, [campo]: destino, posicao: proximaPosicao(vizinhos) } as Valores<T>
+      const valores = { ...doQuadro?.(item, destino), ...extras, [campo]: destino, posicao: proximaPosicao(vizinhos) } as Valores<T>
       mutate(
         { id: item.id, valores },
         {

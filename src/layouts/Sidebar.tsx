@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Icone } from '@/components/ui/Icone'
@@ -48,10 +49,15 @@ export function Sidebar({
       </div>
 
       <nav className={`${styles.nav} stagger`} aria-label="Principal">
-        {itens.map((item) => (
+        {itens.map((item, i) => (
+          <Fragment key={item.rota}>
+            {/* O cabeçalho do grupo aparece uma vez, antes do primeiro item dele */}
+            {item.grupo && itens[i - 1]?.grupo !== item.grupo && (
+              <span className={`${styles.grupo} ${styles.rotulo}`}>{item.grupo}</span>
+            )}
           <NavLink
-            key={item.rota}
             to={item.rota}
+            data-agrupado={item.grupo ? true : undefined}
             className={({ isActive }) =>
               isActive ? `${styles.item} ${styles.itemAtivo}` : styles.item
             }
@@ -67,6 +73,7 @@ export function Sidebar({
               </span>
             )}
           </NavLink>
+          </Fragment>
         ))}
       </nav>
 

@@ -237,3 +237,11 @@
   font-weight: 600;
   overflow-wrap: anywhere;
 }
+
+/* Celular: cabeçalhos de ordenação e títulos da lista com área de toque maior */
+@media (max-width: 767px) {
+  .ordenar,
+  .abrir {
+    min-height: 36px;
+  }
+}

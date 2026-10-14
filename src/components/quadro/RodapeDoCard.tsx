@@ -2,15 +2,10 @@ import { useState } from 'react'
 import { Icone } from '@/components/ui/Icone'
 import { Modal } from '@/components/ui/Modal'
 import { rotuloDoAnexo } from '@/dados/anexos'
+import type { OpcaoDeCampo } from '@/dados/opcoes'
 import type { CardAttachment, QuadroId, SituacaoDoCard } from '@/types/database'
 import { Anexos } from './Anexos'
 import styles from './anexos.module.css'
-
-export const SITUACOES: readonly { valor: SituacaoDoCard; rotulo: string }[] = [
-  { valor: 'travado', rotulo: 'Travado' },
-  { valor: 'em_andamento', rotulo: 'Em andamento' },
-  { valor: 'feito', rotulo: 'Feito' },
-]
 
 /** Quantas miniaturas cabem no card antes do "+N" */
 const MINIATURAS = 4
@@ -20,6 +15,8 @@ interface RodapeDoCardProps {
   cardId: string
   titulo: string
   situacao: SituacaoDoCard | null | undefined
+  /** Opções de status, com os nomes que a equipe deu */
+  situacoes: OpcaoDeCampo[]
   /** Sem a coluna no banco, só "Feito" funciona: ele move o card e não precisa gravar a situação */
   situacaoDisponivel: boolean
   onSituacao: (situacao: SituacaoDoCard | null) => void
@@ -36,6 +33,7 @@ export function RodapeDoCard({
   cardId,
   titulo,
   situacao,
+  situacoes,
   situacaoDisponivel,
   onSituacao,
   anexos,
@@ -49,12 +47,13 @@ export function RodapeDoCard({
       <select
         className={styles.situacao}
         data-situacao={situacao ?? undefined}
+        data-tom={situacoes.find((opcao) => opcao.valor === situacao)?.tom}
         aria-label={`Status de ${titulo}`}
         value={situacao ?? ''}
         onChange={(evento) => onSituacao((evento.target.value || null) as SituacaoDoCard | null)}
       >
         <option value="">Sem status</option>
-        {SITUACOES.map((opcao) => (
+        {situacoes.map((opcao) => (
           <option
             key={opcao.valor}
             value={opcao.valor}

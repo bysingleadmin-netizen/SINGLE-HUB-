@@ -1,8 +1,6 @@
 import { Avatar } from '@/components/ui/Avatar'
-import { Pill } from '@/components/ui/Pill'
 import { formatarData } from '@/lib/formato'
 import type { SituacaoDoPrazo } from '@/lib/regras'
-import { PRIORIDADES, opcao } from '@/lib/rotulos'
 import type { Client, Profile } from '@/types/database'
 import styles from './lista.module.css'
 
@@ -43,9 +41,4 @@ export function CelulaPrazo({ data, prazo }: { data: string | null; prazo: Situa
       {formatarData(data)}
     </span>
   )
-}
-
-export function CelulaPrioridade({ prioridade }: { prioridade: string | null | undefined }) {
-  const nivel = opcao(PRIORIDADES, (prioridade ?? 'media') as (typeof PRIORIDADES)[number]['valor'])
-  return <Pill tom={nivel.tom}>{nivel.rotulo}</Pill>
 }

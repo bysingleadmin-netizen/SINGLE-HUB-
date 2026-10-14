@@ -18,6 +18,8 @@ export type Tabela =
   | 'task_comments'
   | 'board_columns'
   | 'card_attachments'
+  | 'card_subtarefas'
+  | 'card_options'
 
 interface ComId {
   id: string

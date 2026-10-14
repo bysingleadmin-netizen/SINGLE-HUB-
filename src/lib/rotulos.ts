@@ -6,6 +6,7 @@ import type {
   ContentEtapa,
   PaymentStatus,
   Prioridade,
+  SituacaoDoCard,
   TaskStatus,
   TaskTipo,
   TipoConteudo,
@@ -38,6 +39,13 @@ export const PRIORIDADES: readonly Opcao<Prioridade>[] = [
   { valor: 'media', rotulo: 'Média', tom: 'azul' },
   { valor: 'alta', rotulo: 'Alta', tom: 'laranja' },
   { valor: 'urgente', rotulo: 'Urgente', tom: 'vermelho' },
+]
+
+/** Status do card dentro da coluna. 'feito' é a chave que faz o card andar para a coluna seguinte. */
+export const SITUACOES: readonly Opcao<SituacaoDoCard>[] = [
+  { valor: 'travado', rotulo: 'Travado', tom: 'vermelho' },
+  { valor: 'em_andamento', rotulo: 'Em andamento', tom: 'amarelo' },
+  { valor: 'feito', rotulo: 'Feito', tom: 'verde' },
 ]
 
 /** Peso para ordenar listas: quanto mais urgente, maior. */

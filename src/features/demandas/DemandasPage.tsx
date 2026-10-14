@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
+import { Arquivados } from '@/components/quadro/Arquivados'
 import { AvisoDeMigracao } from '@/components/quadro/AvisoDeMigracao'
 import { CardInfo } from '@/components/quadro/CardInfo'
 import { FiltroDeColaboradores } from '@/components/quadro/FiltroDeColaboradores'
@@ -8,13 +9,8 @@ import { Quadro } from '@/components/quadro/Quadro'
 import { RodapeDoCard } from '@/components/quadro/RodapeDoCard'
 import { TabelaDeTarefas } from '@/components/quadro/TabelaDeTarefas'
 import type { ColunaDaTabela } from '@/components/quadro/TabelaDeTarefas'
-import {
-  CelulaCliente,
-  CelulaPessoa,
-  CelulaPrazo,
-  CelulaPrioridade,
-  CelulaTitulo,
-} from '@/components/quadro/celulas'
+import { CelulaCliente, CelulaPessoa, CelulaPrazo, CelulaTitulo } from '@/components/quadro/celulas'
+import { datasDoCiclo, venceuOPrazoVisivel } from '@/components/quadro/ciclo'
 import { progressoNoQuadro } from '@/components/quadro/colunas'
 import quadro from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
@@ -28,11 +24,13 @@ import { juntarConsultas, porId } from '@/dados/base'
 import { useColunasDoQuadro } from '@/dados/colunas'
 import { useComentarios } from '@/dados/comentarios'
 import { useColunasOpcionais } from '@/dados/esquema'
+import { useOpcoes } from '@/dados/opcoes'
+import { resumir, useSubtarefas } from '@/dados/subtarefas'
 import { useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
 import { hojeISO } from '@/lib/datas'
 import { situacaoDoPrazo, tarefaAberta, tarefaAtrasada } from '@/lib/regras'
-import { COLUNAS_TAREFA, TIPOS_TAREFA, opcao, pesoDaPrioridade } from '@/lib/rotulos'
+import { COLUNAS_TAREFA, PRIORIDADES, SITUACOES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
 import type { Task, TaskStatus, TaskTipo } from '@/types/database'
 import { TarefaDrawer } from './TarefaDrawer'
 import { filtrarTarefas } from './tarefa'
@@ -45,6 +43,10 @@ export function DemandasPage() {
   const esquema = useColunasOpcionais()
   const comentarios = useComentarios()
   const anexos = useAnexos('demandas')
+  const subtarefas = useSubtarefas('demandas')
+  const situacoes = useOpcoes('situacao', SITUACOES)
+  const prioridades = useOpcoes('prioridade', PRIORIDADES)
+  const [verArquivados, setVerArquivados] = useState(false)
   const {
     colunas,
     titulo: tituloDoStatus,
@@ -66,6 +68,9 @@ export function DemandasPage() {
         ? 'Demanda arquivada.'
         : `Demanda movida para ${tituloDoStatus(destino)}.`,
     erro: 'Não foi possível mover a demanda.',
+    // Chegar à última coluna conclui a demanda; sair dela reabre
+    extras: (_tarefa, destino) =>
+      esquema.cicloTarefa ? datasDoCiclo(destino, colunas[colunas.length - 1]?.id) : undefined,
     atividade: (tarefa, destino) =>
       destino === 'arquivado'
         ? null
@@ -90,7 +95,10 @@ export function DemandasPage() {
 
   const consultas = juntarConsultas(tarefas, clientes, perfis)
   const todas = tarefas.data ?? []
-  const noQuadro = todas.filter((tarefa) => tarefa.status !== 'arquivado')
+  // Fora do quadro: o que foi arquivado e o que está concluído há mais de 7 dias
+  const arquivada = (tarefa: Task) => tarefa.status === 'arquivado' || venceuOPrazoVisivel(tarefa)
+  const arquivadas = todas.filter(arquivada)
+  const noQuadro = todas.filter((tarefa) => !arquivada(tarefa))
   const visiveis = filtrarTarefas(noQuadro, { tipo, responsaveis })
   const clientePorId = porId(clientes.data)
   const perfilPorId = porId(perfis.data)
@@ -121,9 +129,13 @@ export function DemandasPage() {
           {
             chave: 'prioridade',
             titulo: 'Prioridade',
-            render: (t: Task) => <CelulaPrioridade prioridade={t.prioridade} />,
+            render: (t: Task) => {
+              const nivel = prioridades.opcao(t.prioridade ?? 'media')
+              return nivel ? <Pill tom={nivel.tom}>{nivel.rotulo}</Pill> : null
+            },
             // Negativo para a primeira ordenação trazer o que é urgente para cima
-            ordem: (t: Task) => -pesoDaPrioridade(t.prioridade),
+            ordem: (t: Task) =>
+              -prioridades.opcoes.findIndex((p) => p.valor === (t.prioridade ?? 'media')),
           },
         ]
       : []),
@@ -164,7 +176,18 @@ export function DemandasPage() {
             onMudar={setResponsaveis}
           />
         </div>
-        <AlternarVisao visao={visao} onMudar={setVisao} />
+        <div className={quadro.acoes}>
+          <button
+            type="button"
+            className={quadro.arquivados}
+            aria-pressed={verArquivados}
+            onClick={() => setVerArquivados((atual) => !atual)}
+          >
+            {verArquivados ? 'Ocultar arquivados' : 'Mostrar arquivados'}
+            {arquivadas.length > 0 && <span>{arquivadas.length}</span>}
+          </button>
+          <AlternarVisao visao={visao} onMudar={setVisao} />
+        </div>
       </div>
 
       {!edicao && !carregandoColunas && <AvisoDeMigracao />}
@@ -219,7 +242,16 @@ export function DemandasPage() {
                     responsavel={responsavelDa(tarefa)}
                     dataEntrega={tarefa.data_entrega}
                     prazo={prazoDa(tarefa)}
-                    prioridade={tarefa.prioridade}
+                    prioridade={
+                      tarefa.prioridade && tarefa.prioridade !== 'media'
+                        ? prioridades.opcao(tarefa.prioridade)
+                        : undefined
+                    }
+                    subtarefas={
+                      subtarefas.disponivel
+                        ? resumir(subtarefas.porCard.get(tarefa.id) ?? [])
+                        : undefined
+                    }
                     comentarios={comentarios.porTarefa.get(tarefa.id)?.length}
                     progresso={progressoNoQuadro(tarefa.status, colunas)}
                   />
@@ -231,6 +263,7 @@ export function DemandasPage() {
                   cardId={tarefa.id}
                   titulo={tarefa.titulo}
                   situacao={tarefa.situacao}
+                  situacoes={situacoes.opcoes}
                   situacaoDisponivel={esquema.situacaoTarefa}
                   onSituacao={(situacao) => mudarSituacao(tarefa, situacao, todas)}
                   anexos={anexos.disponivel ? (anexos.porCard.get(tarefa.id) ?? []) : undefined}
@@ -240,6 +273,29 @@ export function DemandasPage() {
               onArquivar={(tarefa) => mover(tarefa, 'arquivado', todas)}
               onCriar={(status) => criar({ categoria: 'demanda', status: status as TaskStatus })}
               onAbrir={abrir}
+            />
+          )}
+          {verArquivados && (
+            <Arquivados
+              itens={arquivadas}
+              tituloDe={(tarefa) => tarefa.titulo}
+              colunas={[
+                {
+                  chave: 'cliente',
+                  titulo: 'Cliente',
+                  render: (t) => <CelulaCliente cliente={clienteDa(t)} />,
+                  ordem: (t) => clienteDa(t)?.nome ?? null,
+                },
+                {
+                  chave: 'responsavel',
+                  titulo: 'Responsável',
+                  render: (t) => <CelulaPessoa perfil={responsavelDa(t)} />,
+                  ordem: (t) => responsavelDa(t)?.nome ?? null,
+                },
+              ]}
+              comPrazo={esquema.cicloTarefa}
+              onAbrir={abrir}
+              onRestaurar={(tarefa) => mover(tarefa, colunas[0].id, todas)}
             />
           )}
         </>
@@ -253,6 +309,8 @@ export function DemandasPage() {
           perfis={perfis.data ?? []}
           colunas={colunas}
           anexos={anexos.disponivel ? (anexos.porCard.get(aberta.id) ?? []) : undefined}
+          subtarefas={subtarefas.disponivel ? (subtarefas.porCard.get(aberta.id) ?? []) : undefined}
+          onSituacao={(situacao) => mudarSituacao(aberta, situacao, todas)}
           onMover={(destino) => mover(aberta, destino, todas)}
           onFechar={() => setParametros({}, { replace: true })}
         />

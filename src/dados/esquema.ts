@@ -21,6 +21,7 @@ async function existe(tabela: TabelaSondada, coluna: string): Promise<boolean> {
  *   prioridadeTarefa               -> já existe no banco do SINGLE, criada pelo painel
  *   prioridadeConteudo             -> migration 0003
  *   situacaoTarefa, situacaoConteudo -> migration 0003: Travado, Em andamento e Feito no card
+ *   cicloTarefa, cicloConteudo       -> migration 0003: concluded_at e archived_at (arquivo automático)
  * Enquanto a checagem não termina, `pronto` vem false e tudo conta como ausente.
  */
 export function useColunasOpcionais() {
@@ -36,6 +37,8 @@ export function useColunasOpcionais() {
         prioridadeConteudo,
         situacaoTarefa,
         situacaoConteudo,
+        cicloTarefa,
+        cicloConteudo,
       ] = await Promise.all([
         existe('clients', 'dia_vencimento'),
         existe('client_payments', 'forma_pagamento'),
@@ -44,6 +47,8 @@ export function useColunasOpcionais() {
         existe('content_cards', 'prioridade'),
         existe('tasks', 'situacao'),
         existe('content_cards', 'situacao'),
+        existe('tasks', 'concluded_at'),
+        existe('content_cards', 'concluded_at'),
       ])
       return {
         diaVencimento,
@@ -53,6 +58,8 @@ export function useColunasOpcionais() {
         prioridadeConteudo,
         situacaoTarefa,
         situacaoConteudo,
+        cicloTarefa,
+        cicloConteudo,
       }
     },
   })
@@ -64,6 +71,8 @@ export function useColunasOpcionais() {
     prioridadeConteudo: consulta.data?.prioridadeConteudo ?? false,
     situacaoTarefa: consulta.data?.situacaoTarefa ?? false,
     situacaoConteudo: consulta.data?.situacaoConteudo ?? false,
+    cicloTarefa: consulta.data?.cicloTarefa ?? false,
+    cicloConteudo: consulta.data?.cicloConteudo ?? false,
     pronto: !consulta.isPending,
   }
 }

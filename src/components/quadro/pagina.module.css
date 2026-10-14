@@ -23,6 +23,48 @@
   min-width: 190px;
 }
 
+/* Lado direito da barra: arquivados e a troca entre quadro e lista */
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.arquivados {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.arquivados:hover,
+.arquivados[aria-pressed='true'] {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text);
+}
+
+.arquivados span {
+  min-width: 20px;
+  padding: 0 6px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .carregando {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -33,6 +75,11 @@
   .filtros,
   .filtros > * {
     width: 100%;
+  }
+
+  .acoes {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .carregando {

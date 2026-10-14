@@ -1,6 +1,7 @@
 /* Faixa de baixo do card: status à esquerda, anexos à direita */
 .rodape {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -33,16 +34,33 @@
   border-color: color-mix(in srgb, var(--tom) 60%, transparent);
 }
 
-.situacao[data-situacao='travado'] {
+/* A cor vem do tom da opção; status criado pela equipe fica no tom neutro */
+.situacao[data-tom='vermelho'] {
   --tom: #f04444;
 }
 
-.situacao[data-situacao='em_andamento'] {
+.situacao[data-tom='amarelo'] {
   --tom: #e6a630;
 }
 
-.situacao[data-situacao='feito'] {
+.situacao[data-tom='laranja'] {
+  --tom: #f08a3c;
+}
+
+.situacao[data-tom='verde'] {
   --tom: #3ecf8e;
+}
+
+.situacao[data-tom='azul'] {
+  --tom: #4a9eff;
+}
+
+.situacao[data-tom='roxo'] {
+  --tom: #a855f7;
+}
+
+.situacao[data-situacao][data-tom='cinza'] {
+  --tom: var(--text);
 }
 
 .miniaturas {
@@ -203,5 +221,19 @@
   .novoLink {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+/* Celular: seletor de status e botão de anexo grandes o bastante para o dedo */
+@media (max-width: 767px) {
+  .situacao {
+    height: 34px;
+    padding-left: 12px;
+    font-size: 13px;
+  }
+
+  .miniatura {
+    width: 36px;
+    height: 36px;
   }
 }

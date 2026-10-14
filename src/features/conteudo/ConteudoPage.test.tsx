@@ -197,6 +197,117 @@ describe('ConteudoPage', () => {
     expect(await coluna('Editar').findByText('Carrossel de dicas')).toBeInTheDocument()
   })
 
+  it('marcar Feito no painel leva o card para a etapa seguinte, sem status', async () => {
+    const painel = await abrirCard()
+    fireEvent.change(await painel.findByLabelText('Status do card'), { target: { value: 'feito' } })
+
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.content_cards[0]).toMatchObject({ etapa: 'editar', situacao: null }),
+    )
+  })
+
+  it('subtarefas: cria, marca e mostra o andamento no card, sem mover o card', async () => {
+    const painel = await abrirCard()
+    const bloco = within(await painel.findByRole('region', { name: 'Subtarefas' }))
+    fireEvent.change(bloco.getByLabelText('Nova subtarefa'), { target: { value: 'Gravar cenas' } })
+    fireEvent.click(bloco.getByRole('button', { name: 'Adicionar' }))
+    fireEvent.click(await bloco.findByLabelText('Gravar cenas'))
+
+    expect(await bloco.findByText('Todas as subtarefas concluídas')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.card_subtarefas[0]).toMatchObject({
+      quadro: 'conteudo',
+      card_id: 'k1',
+      concluida: true,
+    })
+    expect(await screen.findByText('1/1')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.content_cards[0].etapa).toBe('captar_material')
+
+    fireEvent.click(bloco.getByRole('button', { name: 'Remover subtarefa Gravar cenas' }))
+    await waitFor(() => expect(bancoFalso().tabelas.card_subtarefas).toHaveLength(0))
+  })
+
+  it('renomeia e cria tipos de conteúdo pela engrenagem', async () => {
+    const painel = await abrirCard()
+    fireEvent.click(await painel.findByRole('button', { name: 'Configurar tipos de conteúdo' }))
+    const modal = within(await screen.findByRole('dialog', { name: 'Configurar tipos de conteúdo' }))
+
+    const nome = modal.getByLabelText('Nome de Reels')
+    fireEvent.change(nome, { target: { value: 'Reel curto' } })
+    fireEvent.blur(nome)
+    expect(await screen.findByText('Opção renomeada.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.card_options).toContainEqual(
+      expect.objectContaining({ campo: 'tipo_conteudo', chave: 'reels', titulo: 'Reel curto' }),
+    )
+    // Renomear não toca no card: ele continua gravado com a chave
+    expect(bancoFalso().tabelas.content_cards[0].tipo_conteudo).toBe('reels')
+
+    fireEvent.change(modal.getByLabelText('Nome da nova opção'), { target: { value: 'Podcast' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Criar' }))
+    expect(await screen.findByText('Opção criada.')).toBeInTheDocument()
+    expect(await modal.findByLabelText('Nome de Podcast')).toBeInTheDocument()
+    expect(modal.getByRole('button', { name: 'Remover Podcast' })).toBeInTheDocument()
+  })
+
+  it('sem as tabelas novas, o painel abre sem subtarefas e sem engrenagens', async () => {
+    popular()
+    bancoFalso().tabelasAusentes = ['card_subtarefas', 'card_options']
+    renderizar(<ConteudoPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir Reels de lançamento' }))
+    const painel = within(await screen.findByRole('dialog', { name: 'Reels de lançamento' }))
+
+    expect(painel.getByLabelText('Tipo de conteúdo')).toHaveValue('reels')
+    expect(painel.queryByRole('region', { name: 'Subtarefas' })).not.toBeInTheDocument()
+    expect(painel.queryByRole('button', { name: /^Configurar/ })).not.toBeInTheDocument()
+  })
+
+  it('publicar grava a data de conclusão', async () => {
+    const painel = await abrirCard()
+    fireEvent.change(painel.getByLabelText('Etapa'), { target: { value: 'publicado' } })
+
+    expect(await screen.findByText('Conteúdo publicado.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.content_cards[0]).toMatchObject({
+      etapa: 'publicado',
+      concluded_at: expect.any(String),
+      archived_at: null,
+    })
+  })
+
+  it('publicado há mais de 7 dias sai do quadro e aparece em Arquivados, com o prazo de exclusão', async () => {
+    popular()
+    bancoFalso().tabelas.content_cards.push(
+      card({
+        id: 'k4',
+        titulo: 'Campanha de inverno',
+        etapa: 'publicado',
+        concluded_at: new Date(Date.now() - 8 * 86_400_000).toISOString(),
+      }),
+    )
+    renderizar(<ConteudoPage />)
+    expect(await screen.findByText('Reels de lançamento')).toBeInTheDocument()
+    expect(screen.queryByText('Campanha de inverno')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Mostrar arquivados/ }))
+    const arquivados = within(screen.getByRole('region', { name: 'Arquivados' }))
+    expect(arquivados.getByText('Campanha de inverno')).toBeInTheDocument()
+    expect(arquivados.getByText('Em 29 dias')).toBeInTheDocument()
+  })
+
+  it('restaurar devolve o card arquivado para a primeira etapa', async () => {
+    popular()
+    renderizar(<ConteudoPage />)
+    fireEvent.click(await screen.findByRole('button', { name: /Mostrar arquivados/ }))
+    const arquivados = within(screen.getByRole('region', { name: 'Arquivados' }))
+    fireEvent.click(await arquivados.findByRole('button', { name: 'Restaurar Post antigo' }))
+
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.content_cards[2]).toMatchObject({
+        etapa: 'captar_material',
+        archived_at: null,
+      }),
+    )
+    expect(await coluna('Captar Material').findByText('Post antigo')).toBeInTheDocument()
+  })
+
   it('falha de leitura vira erro com tentar novamente', async () => {
     bancoFalso().reiniciar()
     bancoFalso().erroLeitura = { message: 'sem rede' }

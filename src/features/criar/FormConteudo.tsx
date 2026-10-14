@@ -11,13 +11,14 @@ import { useRegistrarAtividade } from '@/dados/atividade'
 import { useSalvar } from '@/dados/base'
 import { useColunasDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
+import { useOpcoes } from '@/dados/opcoes'
 import { useCards, useClientes, usePerfis } from '@/dados/tabelas'
 import { formNovoCard, validarCard } from '@/features/conteudo/card'
 import type { FormCard } from '@/features/conteudo/card'
 import type { Erros } from '@/lib/formulario'
 import { opcoesDePessoas } from '@/lib/pessoas'
 import { COLUNAS_CONTEUDO, PRIORIDADES, TIPOS_CONTEUDO } from '@/lib/rotulos'
-import type { ContentCard, ContentEtapa, Prioridade, TipoConteudo } from '@/types/database'
+import type { ContentCard, ContentEtapa, Prioridade } from '@/types/database'
 
 interface FormConteudoProps {
   /** Etapa em que o conteúdo nasce */
@@ -34,6 +35,8 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
   const [erros, setErros] = useState<Erros<FormCard>>({})
   const [prioridade, setPrioridade] = useState<Prioridade>('media')
   const esquema = useColunasOpcionais()
+  const prioridades = useOpcoes('prioridade', PRIORIDADES)
+  const tipos = useOpcoes('tipo_conteudo', TIPOS_CONTEUDO)
   const { colunas } = useColunasDoQuadro('conteudo', COLUNAS_CONTEUDO)
   const salvar = useSalvar<ContentCard>('content_cards')
   const registrarAtividade = useRegistrarAtividade()
@@ -92,9 +95,9 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
       <div className={ui.duasColunas}>
         <Selecao
           rotulo="Tipo de conteúdo"
-          opcoes={TIPOS_CONTEUDO}
+          opcoes={tipos.opcoes}
           value={form.tipo_conteudo}
-          onChange={(evento) => mudar('tipo_conteudo', evento.target.value as TipoConteudo)}
+          onChange={(evento) => mudar('tipo_conteudo', evento.target.value)}
         />
         <Selecao
           rotulo="Etapa"
@@ -129,9 +132,9 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
         {esquema.prioridadeConteudo && (
           <Selecao
             rotulo="Prioridade"
-            opcoes={PRIORIDADES}
+            opcoes={prioridades.opcoes}
             value={prioridade}
-            onChange={(evento) => setPrioridade(evento.target.value as Prioridade)}
+            onChange={(evento) => setPrioridade(evento.target.value)}
           />
         )}
       </div>

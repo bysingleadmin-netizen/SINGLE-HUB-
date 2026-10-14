@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Anexos } from '@/components/quadro/Anexos'
+import { ConfigurarOpcoes } from '@/components/quadro/ConfigurarOpcoes'
+import { Subtarefas } from '@/components/quadro/Subtarefas'
 import styles from '@/components/quadro/detalhe.module.css'
+import opcoes from '@/components/quadro/opcoes.module.css'
 import { useEdicaoInline } from '@/components/quadro/useEdicaoInline'
 import { AreaTexto } from '@/components/ui/AreaTexto'
 import { Campo } from '@/components/ui/Campo'
@@ -10,20 +13,21 @@ import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
 import type { ColunaDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
+import { useOpcoes } from '@/dados/opcoes'
 import { hojeISO } from '@/lib/datas'
 import { formatarData } from '@/lib/formato'
 import { textoOuNull } from '@/lib/formulario'
 import { opcoesDePessoas } from '@/lib/pessoas'
 import { cardAberto, descreverPrazo, situacaoDoPrazo } from '@/lib/regras'
-import { PRIORIDADES, TIPOS_CONTEUDO, opcao } from '@/lib/rotulos'
+import { PRIORIDADES, SITUACOES, TIPOS_CONTEUDO } from '@/lib/rotulos'
 import type {
   CardAttachment,
+  CardSubtarefa,
   Client,
   ContentCard,
   ContentEtapa,
-  Prioridade,
   Profile,
-  TipoConteudo,
+  SituacaoDoCard,
 } from '@/types/database'
 
 interface CardDrawerProps {
@@ -34,6 +38,10 @@ interface CardDrawerProps {
   colunas: readonly ColunaDoQuadro[]
   /** undefined quando o banco ainda não tem a tabela de anexos */
   anexos?: CardAttachment[]
+  /** undefined quando o banco ainda não tem a tabela de subtarefas */
+  subtarefas?: CardSubtarefa[]
+  /** Marcar como Feito move o card para a etapa seguinte: quem faz isso é a página */
+  onSituacao: (situacao: SituacaoDoCard | null) => void
   /** Trocar a etapa é mover o card: quem sabe a posição e registra a atividade é a página */
   onMover: (destino: ContentEtapa) => void
   onFechar: () => void
@@ -46,6 +54,8 @@ export function CardDrawer({
   perfis,
   colunas,
   anexos,
+  subtarefas,
+  onSituacao,
   onMover,
   onFechar,
 }: CardDrawerProps) {
@@ -53,6 +63,9 @@ export function CardDrawer({
   const [observacoes, setObservacoes] = useState(card.observacoes ?? '')
   const [erroTitulo, setErroTitulo] = useState<string>()
   const esquema = useColunasOpcionais()
+  const situacoes = useOpcoes('situacao', SITUACOES)
+  const prioridades = useOpcoes('prioridade', PRIORIDADES)
+  const tipos = useOpcoes('tipo_conteudo', TIPOS_CONTEUDO)
   const salvar = useEdicaoInline<ContentCard>('content_cards', card.id, {
     sucesso: 'Conteúdo atualizado.',
     erro: 'Não foi possível salvar o conteúdo.',
@@ -66,8 +79,8 @@ export function CardDrawer({
 
   const hoje = hojeISO()
   const entregue = !cardAberto(card)
-  const tipo = opcao(TIPOS_CONTEUDO, card.tipo_conteudo)
-  const prioridade = opcao(PRIORIDADES, card.prioridade ?? 'media')
+  const tipo = tipos.opcao(card.tipo_conteudo)
+  const prioridade = prioridades.opcao(card.prioridade ?? 'media')
 
   function salvarTitulo() {
     const limpo = titulo.trim()
@@ -89,8 +102,8 @@ export function CardDrawer({
     <Drawer aberto titulo={card.titulo} onFechar={onFechar}>
       <div className={styles.detalhe}>
         <div className={styles.resumo}>
-          <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>
-          {esquema.prioridadeConteudo && (
+          {tipo && <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>}
+          {esquema.prioridadeConteudo && prioridade && (
             <Pill tom={prioridade.tom}>Prioridade {prioridade.rotulo}</Pill>
           )}
           <span
@@ -120,12 +133,27 @@ export function CardDrawer({
               value={card.etapa}
               onChange={(evento) => onMover(evento.target.value as ContentEtapa)}
             />
-            <Selecao
-              rotulo="Tipo de conteúdo"
-              opcoes={TIPOS_CONTEUDO}
-              value={card.tipo_conteudo}
-              onChange={(evento) => salvar({ tipo_conteudo: evento.target.value as TipoConteudo })}
-            />
+            {esquema.situacaoConteudo && (
+              <div className={opcoes.comEngrenagem}>
+                <Selecao
+                  rotulo="Status do card"
+                  vazio="Sem status"
+                  opcoes={situacoes.opcoes}
+                  value={card.situacao ?? ''}
+                  onChange={(evento) => onSituacao(evento.target.value || null)}
+                />
+                <ConfigurarOpcoes campo="status" opcoes={situacoes.opcoes} edicao={situacoes.edicao} />
+              </div>
+            )}
+            <div className={opcoes.comEngrenagem}>
+              <Selecao
+                rotulo="Tipo de conteúdo"
+                opcoes={tipos.opcoes}
+                value={card.tipo_conteudo}
+                onChange={(evento) => salvar({ tipo_conteudo: evento.target.value })}
+              />
+              <ConfigurarOpcoes campo="tipos de conteúdo" opcoes={tipos.opcoes} edicao={tipos.edicao} />
+            </div>
             <Selecao
               rotulo="Cliente"
               vazio="Sem cliente"
@@ -147,12 +175,19 @@ export function CardDrawer({
               onChange={(evento) => salvar({ data_entrega: evento.target.value || null })}
             />
             {esquema.prioridadeConteudo && (
-              <Selecao
-                rotulo="Prioridade"
-                opcoes={PRIORIDADES}
-                value={card.prioridade ?? 'media'}
-                onChange={(evento) => salvar({ prioridade: evento.target.value as Prioridade })}
-              />
+              <div className={opcoes.comEngrenagem}>
+                <Selecao
+                  rotulo="Prioridade"
+                  opcoes={prioridades.opcoes}
+                  value={card.prioridade ?? 'media'}
+                  onChange={(evento) => salvar({ prioridade: evento.target.value })}
+                />
+                <ConfigurarOpcoes
+                  campo="prioridades"
+                  opcoes={prioridades.opcoes}
+                  edicao={prioridades.edicao}
+                />
+              </div>
             )}
           </div>
         </section>
@@ -166,6 +201,13 @@ export function CardDrawer({
             onBlur={salvarObservacoes}
           />
         </section>
+
+        {subtarefas && (
+          <section className={styles.bloco} aria-label="Subtarefas">
+            <h3 className={styles.blocoTitulo}>Subtarefas</h3>
+            <Subtarefas quadro="conteudo" cardId={card.id} subtarefas={subtarefas} />
+          </section>
+        )}
 
         {anexos && (
           <section className={styles.bloco} aria-label="Anexos">

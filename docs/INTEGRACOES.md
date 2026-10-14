@@ -57,6 +57,9 @@ O botão sempre mostra o motivo da falha: função inexistente, variável ausent
 ### Migration 0003 (revisão de 2026-10-09)
 
 - [ ] Rodar `supabase/migrations/0003_revisao.sql` inteiro no SQL Editor
+- [ ] Conferir no aviso do SQL Editor se apareceu "pg_cron indisponível". Se apareceu, ligar a extensão em Database > Extensions > pg_cron e rodar a migration de novo; sem ela os cards arquivados nunca são excluídos
+
+**Atenção:** a rotina diária exclui de vez os cards arquivados há mais de 30 dias, com subtarefas, anexos e comentários. Cards que já estavam concluídos ou arquivados antes da migration começam a contar no dia em que ela roda.
 
 Ela inclui o que estava na 0002, então quem não rodou a 0002 só precisa desta. Pode rodar mais de uma vez. Foi testada em um Postgres local com o schema da 0001 e as tabelas criadas pelo painel.
 
@@ -71,6 +74,10 @@ O que ela faz e o que o app faz enquanto ela não roda:
 | Colunas dos quadros | fixas | renomear com dois cliques, criar, remover e reordenar arrastando |
 | Status do card | só "Feito" funciona (move o card para a coluna seguinte) | Travado, Em andamento e Feito, com selo colorido no card |
 | Anexos do card | não aparecem | link ou imagem por card, com miniaturas no rodapé; imagens no bucket `anexos` do Storage |
+| Opções configuráveis (status, prioridade, tipo de conteúdo) | listas fixas, sem a engrenagem | engrenagem ao lado de cada campo para renomear, criar e remover opções; salvas na tabela `card_options` |
+| Subtarefas | a seção não aparece | seção "Tarefas" no painel do card, com caixa de marcar; tabela `card_subtarefas` |
+| Arquivo automático | "Mostrar arquivados" mostra só o que foi arquivado à mão | card concluído fica 7 dias no quadro e vai para Arquivados; 30 dias depois é excluído pela rotina diária `limpar_cards` (pg_cron, 03:00 UTC) |
+| Tempo real no Dashboard | a rosca de status atualiza ao voltar para a aba | a rosca muda assim que alguém altera um card (tabelas na publicação `supabase_realtime`) |
 | RLS e índices | como estiverem no painel | RLS ligado em todas as tabelas, políticas das tabelas criadas pelo painel e índices nas colunas de filtro |
 
 Tabelas criadas direto no painel, fora de `supabase/migrations`, que a 0003 passa a cobrir: `calendar_events`, `event_participants`, `notifications`, `task_comments` e a coluna `tasks.prioridade`. Nenhuma tem restrição de `tipo` garantida: o app grava `reuniao`, `gravacao`, `entrega`, `otimizacao` e `outro` nos eventos, e `tarefa`, `evento` e `prazo` nas notificações.

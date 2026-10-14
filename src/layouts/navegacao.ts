@@ -9,13 +9,17 @@ export interface ItemNav {
   rotulo: string
   icone: NomeIcone
   apenasLideranca?: boolean
+  /** Itens com o mesmo grupo aparecem juntos no menu, sob um cabeçalho só */
+  grupo?: string
 }
 
 export const ITENS_NAV: readonly ItemNav[] = [
   { rota: '/app/dashboard', rotulo: 'Dashboard', icone: 'dashboard' },
   { rota: '/app/clientes', rotulo: 'Clientes', icone: 'clientes' },
-  { rota: '/app/demandas', rotulo: 'Demandas', icone: 'demandas' },
-  { rota: '/app/conteudo', rotulo: 'Conteúdo', icone: 'conteudo' },
+  // Demandas e Conteúdo são os dois quadros de produção: ficam sob um cabeçalho só.
+  // As rotas continuam as mesmas, então links e notificações antigos seguem valendo.
+  { rota: '/app/demandas', rotulo: 'Demandas', icone: 'demandas', grupo: 'Produção' },
+  { rota: '/app/conteudo', rotulo: 'Conteúdo', icone: 'conteudo', grupo: 'Produção' },
   { rota: '/app/anuncios', rotulo: 'Anúncios', icone: 'campanhas' },
   { rota: '/app/calendario', rotulo: 'Calendário', icone: 'calendario' },
   { rota: '/app/financeiro', rotulo: 'Financeiro', icone: 'financeiro', apenasLideranca: true },

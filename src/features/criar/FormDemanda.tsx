@@ -11,6 +11,7 @@ import { useRegistrarAtividade } from '@/dados/atividade'
 import { useSalvar } from '@/dados/base'
 import { useColunasDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
+import { useOpcoes } from '@/dados/opcoes'
 import { useNotificar } from '@/dados/notificacoes'
 import { useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -19,7 +20,7 @@ import type { FormTarefa } from '@/features/demandas/tarefa'
 import type { Erros } from '@/lib/formulario'
 import { opcoesDePessoas } from '@/lib/pessoas'
 import { COLUNAS_TAREFA, PRIORIDADES, TIPOS_TAREFA } from '@/lib/rotulos'
-import type { Prioridade, Task, TaskStatus, TaskTipo } from '@/types/database'
+import type { Task, TaskStatus, TaskTipo } from '@/types/database'
 
 interface FormDemandaProps {
   /** Coluna em que a demanda nasce */
@@ -34,6 +35,7 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
   const clientes = useClientes()
   const perfis = usePerfis()
   const esquema = useColunasOpcionais()
+  const prioridades = useOpcoes('prioridade', PRIORIDADES)
   const { colunas } = useColunasDoQuadro('demandas', COLUNAS_TAREFA)
   const [form, setForm] = useState<FormTarefa>(() => formNovaTarefa(statusInicial))
   const [erros, setErros] = useState<Erros<FormTarefa>>({})
@@ -147,9 +149,9 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
         {esquema.prioridadeTarefa && (
           <Selecao
             rotulo="Prioridade"
-            opcoes={PRIORIDADES}
+            opcoes={prioridades.opcoes}
             value={form.prioridade}
-            onChange={(evento) => mudar('prioridade', evento.target.value as Prioridade)}
+            onChange={(evento) => mudar('prioridade', evento.target.value)}
           />
         )}
       </div>

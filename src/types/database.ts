@@ -6,9 +6,12 @@ import type { Cargo } from '@/lib/permissoes'
 export type ClientStatus = 'ativo' | 'pausado' | 'churn'
 /** 'cancelado' só é aceito pelo banco depois da migration 0003 */
 export type PaymentStatus = 'pendente' | 'pago' | 'atrasado' | 'cancelado'
-export type Prioridade = 'baixa' | 'media' | 'alta' | 'urgente'
+// Prioridade, status do card e tipo de conteúdo são listas que a equipe pode editar
+// (tabela card_options), então o valor é texto livre. As chaves que o sistema conhece de
+// fábrica estão em src/lib/rotulos.ts.
+export type Prioridade = string
 /** Como o card está dentro da coluna em que se encontra. Só existe depois da migration 0003 */
-export type SituacaoDoCard = 'travado' | 'em_andamento' | 'feito'
+export type SituacaoDoCard = string
 export type FormaDePagamento = 'pix' | 'dinheiro'
 export type TaskTipo = 'conteudo' | 'trafego' | 'estrategia' | 'audiovisual'
 export type TaskStatus =
@@ -17,7 +20,7 @@ export type TaskStatus =
   | 'aguardando_aprovacao'
   | 'concluido'
   | 'arquivado'
-export type TipoConteudo = 'reels' | 'carrossel' | 'post' | 'stories' | 'video'
+export type TipoConteudo = string
 export type ContentEtapa =
   | 'captar_material'
   | 'editar'
@@ -82,6 +85,10 @@ export interface Task {
   /** Sem valor conta como 'media' */
   prioridade?: Prioridade | null
   situacao?: SituacaoDoCard | null
+  /** Quando chegou à última coluna do quadro. Só existe depois da migration 0003 */
+  concluded_at?: string | null
+  /** Quando foi arquivado. Só existe depois da migration 0003 */
+  archived_at?: string | null
   posicao: number
   created_by: string | null
   created_at: string
@@ -98,6 +105,8 @@ export interface ContentCard {
   /** Só existe depois da migration 0003; sem valor conta como 'media' */
   prioridade?: Prioridade | null
   situacao?: SituacaoDoCard | null
+  concluded_at?: string | null
+  archived_at?: string | null
   observacoes: string | null
   posicao: number
   created_at: string
@@ -218,6 +227,30 @@ export interface CardAttachment {
   url: string
   nome: string | null
   created_by: string | null
+  created_at: string
+}
+
+/** Subtarefa simples de um card: caixa de marcar e texto (migration 0003). */
+export interface CardSubtarefa {
+  id: string
+  quadro: QuadroId
+  card_id: string
+  titulo: string
+  concluida: boolean
+  posicao: number
+  created_at: string
+}
+
+export type CampoConfiguravel = 'situacao' | 'prioridade' | 'tipo_conteudo'
+
+/** Opção de um dos campos configuráveis dos cards, com o nome que a equipe deu (migration 0003). */
+export interface CardOption {
+  id: string
+  campo: CampoConfiguravel
+  /** Valor gravado no card */
+  chave: string
+  titulo: string
+  posicao: number
   created_at: string
 }
 

@@ -141,12 +141,13 @@ describe('DashboardPage', () => {
     popular()
     renderizar(<DashboardPage />)
 
-    expect(await screen.findByText(/4\.000,50/)).toBeInTheDocument()
     const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
+    await waitFor(() => expect(valorDe('Clientes ativos')).toHaveTextContent('2'))
     expect(valorDe('Clientes ativos')).toHaveTextContent('2')
     // 3 demandas, 2 conteúdos em produção e 1 tarefa de anúncio
     expect(valorDe('Tarefas abertas')).toHaveTextContent('6')
     expect(valorDe('Conteúdos aguardando aprovação')).toHaveTextContent('1')
+    expect(valorDe('Cards travados')).toHaveTextContent('0')
   })
 
   it('lista as próximas entregas, com atraso em destaque e nomes de reserva', async () => {
@@ -217,13 +218,43 @@ describe('DashboardPage', () => {
     expect(await painel('Hoje').findByText('Nada marcado para hoje.')).toBeInTheDocument()
   })
 
-  it('desenha o gráfico de MRR dos últimos seis meses', async () => {
+  it('não mostra nada do financeiro', async () => {
     popular()
     renderizar(<DashboardPage />)
-    const grafico = await screen.findByRole('img', { name: /^MRR dos últimos 6 meses/ })
-    expect(grafico.tagName.toLowerCase()).toBe('svg')
-    expect(grafico.querySelectorAll('circle')).toHaveLength(6)
-    expect(grafico).toHaveAccessibleName(/4\.000,50/)
+    expect(await screen.findByText('Clientes ativos')).toBeInTheDocument()
+    expect(screen.queryByText('MRR total')).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /MRR/ })).not.toBeInTheDocument()
+  })
+
+  it('desenha a rosca com o status dos cards, incluindo os criados pela equipe', async () => {
+    popular()
+    const tabelas = bancoFalso().tabelas
+    tabelas.tasks[0].situacao = 'travado'
+    tabelas.tasks[1].situacao = 'personalizada_rev'
+    tabelas.content_cards[0].situacao = 'em_andamento'
+    tabelas.card_options = [
+      { id: 'o1', campo: 'situacao', chave: 'travado', titulo: 'Travado', posicao: 1 },
+      { id: 'o2', campo: 'situacao', chave: 'em_andamento', titulo: 'Em andamento', posicao: 2 },
+      { id: 'o3', campo: 'situacao', chave: 'feito', titulo: 'Feito', posicao: 3 },
+      { id: 'o4', campo: 'situacao', chave: 'personalizada_rev', titulo: 'Em revisão', posicao: 4 },
+    ]
+    renderizar(<DashboardPage />)
+
+    const status = painel('Status dos cards')
+    const rosca = await status.findByRole('img', { name: /^Status dos cards/ })
+    // t1 travado, t2 em revisão, k1 em andamento; t3 e t4 sem status, k2 sem status
+    expect(rosca).toHaveAccessibleName(
+      'Status dos cards: Travado 1, Em andamento 1, Feito 0, Em revisão 1, Sem status 3',
+    )
+    expect(status.getByText('Em revisão')).toBeInTheDocument()
+    expect(rosca.querySelectorAll('circle')).toHaveLength(5) // trilho e quatro fatias com card
+    expect(await screen.findByText('Cards travados')).toBeInTheDocument()
+  })
+
+  it('sem cards nos quadros, a rosca dá lugar ao estado vazio', async () => {
+    bancoFalso().reiniciar()
+    renderizar(<DashboardPage />)
+    expect(await painel('Status dos cards').findByText('Nenhum card nos quadros.')).toBeInTheDocument()
   })
 
   it('mostra a atividade recente com o nome de quem fez', async () => {

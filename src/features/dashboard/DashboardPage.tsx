@@ -10,6 +10,7 @@ import ui from '@/components/ui/ui.module.css'
 import { useAtividadeRecente } from '@/dados/atividade'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useEventos } from '@/dados/eventos'
+import { useOpcoes } from '@/dados/opcoes'
 import { useRegistrarOtimizacao } from '@/dados/otimizacao'
 import {
   useCampanhas,
@@ -19,14 +20,15 @@ import {
   useTarefas,
   useTarefasDeCampanha,
 } from '@/dados/tabelas'
+import { useTempoReal } from '@/dados/tempoReal'
 import { agendaPorDia, montarAgenda } from '@/features/calendario/calendario'
 import { hojeISO } from '@/lib/datas'
-import { formatarData, formatarMoeda } from '@/lib/formato'
+import { formatarData } from '@/lib/formato'
+import { SITUACOES } from '@/lib/rotulos'
 import {
   calcularMetricas,
   cargaPorPessoa,
   diasDeAtraso,
-  mrrPorMes,
   otimizacaoPendente,
   plural,
   proximasEntregas,
@@ -35,7 +37,8 @@ import {
 } from '@/lib/regras'
 import { Atividade } from './Atividade'
 import { Carga } from './Carga'
-import { GraficoMRR } from './GraficoMRR'
+import { GraficoStatus } from './GraficoStatus'
+import { contarStatus } from './statusDosCards'
 import styles from './dashboard.module.css'
 
 function Carregando() {
@@ -58,6 +61,9 @@ export function DashboardPage() {
   const atividade = useAtividadeRecente(20)
   const eventos = useEventos()
   const { registrar, registrando } = useRegistrarOtimizacao()
+  const situacoes = useOpcoes('situacao', SITUACOES)
+  // A rosca de status acompanha o que a equipe muda nos quadros, sem recarregar a página
+  useTempoReal(['tasks', 'content_cards', 'card_options'])
 
   const hoje = hojeISO()
   const clientePorId = porId(clientes.data)
@@ -71,6 +77,7 @@ export function DashboardPage() {
   const painelOtimizacoes = juntarConsultas(campanhas, clientes)
   const painelAtividade = juntarConsultas(atividade, perfis)
   const painelHoje = juntarConsultas(tarefas, cards, eventos)
+  const painelStatus = juntarConsultas(tarefas, cards)
 
   const metricas = calcularMetricas(
     clientes.data ?? [],
@@ -78,6 +85,8 @@ export function DashboardPage() {
     cards.data ?? [],
     tarefasDeAnuncio.data ?? [],
   )
+  const status = contarStatus(tarefas.data ?? [], cards.data ?? [], situacoes.opcoes)
+  const travados = status.find((fatia) => fatia.valor === 'travado')
   const entregas = proximasEntregas(tarefas.data ?? [], hoje)
   const otimizacoes = proximasOtimizacoes(campanhas.data ?? [], hoje)
   const registros = atividade.data ?? []
@@ -95,12 +104,6 @@ export function DashboardPage() {
       ) : (
         <div className={`${styles.kpis} stagger`}>
           <KpiCard
-            rotulo="MRR total"
-            valor={metricas.mrrTotal}
-            formatar={formatarMoeda}
-            carregando={kpis.carregando}
-          />
-          <KpiCard
             rotulo="Clientes ativos"
             valor={metricas.clientesAtivos}
             carregando={kpis.carregando}
@@ -113,6 +116,14 @@ export function DashboardPage() {
           <KpiCard
             rotulo="Conteúdos aguardando aprovação"
             valor={metricas.conteudosAguardando}
+            carregando={kpis.carregando}
+          />
+          <KpiCard
+            // A equipe pode renomear o status; o número continua sendo o dos cards travados
+            rotulo={
+              !travados || travados.rotulo === 'Travado' ? 'Cards travados' : `Cards em ${travados.rotulo}`
+            }
+            valor={travados?.total ?? 0}
             carregando={kpis.carregando}
           />
         </div>
@@ -146,13 +157,19 @@ export function DashboardPage() {
           )}
         </Painel>
 
-        <Painel titulo="MRR dos últimos 6 meses">
-          {clientes.isError ? (
+        <Painel titulo="Status dos cards">
+          {painelStatus.erro ? (
             <EstadoErro onTentar={todas.tentar} />
-          ) : clientes.isLoading ? (
+          ) : painelStatus.carregando ? (
             <Carregando />
+          ) : status.every((fatia) => fatia.total === 0) ? (
+            <EstadoVazio
+              ilustracao="quadro"
+              titulo="Nenhum card nos quadros."
+              texto="Demandas e conteúdos em andamento aparecem aqui, separados por status."
+            />
           ) : (
-            <GraficoMRR serie={mrrPorMes(clientes.data ?? [], hoje)} />
+            <GraficoStatus fatias={status} />
           )}
         </Painel>
       </div>

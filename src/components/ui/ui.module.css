@@ -646,6 +646,19 @@ a.linhaTitulo:hover {
   }
 }
 
+/* Celular: uma linha de lista com botão de ação deixa o botão na linha de baixo, em largura
+   cheia, em vez de espremer o texto ao lado dele */
+@media (max-width: 520px) {
+  .linha:has(> .botaoPequeno) {
+    flex-wrap: wrap;
+  }
+
+  .linha > .botaoPequeno {
+    flex-basis: 100%;
+    min-height: 40px;
+  }
+}
+
 /* Seletor de pessoas: escolhidas em cima, busca e sugestões embaixo */
 .pessoas {
   display: flex;

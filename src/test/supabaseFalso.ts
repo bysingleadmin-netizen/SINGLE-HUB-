@@ -1,5 +1,6 @@
 // Substituto em memória do cliente Supabase, só para testes.
-// Cobre o que o app usa: select, insert, update, delete, eq, order, limit, single e storage.
+// Cobre o que o app usa: select, insert, update, delete, eq, order, limit, single, storage e
+// canais de tempo real (que nunca recebem eventos).
 
 type Linha = Record<string, unknown>
 
@@ -180,7 +181,17 @@ export function criarSupabaseFalso() {
     },
   }
 
-  return { from, storage, functions, banco }
+  // Tempo real: o canal abre e não recebe nada; os testes recarregam pelo próprio fluxo da tela
+  function channel() {
+    const canal = {
+      on: () => canal,
+      subscribe: () => canal,
+    }
+    return canal
+  }
+  const removeChannel = async () => 'ok'
+
+  return { from, storage, functions, channel, removeChannel, banco }
 }
 
 export type SupabaseFalso = ReturnType<typeof criarSupabaseFalso>

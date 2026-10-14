@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
+import { Arquivados } from '@/components/quadro/Arquivados'
 import { AvisoDeMigracao } from '@/components/quadro/AvisoDeMigracao'
 import { CardInfo } from '@/components/quadro/CardInfo'
 import { FiltroDeColaboradores } from '@/components/quadro/FiltroDeColaboradores'
@@ -8,13 +9,8 @@ import { Quadro } from '@/components/quadro/Quadro'
 import { RodapeDoCard } from '@/components/quadro/RodapeDoCard'
 import { TabelaDeTarefas } from '@/components/quadro/TabelaDeTarefas'
 import type { ColunaDaTabela } from '@/components/quadro/TabelaDeTarefas'
-import {
-  CelulaCliente,
-  CelulaPessoa,
-  CelulaPrazo,
-  CelulaPrioridade,
-  CelulaTitulo,
-} from '@/components/quadro/celulas'
+import { CelulaCliente, CelulaPessoa, CelulaPrazo, CelulaTitulo } from '@/components/quadro/celulas'
+import { datasDoCiclo, venceuOPrazoVisivel } from '@/components/quadro/ciclo'
 import { doColaborador, progressoNoQuadro } from '@/components/quadro/colunas'
 import quadro from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
@@ -27,11 +23,13 @@ import { useAnexos } from '@/dados/anexos'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useColunasDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
+import { useOpcoes } from '@/dados/opcoes'
+import { resumir, useSubtarefas } from '@/dados/subtarefas'
 import { useCards, useClientes, usePerfis } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
 import { hojeISO } from '@/lib/datas'
 import { cardAberto, situacaoDoPrazo } from '@/lib/regras'
-import { COLUNAS_CONTEUDO, TIPOS_CONTEUDO, opcao, pesoDaPrioridade } from '@/lib/rotulos'
+import { COLUNAS_CONTEUDO, PRIORIDADES, SITUACOES, TIPOS_CONTEUDO } from '@/lib/rotulos'
 import type { ContentCard, ContentEtapa, TipoConteudo } from '@/types/database'
 import { CardDrawer } from './CardDrawer'
 import { atividadeDoMovimento } from './card'
@@ -48,6 +46,11 @@ export function ConteudoPage() {
   const criar = useCriar()
   const esquema = useColunasOpcionais()
   const anexos = useAnexos('conteudo')
+  const subtarefas = useSubtarefas('conteudo')
+  const situacoes = useOpcoes('situacao', SITUACOES)
+  const prioridades = useOpcoes('prioridade', PRIORIDADES)
+  const tipos = useOpcoes('tipo_conteudo', TIPOS_CONTEUDO)
+  const [verArquivados, setVerArquivados] = useState(false)
   const {
     colunas,
     titulo: tituloDaEtapa,
@@ -71,6 +74,9 @@ export function ConteudoPage() {
           ? 'Conteúdo publicado.'
           : `Conteúdo movido para ${tituloDaEtapa(destino)}.`,
     erro: 'Não foi possível mover o conteúdo.',
+    // Chegar à última etapa conclui o conteúdo; sair dela reabre
+    extras: (_card, destino) =>
+      esquema.cicloConteudo ? datasDoCiclo(destino, colunas[colunas.length - 1]?.id) : undefined,
     atividade: (card, destino) => atividadeDoMovimento(card, destino, tituloDaEtapa(destino)),
   })
 
@@ -84,7 +90,10 @@ export function ConteudoPage() {
 
   const consultas = juntarConsultas(cards, clientes, perfis)
   const todos = cards.data ?? []
-  const noQuadro = todos.filter((card) => card.etapa !== 'arquivado')
+  // Fora do quadro: o que foi arquivado e o que está concluído há mais de 7 dias
+  const arquivado = (card: ContentCard) => card.etapa === 'arquivado' || venceuOPrazoVisivel(card)
+  const arquivados = todos.filter(arquivado)
+  const noQuadro = todos.filter((card) => !arquivado(card))
   const visiveis = noQuadro.filter(
     (card) =>
       (tipo === '' || card.tipo_conteudo === tipo) && doColaborador(card.responsavel_id, responsaveis),
@@ -118,8 +127,12 @@ export function ConteudoPage() {
           {
             chave: 'prioridade',
             titulo: 'Prioridade',
-            render: (c: ContentCard) => <CelulaPrioridade prioridade={c.prioridade} />,
-            ordem: (c: ContentCard) => -pesoDaPrioridade(c.prioridade),
+            render: (c: ContentCard) => {
+              const nivel = prioridades.opcao(c.prioridade ?? 'media')
+              return nivel ? <Pill tom={nivel.tom}>{nivel.rotulo}</Pill> : null
+            },
+            ordem: (c: ContentCard) =>
+              -prioridades.opcoes.findIndex((p) => p.valor === (c.prioridade ?? 'media')),
           },
         ]
       : []),
@@ -150,7 +163,7 @@ export function ConteudoPage() {
           <Selecao
             rotulo="Tipo de conteúdo"
             vazio="Todos os tipos"
-            opcoes={TIPOS_CONTEUDO}
+            opcoes={tipos.opcoes}
             value={tipo}
             onChange={(evento) => setTipo(evento.target.value as TipoConteudo | '')}
           />
@@ -160,7 +173,18 @@ export function ConteudoPage() {
             onMudar={setResponsaveis}
           />
         </div>
-        <AlternarVisao visao={visao} onMudar={setVisao} />
+        <div className={quadro.acoes}>
+          <button
+            type="button"
+            className={quadro.arquivados}
+            aria-pressed={verArquivados}
+            onClick={() => setVerArquivados((atual) => !atual)}
+          >
+            {verArquivados ? 'Ocultar arquivados' : 'Mostrar arquivados'}
+            {arquivados.length > 0 && <span>{arquivados.length}</span>}
+          </button>
+          <AlternarVisao visao={visao} onMudar={setVisao} />
+        </div>
       </div>
 
       {!edicao && !carregandoColunas && <AvisoDeMigracao />}
@@ -206,16 +230,23 @@ export function ConteudoPage() {
               tituloDe={(card) => card.titulo}
               atrasado={(card) => cardAtrasado(card, hoje)}
               renderCard={(card) => {
-                const tipoDoCard = opcao(TIPOS_CONTEUDO, card.tipo_conteudo)
+                const tipoDoCard = tipos.opcao(card.tipo_conteudo)
                 return (
                   <CardInfo
                     titulo={card.titulo}
-                    etiqueta={<Pill tom={tipoDoCard.tom}>{tipoDoCard.rotulo}</Pill>}
+                    etiqueta={tipoDoCard && <Pill tom={tipoDoCard.tom}>{tipoDoCard.rotulo}</Pill>}
                     cliente={clienteDo(card)}
                     responsavel={responsavelDo(card)}
                     dataEntrega={card.data_entrega}
                     prazo={prazoDo(card)}
-                    prioridade={card.prioridade}
+                    prioridade={
+                      card.prioridade && card.prioridade !== 'media'
+                        ? prioridades.opcao(card.prioridade)
+                        : undefined
+                    }
+                    subtarefas={
+                      subtarefas.disponivel ? resumir(subtarefas.porCard.get(card.id) ?? []) : undefined
+                    }
                     progresso={progressoNoQuadro(card.etapa, colunas)}
                   />
                 )
@@ -226,6 +257,7 @@ export function ConteudoPage() {
                   cardId={card.id}
                   titulo={card.titulo}
                   situacao={card.situacao}
+                  situacoes={situacoes.opcoes}
                   situacaoDisponivel={esquema.situacaoConteudo}
                   onSituacao={(situacao) => mudarSituacao(card, situacao, todos)}
                   anexos={anexos.disponivel ? (anexos.porCard.get(card.id) ?? []) : undefined}
@@ -235,6 +267,29 @@ export function ConteudoPage() {
               onArquivar={(card) => mover(card, 'arquivado', todos)}
               onCriar={(etapa) => criar({ categoria: 'conteudo', etapa: etapa as ContentEtapa })}
               onAbrir={abrir}
+            />
+          )}
+          {verArquivados && (
+            <Arquivados
+              itens={arquivados}
+              tituloDe={(card) => card.titulo}
+              colunas={[
+                {
+                  chave: 'cliente',
+                  titulo: 'Cliente',
+                  render: (c) => <CelulaCliente cliente={clienteDo(c)} />,
+                  ordem: (c) => clienteDo(c)?.nome ?? null,
+                },
+                {
+                  chave: 'responsavel',
+                  titulo: 'Responsável',
+                  render: (c) => <CelulaPessoa perfil={responsavelDo(c)} />,
+                  ordem: (c) => responsavelDo(c)?.nome ?? null,
+                },
+              ]}
+              comPrazo={esquema.cicloConteudo}
+              onAbrir={abrir}
+              onRestaurar={(card) => mover(card, colunas[0].id, todos)}
             />
           )}
         </>
@@ -248,6 +303,8 @@ export function ConteudoPage() {
           perfis={perfis.data ?? []}
           colunas={colunas}
           anexos={anexos.disponivel ? (anexos.porCard.get(aberto.id) ?? []) : undefined}
+          subtarefas={subtarefas.disponivel ? (subtarefas.porCard.get(aberto.id) ?? []) : undefined}
+          onSituacao={(situacao) => mudarSituacao(aberto, situacao, todos)}
           onMover={(destino) => mover(aberto, destino, todos)}
           onFechar={() => setParametros({}, { replace: true })}
         />

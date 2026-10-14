@@ -150,6 +150,11 @@
 }
 
 @media (max-width: 520px) {
+  /* O título inteiro precisa caber na largura do celular */
+  .titulo input {
+    font-size: 17px;
+  }
+
   .propriedades {
     grid-template-columns: minmax(0, 1fr);
   }

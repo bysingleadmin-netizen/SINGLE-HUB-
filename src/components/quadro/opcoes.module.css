@@ -1,0 +1,213 @@
+/* Engrenagem ao lado de um seletor */
+.engrenagem {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--campo-borda);
+  background: var(--vidro);
+}
+
+/* Seletor com a engrenagem encostada: o campo ocupa o espaço, o botão alinha pela base */
+.comEngrenagem {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.comEngrenagem > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.linha input {
+  flex: 1;
+  min-width: 0;
+}
+
+.cor {
+  --tom: var(--text-fraco);
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--tom);
+}
+
+.cor[data-tom='verde'] {
+  --tom: #3ecf8e;
+}
+
+.cor[data-tom='amarelo'] {
+  --tom: #e6a630;
+}
+
+.cor[data-tom='laranja'] {
+  --tom: #f08a3c;
+}
+
+.cor[data-tom='vermelho'] {
+  --tom: #f04444;
+}
+
+.cor[data-tom='azul'] {
+  --tom: #4a9eff;
+}
+
+.cor[data-tom='roxo'] {
+  --tom: #a855f7;
+}
+
+.fixa {
+  min-width: 32px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-fraco);
+  text-align: center;
+}
+
+.nova {
+  display: flex;
+  gap: 8px;
+}
+
+.nova input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Subtarefas */
+.subtarefas {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.subtarefa {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.18s ease;
+}
+
+.subtarefa:hover {
+  background: var(--vidro-hover);
+}
+
+.subtarefa label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.subtarefa input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.subtarefa[data-concluida] label {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.progresso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.progresso[data-completo] {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.progressoBarra {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+}
+
+.progressoBarra > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #c01010, #e63030);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progresso[data-completo] .progressoBarra > span {
+  background: var(--success);
+}
+
+/* Arquivados */
+.arquivados {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.arquivadosTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+}
+
+.arquivadosTitulo {
+  font-size: 16px;
+}
+
+.restaurar {
+  min-height: 36px;
+  padding: 0 12px;
+  background: var(--vidro-hover);
+  border: 1px solid var(--campo-borda);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.18s ease;
+}
+
+.restaurar:hover {
+  border-color: var(--text-muted);
+}
+
+.arquivadosLegenda {
+  font-size: 13px;
+  color: var(--text-muted);
+}

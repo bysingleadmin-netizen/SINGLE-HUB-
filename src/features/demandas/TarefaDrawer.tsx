@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Anexos } from '@/components/quadro/Anexos'
+import { ConfigurarOpcoes } from '@/components/quadro/ConfigurarOpcoes'
+import { Subtarefas } from '@/components/quadro/Subtarefas'
 import styles from '@/components/quadro/detalhe.module.css'
+import opcoes from '@/components/quadro/opcoes.module.css'
 import { useEdicaoInline } from '@/components/quadro/useEdicaoInline'
 import { AreaTexto } from '@/components/ui/AreaTexto'
 import { Campo } from '@/components/ui/Campo'
@@ -10,17 +13,19 @@ import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
 import type { ColunaDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
+import { useOpcoes } from '@/dados/opcoes'
 import { hojeISO } from '@/lib/datas'
 import { formatarData } from '@/lib/formato'
 import { textoOuNull } from '@/lib/formulario'
 import { opcoesDePessoas } from '@/lib/pessoas'
 import { descreverPrazo, situacaoDoPrazo, tarefaAberta } from '@/lib/regras'
-import { PRIORIDADES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
+import { PRIORIDADES, SITUACOES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
 import type {
   CardAttachment,
+  CardSubtarefa,
   Client,
-  Prioridade,
   Profile,
+  SituacaoDoCard,
   Task,
   TaskStatus,
   TaskTipo,
@@ -35,6 +40,10 @@ interface TarefaDrawerProps {
   colunas: readonly ColunaDoQuadro[]
   /** undefined quando o banco ainda não tem a tabela de anexos */
   anexos?: CardAttachment[]
+  /** undefined quando o banco ainda não tem a tabela de subtarefas */
+  subtarefas?: CardSubtarefa[]
+  /** Marcar como Feito move o card para a coluna seguinte: quem faz isso é a página */
+  onSituacao: (situacao: SituacaoDoCard | null) => void
   /** Trocar o status é mover o card: quem sabe a posição e registra a atividade é a página */
   onMover: (destino: TaskStatus) => void
   onFechar: () => void
@@ -47,6 +56,8 @@ export function TarefaDrawer({
   perfis,
   colunas,
   anexos,
+  subtarefas,
+  onSituacao,
   onMover,
   onFechar,
 }: TarefaDrawerProps) {
@@ -54,6 +65,8 @@ export function TarefaDrawer({
   const [descricao, setDescricao] = useState(tarefa.descricao ?? '')
   const [erroTitulo, setErroTitulo] = useState<string>()
   const esquema = useColunasOpcionais()
+  const situacoes = useOpcoes('situacao', SITUACOES)
+  const prioridades = useOpcoes('prioridade', PRIORIDADES)
   const salvar = useEdicaoInline<Task>('tasks', tarefa.id, {
     sucesso: 'Demanda atualizada.',
     erro: 'Não foi possível salvar a demanda.',
@@ -68,7 +81,7 @@ export function TarefaDrawer({
   const hoje = hojeISO()
   const entregue = !tarefaAberta(tarefa)
   const tipo = opcao(TIPOS_TAREFA, tarefa.tipo)
-  const prioridade = opcao(PRIORIDADES, tarefa.prioridade ?? 'media')
+  const prioridade = prioridades.opcao(tarefa.prioridade ?? 'media')
   const criador = perfis.find((p) => p.id === tarefa.created_by)
 
   function salvarTitulo() {
@@ -92,7 +105,9 @@ export function TarefaDrawer({
       <div className={styles.detalhe}>
         <div className={styles.resumo}>
           <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>
-          {esquema.prioridadeTarefa && <Pill tom={prioridade.tom}>Prioridade {prioridade.rotulo}</Pill>}
+          {esquema.prioridadeTarefa && prioridade && (
+            <Pill tom={prioridade.tom}>Prioridade {prioridade.rotulo}</Pill>
+          )}
           <span
             className={styles.prazo}
             data-prazo={situacaoDoPrazo(tarefa.data_entrega, hoje, entregue) ?? undefined}
@@ -120,6 +135,18 @@ export function TarefaDrawer({
               value={tarefa.status}
               onChange={(evento) => onMover(evento.target.value as TaskStatus)}
             />
+            {esquema.situacaoTarefa && (
+              <div className={opcoes.comEngrenagem}>
+                <Selecao
+                  rotulo="Status do card"
+                  vazio="Sem status"
+                  opcoes={situacoes.opcoes}
+                  value={tarefa.situacao ?? ''}
+                  onChange={(evento) => onSituacao(evento.target.value || null)}
+                />
+                <ConfigurarOpcoes campo="status" opcoes={situacoes.opcoes} edicao={situacoes.edicao} />
+              </div>
+            )}
             <Selecao
               rotulo="Tipo"
               opcoes={TIPOS_TAREFA}
@@ -147,12 +174,19 @@ export function TarefaDrawer({
               onChange={(evento) => salvar({ data_entrega: evento.target.value || null })}
             />
             {esquema.prioridadeTarefa && (
-              <Selecao
-                rotulo="Prioridade"
-                opcoes={PRIORIDADES}
-                value={tarefa.prioridade ?? 'media'}
-                onChange={(evento) => salvar({ prioridade: evento.target.value as Prioridade })}
-              />
+              <div className={opcoes.comEngrenagem}>
+                <Selecao
+                  rotulo="Prioridade"
+                  opcoes={prioridades.opcoes}
+                  value={tarefa.prioridade ?? 'media'}
+                  onChange={(evento) => salvar({ prioridade: evento.target.value })}
+                />
+                <ConfigurarOpcoes
+                  campo="prioridades"
+                  opcoes={prioridades.opcoes}
+                  edicao={prioridades.edicao}
+                />
+              </div>
             )}
           </div>
         </section>
@@ -166,6 +200,13 @@ export function TarefaDrawer({
             onBlur={salvarDescricao}
           />
         </section>
+
+        {subtarefas && (
+          <section className={styles.bloco} aria-label="Subtarefas">
+            <h3 className={styles.blocoTitulo}>Subtarefas</h3>
+            <Subtarefas quadro="demandas" cardId={tarefa.id} subtarefas={subtarefas} />
+          </section>
+        )}
 
         {anexos && (
           <section className={styles.bloco} aria-label="Anexos">

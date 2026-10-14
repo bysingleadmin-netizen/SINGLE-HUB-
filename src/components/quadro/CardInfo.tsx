@@ -2,10 +2,11 @@ import type { ReactNode } from 'react'
 import { Avatar } from '@/components/ui/Avatar'
 import { Icone } from '@/components/ui/Icone'
 import { Pill } from '@/components/ui/Pill'
+import type { OpcaoDeCampo } from '@/dados/opcoes'
+import type { ResumoDeSubtarefas } from '@/dados/subtarefas'
 import { formatarData } from '@/lib/formato'
 import type { SituacaoDoPrazo } from '@/lib/regras'
-import { PRIORIDADES, opcao } from '@/lib/rotulos'
-import type { Client, Prioridade, Profile } from '@/types/database'
+import type { Client, Profile } from '@/types/database'
 import styles from './quadro.module.css'
 
 interface CardInfoProps {
@@ -17,8 +18,10 @@ interface CardInfoProps {
   dataEntrega: string | null
   /** Define a cor do indicador de prazo; null deixa neutro */
   prazo: SituacaoDoPrazo | null
-  /** A média é o normal e não ganha etiqueta, para o card não ficar carregado */
-  prioridade?: Prioridade | null
+  /** Opção de prioridade a mostrar; a página omite a média, para o card não ficar carregado */
+  prioridade?: OpcaoDeCampo
+  /** Andamento das subtarefas do card */
+  subtarefas?: ResumoDeSubtarefas
   /** Quantos comentários a demanda tem */
   comentarios?: number
   /** Avanço no quadro, de 0 a 1 */
@@ -38,15 +41,15 @@ export function CardInfo({
   dataEntrega,
   prazo,
   prioridade,
+  subtarefas,
   comentarios = 0,
   progresso,
 }: CardInfoProps) {
-  const nivel = prioridade && prioridade !== 'media' ? opcao(PRIORIDADES, prioridade) : null
   return (
     <span className={styles.info}>
       <span className={styles.infoTopo}>
         {etiqueta}
-        {nivel && <Pill tom={nivel.tom}>{nivel.rotulo}</Pill>}
+        {prioridade && <Pill tom={prioridade.tom}>{prioridade.rotulo}</Pill>}
       </span>
       <span className={styles.infoTitulo}>{titulo}</span>
 
@@ -67,6 +70,16 @@ export function CardInfo({
           <Icone nome="calendario" tamanho={13} />
           {dataEntrega ? formatarData(dataEntrega) : 'Sem data'}
         </span>
+        {subtarefas && subtarefas.total > 0 && (
+          <span
+            className={styles.infoContagem}
+            data-completo={subtarefas.completo || undefined}
+            title={subtarefas.completo ? 'Todas as subtarefas concluídas' : 'Subtarefas concluídas'}
+          >
+            <Icone nome="confirmar" tamanho={13} />
+            {subtarefas.feitas}/{subtarefas.total}
+          </span>
+        )}
         {comentarios > 0 && (
           <span className={styles.infoContagem} title="Comentários">
             <Icone nome="comentario" tamanho={13} />

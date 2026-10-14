@@ -168,8 +168,9 @@
 }
 
 @media (max-width: 520px) {
+  /* Dois por linha: um indicador por linha ocupava a primeira tela inteira */
   .kpis {
-    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
   }
 }
 
@@ -329,5 +330,162 @@
   }
   to {
     transform: scaleX(1);
+  }
+}
+/* Rosca de status dos cards: o desenho à esquerda e a legenda ao lado; no celular, um embaixo do outro */
+.rosca {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.roscaDesenho {
+  position: relative;
+  flex-shrink: 0;
+  width: 190px;
+  height: 190px;
+}
+
+.roscaDesenho svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+
+.roscaTrilho {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 5;
+}
+
+.roscaArco {
+  fill: none;
+  stroke-width: 5;
+  cursor: default;
+  transition:
+    opacity 0.2s ease,
+    stroke-width 0.2s ease;
+  animation: surgirArco 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.roscaArco:hover {
+  stroke-width: 6;
+}
+
+.roscaArco[data-apagado] {
+  opacity: 0.3;
+}
+
+.roscaCentro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+  text-align: center;
+}
+
+.roscaCentro strong {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.roscaCentro span {
+  max-width: 110px;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roscaLegenda {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.roscaLegenda li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+
+.roscaLegenda li[data-ativo] {
+  background: var(--vidro-hover);
+}
+
+.roscaLegenda li[data-vazio] {
+  color: var(--text-fraco);
+}
+
+.roscaCor {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.roscaLegenda li[data-vazio] .roscaCor {
+  opacity: 0.4;
+}
+
+.roscaNome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roscaTotal {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.roscaPercentual {
+  min-width: 40px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 520px) {
+  .rosca {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+  }
+
+  .roscaDesenho {
+    align-self: center;
+    width: 170px;
+    height: 170px;
+  }
+}
+
+@keyframes surgirArco {
+  from {
+    opacity: 0;
+    stroke-dasharray: 0 100;
   }
 }

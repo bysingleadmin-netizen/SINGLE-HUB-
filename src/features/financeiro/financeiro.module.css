@@ -67,6 +67,7 @@
 }
 
 .alternarBotao {
+  white-space: nowrap;
   min-height: 32px;
   padding: 0 12px;
   background: transparent;
@@ -293,4 +294,44 @@
   .barraCheia {
     transition: none;
   }
+}
+
+/* Pagamentos por cliente: nome e valores em cima, barra embaixo */
+.progressoLinha {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--vidro-borda);
+}
+
+.progressoLinha:first-child {
+  border-top: 0;
+}
+
+.progressoTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.progressoBarra {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.progressoBarra > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #b8860b, #e6a630);
+  border-radius: 999px;
+}
+
+.progressoBarra[data-completo] > span {
+  background: var(--success);
 }

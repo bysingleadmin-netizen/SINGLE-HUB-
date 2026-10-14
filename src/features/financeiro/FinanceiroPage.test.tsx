@@ -105,12 +105,24 @@ describe('Visão Geral', () => {
     expect(valorDe('MRR ativo')).toHaveTextContent(moeda(2800))
     expect(valorDe('Recebido no mês')).toHaveTextContent(moeda(750))
     // Do mês atual: a vencida (2.000) e a que vence em 3 dias (800)
-    expect(valorDe('Pendente no mês')).toHaveTextContent(moeda(2800))
+    expect(valorDe('A receber no mês')).toHaveTextContent(moeda(2800))
     expect(valorDe('Em atraso')).toHaveTextContent(moeda(2000))
     expect(screen.getByText('1 cobrança vencida de 1 cliente')).toBeInTheDocument()
     expect(
       screen.getByRole('img', { name: /^Recebimentos dos últimos 6 meses/ }),
     ).toBeInTheDocument()
+  })
+
+  it('recebido conta o parcial que entrou; a receber, só o restante', async () => {
+    abrir('', {
+      clients: CLIENTES,
+      client_payments: [
+        cobranca({ id: 'p1', valor: 2870, valor_pago: 2000, pago_em: HOJE, data_vencimento: somarDias(HOJE, 5) }),
+      ],
+    })
+    const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
+    await waitFor(() => expect(valorDe('Recebido no mês')).toHaveTextContent(moeda(2000)))
+    expect(valorDe('A receber no mês')).toHaveTextContent(moeda(870))
   })
 
   it('lista os vencimentos dos próximos sete dias', async () => {
@@ -252,6 +264,31 @@ describe('Pagamentos', () => {
         pago_em: HOJE,
       }),
     )
+  })
+
+  it('o total em aberto soma só o que falta receber', async () => {
+    abrir('pagamentos', {
+      clients: CLIENTES,
+      client_payments: [cobranca({ id: 'p1', valor: 2000, valor_pago: 1500, pago_em: HOJE }), cobranca({ id: 'p2', client_id: 'c2', valor: 800 })],
+    })
+    const lista = await painelPronto('Pagamentos')
+    expect(lista.getByText(moeda(1300))).toBeInTheDocument()
+  })
+
+  it('por cliente mostra quanto foi pago das cobranças do mês', async () => {
+    abrir('pagamentos', {
+      clients: CLIENTES,
+      client_payments: [
+        cobranca({ id: 'p1', valor: 2870, valor_pago: 2000, pago_em: HOJE }),
+        cobranca({ id: 'p2', client_id: 'c2', valor: 800 }),
+      ],
+    })
+    const lista = await painelPronto('Pagamentos')
+    fireEvent.click(lista.getByRole('button', { name: 'Por cliente' }))
+    expect(lista.getByText(`${moeda(2000)} pagos de ${moeda(2870)} (70%)`)).toBeInTheDocument()
+    expect(lista.getByRole('progressbar', { name: 'Clínica Aurora' })).toHaveAttribute('aria-valuenow', '70')
+    expect(lista.getByRole('progressbar', { name: 'Padaria Sol' })).toHaveAttribute('aria-valuenow', '0')
+    expect(lista.getByLabelText('Mês')).toHaveValue(MES)
   })
 
   it('o histórico guarda o que foi pago e filtra por cliente', async () => {

@@ -98,7 +98,7 @@ export function Resumo() {
           carregando={estado.carregando}
         />
         <KpiCard
-          rotulo="Pendente no mês"
+          rotulo="A receber no mês"
           valor={pendenteNoMes(listaDePagamentos, mes)}
           formatar={formatarMoeda}
           carregando={estado.carregando}

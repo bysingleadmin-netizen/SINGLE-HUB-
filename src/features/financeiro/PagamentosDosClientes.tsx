@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Campo } from '@/components/ui/Campo'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Painel } from '@/components/ui/Painel'
 import { Selecao } from '@/components/ui/Selecao'
@@ -7,18 +8,50 @@ import ui from '@/components/ui/ui.module.css'
 import { juntarConsultas } from '@/dados/base'
 import { useClientes, usePagamentos } from '@/dados/tabelas'
 import { CobrancasEmAberto, HistoricoDePagamentos } from '@/features/clientes/Cobrancas'
-import { cartoesDe, separarCartoes } from '@/features/clientes/cartoes'
+import { cartoesDe, restante, separarCartoes } from '@/features/clientes/cartoes'
 import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
 import { plural } from '@/lib/regras'
+import { progressoPorCliente } from './financeiro'
+import type { ProgressoDoCliente } from './financeiro'
 import styles from './financeiro.module.css'
 
 const VISOES = [
   { valor: 'abertos', rotulo: 'Em aberto' },
   { valor: 'historico', rotulo: 'Histórico' },
+  { valor: 'clientes', rotulo: 'Por cliente' },
 ] as const
 
 type Visao = (typeof VISOES)[number]['valor']
+
+/** Uma linha por cliente: quanto pagou das cobranças do mês, com a barra de progresso. */
+function ProgressoDosClientes({ linhas }: { linhas: ProgressoDoCliente[] }) {
+  return (
+    <ul className={`${ui.lista} stagger`}>
+      {linhas.map((linha) => (
+        <li key={linha.cliente.id} className={styles.progressoLinha}>
+          <div className={styles.progressoTopo}>
+            <strong>{linha.cliente.nome}</strong>
+            <span className={ui.mudo}>
+              {formatarMoeda(linha.pago)} pagos de {formatarMoeda(linha.total)} ({linha.percentual}%)
+            </span>
+          </div>
+          <span
+            className={styles.progressoBarra}
+            role="progressbar"
+            aria-label={linha.cliente.nome}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={linha.percentual}
+            data-completo={linha.percentual >= 100 || undefined}
+          >
+            <span style={{ width: `${Math.min(linha.percentual, 100)}%` }} />
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 /**
  * Cobranças mensais de todos os clientes. Elas nascem sozinhas do cadastro de cada cliente;
@@ -30,6 +63,7 @@ export function PagamentosDosClientes() {
   const estado = juntarConsultas(clientes, pagamentos)
   const [visao, setVisao] = useState<Visao>('abertos')
   const [clienteId, setClienteId] = useState('')
+  const [mes, setMes] = useState(() => hojeISO().slice(0, 7))
 
   if (estado.erro) return <EstadoErro onTentar={estado.tentar} />
   if (estado.carregando) return <Skeleton altura="240px" raio="var(--radius)" />
@@ -43,7 +77,16 @@ export function PagamentosDosClientes() {
     ),
   )
   const lista = visao === 'abertos' ? abertos : historico
-  const total = lista.reduce((soma, cartao) => soma + cartao.valor, 0)
+  // Em aberto conta só o que falta receber; o histórico, o que foi pago
+  const total = lista.reduce(
+    (soma, cartao) => soma + (visao === 'abertos' ? restante(cartao.valor, cartao.valorPago) : cartao.valor),
+    0,
+  )
+  const progresso = progressoPorCliente(
+    listaDeClientes.filter((c) => clienteId === '' || c.id === clienteId),
+    todos,
+    mes,
+  )
 
   return (
     <Painel
@@ -73,17 +116,33 @@ export function PagamentosDosClientes() {
           value={clienteId}
           onChange={(evento) => setClienteId(evento.target.value)}
         />
-        <div className={styles.total}>
-          <span className={ui.mudo}>
-            {visao === 'abertos'
-              ? plural(lista.length, 'cobrança em aberto', 'cobranças em aberto')
-              : plural(lista.length, 'pagamento recebido', 'pagamentos recebidos')}
-          </span>
-          <strong className={styles.totalValor}>{formatarMoeda(total)}</strong>
-        </div>
+        {visao === 'clientes' ? (
+          <Campo
+            className={styles.mes}
+            rotulo="Mês"
+            type="month"
+            value={mes}
+            onChange={(evento) => setMes(evento.target.value || hojeISO().slice(0, 7))}
+          />
+        ) : (
+          <div className={styles.total}>
+            <span className={ui.mudo}>
+              {visao === 'abertos'
+                ? plural(lista.length, 'cobrança em aberto', 'cobranças em aberto')
+                : plural(lista.length, 'pagamento recebido', 'pagamentos recebidos')}
+            </span>
+            <strong className={styles.totalValor}>{formatarMoeda(total)}</strong>
+          </div>
+        )}
       </div>
 
-      {lista.length === 0 ? (
+      {visao === 'clientes' ? (
+        progresso.length === 0 ? (
+          <EstadoVazio ilustracao="pagamentos" titulo="Nenhuma cobrança neste mês." />
+        ) : (
+          <ProgressoDosClientes linhas={progresso} />
+        )
+      ) : lista.length === 0 ? (
         <EstadoVazio
           ilustracao="pagamentos"
           titulo={

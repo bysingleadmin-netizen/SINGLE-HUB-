@@ -72,6 +72,13 @@ export interface ClientPayment {
   forma_pagamento?: FormaDePagamento | null
   /** Pago e guardado no histórico. Só existe depois da migration 0003 */
   arquivado?: boolean
+  /** Quanto já entrou. Só existe depois da migration 0004 */
+  valor_pago?: number
+  /** Data do último recebimento, parcial ou total. Migration 0004 */
+  pago_em?: string | null
+  observacao_pagamento?: string | null
+  /** Valor total editado à mão: a sincronização com o cadastro não o reescreve. Migration 0004 */
+  valor_manual?: boolean
   created_at: string
 }
 

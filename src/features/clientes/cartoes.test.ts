@@ -5,7 +5,10 @@ import {
   planoDeCobrancas,
   planoVazio,
   proximoMes,
+  restante,
   separarCartoes,
+  situacaoDoPagamento,
+  valorRecebido,
   vencimentoNoMes,
 } from './cartoes'
 
@@ -163,5 +166,58 @@ describe('cartoesDe', () => {
 
   it('cobrança que vence hoje ainda não está atrasada', () => {
     expect(cartoesDe([pagamento('2026-10-01', { data_vencimento: HOJE })], HOJE)[0].status).toBe('pendente')
+  })
+})
+
+describe('pagamento parcial', () => {
+  it('situação pelo quanto entrou', () => {
+    expect(situacaoDoPagamento(1000, 1000)).toBe('pago')
+    expect(situacaoDoPagamento(1000, 1200)).toBe('pago')
+    expect(situacaoDoPagamento(1000, 400)).toBe('parcial')
+    expect(situacaoDoPagamento(1000, 0)).toBe('pendente')
+  })
+
+  it('valor recebido usa valor_pago e, sem a coluna, o status', () => {
+    expect(valorRecebido({ status: 'pendente', valor: 1000, valor_pago: 400 })).toBe(400)
+    expect(valorRecebido({ status: 'pago', valor: 1000 })).toBe(1000)
+    expect(valorRecebido({ status: 'pendente', valor: 1000 })).toBe(0)
+  })
+
+  it('restante nunca é negativo', () => {
+    expect(restante(1000, 400)).toBe(600)
+    expect(restante(1000, 1500)).toBe(0)
+  })
+
+  it('o cartão leva o recebido, a situação e a observação', () => {
+    const [cartao] = cartoesDe(
+      [
+        {
+          id: 'p1', client_id: 'c1', mes_referencia: '2026-10-01', valor: 2870, data_vencimento: '2026-10-10',
+          data_pagamento: null, status: 'pendente', valor_pago: 2000, pago_em: '2026-10-05',
+          observacao_pagamento: 'resto dia 20', created_at: '2026-10-01',
+        },
+      ],
+      '2026-10-14',
+    )
+    expect(cartao).toMatchObject({
+      valorPago: 2000, situacao: 'parcial', pagoEm: '2026-10-05', observacao: 'resto dia 20', status: 'atrasado',
+    })
+  })
+
+  it('a sincronização não reescreve cobrança editada à mão nem parcialmente paga', () => {
+    const base = {
+      client_id: 'c1', data_vencimento: '2026-10-10', data_pagamento: null, status: 'pendente' as const,
+      created_at: '2026-10-01',
+    }
+    const plano = planoDeCobrancas(
+      [cliente({ id: 'c1', status: 'ativo', mrr: 3000, data_inicio_contrato: '2026-01-10', dia_vencimento: 10 })],
+      [
+        { ...base, id: 'manual', mes_referencia: '2026-10-01', valor: 2500, valor_manual: true },
+        { ...base, id: 'parcial', mes_referencia: '2026-11-01', valor: 2500, data_vencimento: '2026-11-10', valor_pago: 500 },
+        { ...base, id: 'comum', mes_referencia: '2026-12-01', valor: 2500, data_vencimento: '2026-12-10' },
+      ],
+      '2026-10-14',
+    )
+    expect(plano.atualizar.map((a) => a.id)).toEqual(['comum'])
   })
 })

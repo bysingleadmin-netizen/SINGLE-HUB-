@@ -10,6 +10,7 @@ import {
   pagamentosEmAtraso,
   pendenteNoMes,
   progressoDaMeta,
+  progressoPorCliente,
   proximosVencimentos,
   receitaDoMes,
   taxaDeConversao,
@@ -296,5 +297,45 @@ describe('validarMetricas', () => {
     expect(validarMetricas({ ...form, convertidos: '31' })).toEqual({
       erros: { convertidos: 'Os convertidos não podem passar do total de leads.' },
     })
+  })
+})
+
+describe('pagamentos parciais nas contas', () => {
+  const cobranca = (campos: Record<string, unknown>) =>
+    ({
+      client_id: 'c1', mes_referencia: '2026-10-01', valor: 2870, data_vencimento: '2026-10-10',
+      status: 'pendente', data_pagamento: null, valor_pago: 0, pago_em: null, ...campos,
+    }) as never
+
+  it('recebido no mês conta só o que entrou, pela data do recebimento', () => {
+    const pagamentos = [
+      cobranca({ valor_pago: 2000, pago_em: '2026-10-05' }),
+      cobranca({ client_id: 'c2', valor: 1000, status: 'pago', valor_pago: 1000, pago_em: '2026-10-03', data_pagamento: '2026-10-03' }),
+      cobranca({ client_id: 'c3', valor: 500, status: 'cancelado', valor_pago: 100, pago_em: '2026-10-02' }),
+    ]
+    expect(receitaDoMes(pagamentos, '2026-10')).toBe(3000)
+  })
+
+  it('a receber soma só o restante das cobranças em aberto', () => {
+    expect(pendenteNoMes([cobranca({ valor_pago: 2000 })], '2026-10')).toBe(870)
+  })
+
+  it('o atraso cobra só o restante', () => {
+    const [atraso] = pagamentosEmAtraso([{ id: 'c1', nome: 'Scofield' }], [cobranca({ valor_pago: 2000 })], '2026-10-14')
+    expect(atraso.valor).toBe(870)
+  })
+
+  it('progresso por cliente no mês', () => {
+    const clientes = [{ id: 'c1', nome: 'Scofield' }, { id: 'c2', nome: 'Alfa' }]
+    const pagamentos = [
+      cobranca({ valor_pago: 2000 }),
+      cobranca({ client_id: 'c2', valor: 1000, valor_pago: 0 }),
+      cobranca({ client_id: 'c2', valor: 999, mes_referencia: '2026-11-01' }),
+      cobranca({ client_id: 'c1', valor: 300, status: 'cancelado' }),
+    ]
+    expect(progressoPorCliente(clientes, pagamentos, '2026-10')).toEqual([
+      { cliente: { id: 'c2', nome: 'Alfa' }, pago: 0, total: 1000, percentual: 0 },
+      { cliente: { id: 'c1', nome: 'Scofield' }, pago: 2000, total: 2870, percentual: 70 },
+    ])
   })
 })

@@ -1,3 +1,4 @@
+import { restante, valorRecebido } from '@/features/clientes/cartoes'
 import { diffDias } from '@/lib/datas'
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
@@ -15,15 +16,14 @@ const VALOR_INVALIDO = 'Informe um valor como 1.500,00.'
 
 const somar = (valores: number[]) => valores.reduce((soma, valor) => soma + Number(valor), 0)
 
-/** Receita do mês: pagamentos confirmados cuja data de pagamento cai nele. */
-export function receitaDoMes(
-  pagamentos: Pick<ClientPayment, 'status' | 'valor' | 'data_pagamento'>[],
-  mes: string,
-): number {
+type Recebimento = Pick<ClientPayment, 'status' | 'valor' | 'data_pagamento' | 'valor_pago' | 'pago_em'>
+
+/** Receita do mês: o que entrou de fato (parcial ou total), pela data do recebimento. */
+export function receitaDoMes(pagamentos: Recebimento[], mes: string): number {
   return somar(
     pagamentos
-      .filter((p) => p.status === 'pago' && p.data_pagamento?.slice(0, 7) === mes)
-      .map((p) => p.valor),
+      .filter((p) => p.status !== 'cancelado' && (p.pago_em ?? p.data_pagamento)?.slice(0, 7) === mes)
+      .map(valorRecebido),
   )
 }
 
@@ -40,7 +40,7 @@ export interface LinhaDoDRE {
 }
 
 export function dreDoMes(
-  pagamentos: Pick<ClientPayment, 'status' | 'valor' | 'data_pagamento'>[],
+  pagamentos: Recebimento[],
   despesas: Pick<Expense, 'valor' | 'data'>[],
   mes: string,
 ): LinhaDoDRE {
@@ -51,7 +51,7 @@ export function dreDoMes(
 
 /** Faturamento recebido mês a mês, do mais antigo ao atual, pronto para o gráfico. */
 export function faturamentoPorMes(
-  pagamentos: Pick<ClientPayment, 'status' | 'valor' | 'data_pagamento'>[],
+  pagamentos: Recebimento[],
   hoje: string,
   meses = 6,
 ): PontoDeMRR[] {
@@ -63,16 +63,18 @@ export function faturamentoPorMes(
 
 type Cobranca = Pick<
   ClientPayment,
-  'client_id' | 'mes_referencia' | 'valor' | 'data_vencimento' | 'status'
+  'client_id' | 'mes_referencia' | 'valor' | 'data_vencimento' | 'status' | 'valor_pago'
 >
 
 const emAberto = (pagamento: Pick<ClientPayment, 'status'>) =>
   pagamento.status === 'pendente' || pagamento.status === 'atrasado'
 
-/** Quanto ainda se espera receber das cobranças do mês ('AAAA-MM'). */
+/** Quanto ainda falta receber das cobranças do mês ('AAAA-MM'): só o restante de cada uma. */
 export function pendenteNoMes(pagamentos: Cobranca[], mes: string): number {
   return somar(
-    pagamentos.filter((p) => emAberto(p) && p.mes_referencia.slice(0, 7) === mes).map((p) => p.valor),
+    pagamentos
+      .filter((p) => emAberto(p) && p.mes_referencia.slice(0, 7) === mes)
+      .map((p) => restante(Number(p.valor), valorRecebido(p))),
   )
 }
 
@@ -95,7 +97,7 @@ function vencimentos(
   return pagamentos.filter(emAberto).map((p) => ({
     cliente: { id: p.client_id, nome: nomes.get(p.client_id) ?? 'Cliente removido' },
     mes: p.mes_referencia,
-    valor: Number(p.valor),
+    valor: restante(Number(p.valor), valorRecebido(p)),
     vencimento: p.data_vencimento,
     dias: diffDias(hoje, p.data_vencimento),
   }))
@@ -279,4 +281,36 @@ export function validarMetricas(form: FormMetricas): Validacao<ValoresMetricas, 
 
 export function formatarPercentual(valor: number): string {
   return `${valor.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
+}
+
+export interface ProgressoDoCliente {
+  cliente: Pick<Client, 'id' | 'nome'>
+  pago: number
+  total: number
+  /** 0 a 100, arredondado */
+  percentual: number
+}
+
+/** Quanto cada cliente já pagou das cobranças do mês ('AAAA-MM'), sem as canceladas. Por nome. */
+export function progressoPorCliente(
+  clientes: Pick<Client, 'id' | 'nome'>[],
+  pagamentos: Cobranca[],
+  mes: string,
+): ProgressoDoCliente[] {
+  return clientes
+    .map((cliente) => {
+      const doMes = pagamentos.filter(
+        (p) => p.client_id === cliente.id && p.status !== 'cancelado' && p.mes_referencia.slice(0, 7) === mes,
+      )
+      const total = somar(doMes.map((p) => p.valor))
+      const pago = somar(doMes.map(valorRecebido))
+      return {
+        cliente: { id: cliente.id, nome: cliente.nome },
+        pago,
+        total,
+        percentual: total > 0 ? Math.round((pago / total) * 100) : 0,
+      }
+    })
+    .filter((linha) => linha.total > 0)
+    .sort((a, b) => a.cliente.nome.localeCompare(b.cliente.nome))
 }

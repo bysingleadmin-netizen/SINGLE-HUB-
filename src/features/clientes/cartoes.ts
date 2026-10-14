@@ -45,6 +45,23 @@ export function vencimentoNoMes(mes: string, dia: number): string {
 const emAberto = (pagamento: Pick<ClientPayment, 'status'>) =>
   pagamento.status === 'pendente' || pagamento.status === 'atrasado'
 
+export type SituacaoDoPagamento = 'pago' | 'parcial' | 'pendente'
+
+/** Quanto da cobrança já entrou. Antes da migration 0004 não há valor_pago: vale o status. */
+export function valorRecebido(p: Pick<ClientPayment, 'status' | 'valor' | 'valor_pago'>): number {
+  if (p.valor_pago != null && Number(p.valor_pago) > 0) return Number(p.valor_pago)
+  return p.status === 'pago' ? Number(p.valor) : 0
+}
+
+export function restante(valor: number, pago: number): number {
+  return Math.max(0, Number(valor) - Number(pago))
+}
+
+export function situacaoDoPagamento(valor: number, pago: number): SituacaoDoPagamento {
+  if (pago >= valor) return 'pago'
+  return pago > 0 ? 'parcial' : 'pendente'
+}
+
 export interface NovaCobranca {
   client_id: string
   mes_referencia: string
@@ -110,6 +127,8 @@ export function planoDeCobrancas(
     }
 
     for (const cobranca of futuras) {
+      // Valor editado à mão ou já parcialmente pago é o combinado com o cliente: não muda sozinho
+      if (cobranca.valor_manual || Number(cobranca.valor_pago ?? 0) > 0) continue
       const vencimento = vencimentoNoMes(cobranca.mes_referencia, dia)
       if (Number(cobranca.valor) !== valor || cobranca.data_vencimento !== vencimento) {
         plano.atualizar.push({ id: cobranca.id, valor, data_vencimento: vencimento })
@@ -135,6 +154,12 @@ export interface CartaoDePagamento {
   status: PaymentStatus
   dataPagamento: string | null
   forma: FormaDePagamento | null
+  valorPago: number
+  /** Data do último recebimento */
+  pagoEm: string | null
+  observacao: string | null
+  situacao: SituacaoDoPagamento
+  valorManual: boolean
 }
 
 /** As cobranças em ordem de mês, com o atraso calculado pela data de hoje. */
@@ -153,6 +178,11 @@ export function cartoesDe(pagamentos: ClientPayment[], hoje: string): CartaoDePa
       status: emAberto(p) && p.data_vencimento < hoje ? 'atrasado' : p.status,
       dataPagamento: p.data_pagamento,
       forma: p.forma_pagamento ?? null,
+      valorPago: valorRecebido(p),
+      pagoEm: p.pago_em ?? p.data_pagamento,
+      observacao: p.observacao_pagamento ?? null,
+      situacao: situacaoDoPagamento(Number(p.valor), valorRecebido(p)),
+      valorManual: p.valor_manual ?? false,
     }))
 }
 

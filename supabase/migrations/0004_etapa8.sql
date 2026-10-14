@@ -17,4 +17,23 @@ alter table public.clients drop constraint if exists clients_contrato_meses_chec
 alter table public.clients
   add constraint clients_contrato_meses_check check (contrato_meses in (3, 6, 12, 15));
 
+-- ---------------------------------------------------------------------------
+-- 2. Pagamentos parciais
+-- ---------------------------------------------------------------------------
+-- valor_pago: quanto da cobrança já entrou (0 a valor). pago_em: data do último recebimento.
+-- valor_manual: o valor total foi editado à mão, então a sincronização com o cadastro do
+-- cliente deixa de reescrevê-lo.
+alter table public.client_payments add column if not exists valor_pago numeric(12, 2) not null default 0;
+alter table public.client_payments add column if not exists pago_em date;
+alter table public.client_payments add column if not exists observacao_pagamento text;
+alter table public.client_payments add column if not exists valor_manual boolean not null default false;
+alter table public.client_payments drop constraint if exists client_payments_valor_pago_check;
+alter table public.client_payments
+  add constraint client_payments_valor_pago_check check (valor_pago >= 0);
+
+-- O que já foi pago antes desta migration foi pago inteiro
+update public.client_payments
+set valor_pago = valor, pago_em = coalesce(pago_em, data_pagamento)
+where status = 'pago' and valor_pago = 0;
+
 commit;

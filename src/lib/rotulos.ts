@@ -1,4 +1,5 @@
 import type {
+import type { SituacaoDoPagamento } from '@/features/clientes/cartoes'
   CampaignFuncao,
   CampaignStatus,
   CampaignTaskStatus,
@@ -32,6 +33,13 @@ export const STATUS_PAGAMENTO: readonly Opcao<PaymentStatus>[] = [
   { valor: 'pago', rotulo: 'Pago', tom: 'verde' },
   { valor: 'atrasado', rotulo: 'Atrasado', tom: 'vermelho' },
   { valor: 'cancelado', rotulo: 'Cancelado', tom: 'cinza' },
+]
+
+/** Selo da cobrança pelo quanto já entrou. O atraso aparece à parte, como texto. */
+export const SITUACOES_PAGAMENTO: readonly Opcao<SituacaoDoPagamento>[] = [
+  { valor: 'pago', rotulo: 'Pago', tom: 'verde' },
+  { valor: 'parcial', rotulo: 'Parcial', tom: 'amarelo' },
+  { valor: 'pendente', rotulo: 'Pendente', tom: 'vermelho' },
 ]
 
 export const PRIORIDADES: readonly Opcao<Prioridade>[] = [

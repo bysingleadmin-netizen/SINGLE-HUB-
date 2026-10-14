@@ -1,5 +1,5 @@
-import type {
 import type { SituacaoDoPagamento } from '@/features/clientes/cartoes'
+import type {
   CampaignFuncao,
   CampaignStatus,
   CampaignTaskStatus,

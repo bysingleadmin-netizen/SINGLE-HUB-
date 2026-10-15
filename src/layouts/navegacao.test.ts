@@ -1,4 +1,4 @@
-import { avisosDoMenu, itensVisiveis, tituloDaRota } from './navegacao'
+import { avisosDoMenu, itensVisiveis, mostraCriar, tituloDaRota } from './navegacao'
 
 describe('itensVisiveis', () => {
   it('esconde Financeiro de quem não é liderança', () => {
@@ -86,5 +86,16 @@ describe('tituloDaRota', () => {
 
   it('tem fallback para rota desconhecida', () => {
     expect(tituloDaRota('/app/qualquer')).toBe('SINGLE')
+  })
+})
+
+describe('mostraCriar', () => {
+  it('aparece só nos quadros de tarefas', () => {
+    for (const rota of ['/app/tarefas', '/app/demandas', '/app/conteudo', '/app/anuncios', '/app/anuncios/g1']) {
+      expect(mostraCriar(rota)).toBe(true)
+    }
+    for (const rota of ['/app/dashboard', '/app/financeiro', '/app/financeiro/pagamentos', '/app/configuracoes', '/app/clientes', '/app/calendario', '/app/crm', '/app/demandasx']) {
+      expect(mostraCriar(rota)).toBe(false)
+    }
   })
 })

@@ -68,6 +68,14 @@ export function avisosDoMenu(
   return avisos
 }
 
+// O botão Criar faz sentido onde se gerencia tarefa; no Financeiro, no Dashboard e nas
+// configurações ele só confundia.
+const ROTAS_COM_CRIAR = ['/app/tarefas', '/app/demandas', '/app/conteudo', '/app/anuncios']
+
+export function mostraCriar(pathname: string): boolean {
+  return ROTAS_COM_CRIAR.some((rota) => pathname === rota || pathname.startsWith(`${rota}/`))
+}
+
 export function tituloDaRota(pathname: string): string {
   const item = ITENS_NAV.find((i) => pathname === i.rota || pathname.startsWith(`${i.rota}/`))
   return item?.rotulo ?? 'SINGLE'

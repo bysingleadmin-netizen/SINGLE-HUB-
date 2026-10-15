@@ -111,10 +111,33 @@ describe('ClientesPage', () => {
     const clinica = within(screen.getByRole('link', { name: 'Clínica Vita' }).closest('article')!)
     expect(clinica.queryByRole('link', { name: /Conta de anúncios/ })).not.toBeInTheDocument()
 
-    fireEvent.click(padaria.getByRole('button', { name: 'Editar Padaria Sol' }))
+    fireEvent.click(padaria.getByRole('button', { name: 'Ações de Padaria Sol' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
     expect(
       within(screen.getByRole('dialog', { name: 'Editar cliente' })).getByLabelText('Nome'),
     ).toHaveValue('Padaria Sol')
+  })
+
+  it('a liderança exclui um cliente pelo menu, avisando o que sai junto', async () => {
+    popular()
+    renderizar(<ClientesPage />)
+    const card = within((await screen.findByRole('link', { name: 'Clínica Vita' })).closest('article')!)
+    fireEvent.click(card.getByRole('button', { name: 'Ações de Clínica Vita' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir' }))
+    expect(screen.getByText(/^Excluir Clínica Vita\? As cobranças dele também são excluídas/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
+
+    expect(await screen.findByText('Cliente excluído.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Clínica Vita' })).not.toBeInTheDocument())
+    expect(bancoFalso().tabelas.clients.some((c) => c.nome === 'Clínica Vita')).toBe(false)
+  })
+
+  it('quem não é liderança edita, mas não exclui clientes', async () => {
+    popular()
+    renderizar(<ClientesPage />, { cargo: 'Designer' })
+    const card = within((await screen.findByRole('link', { name: 'Clínica Vita' })).closest('article')!)
+    fireEvent.click(card.getByRole('button', { name: 'Ações de Clínica Vita' }))
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Editar'])
   })
 
   it('cadastra um cliente, aceita valor com vírgula e registra a atividade', async () => {
@@ -518,7 +541,8 @@ describe('cadastro do cliente: dia do vencimento', () => {
     bancoFalso().colunasAusentes = colunasAusentes
     renderizar(<ClientesPage />)
     const card = within((await screen.findByRole('link', { name: 'Padaria Sol' })).closest('article')!)
-    fireEvent.click(card.getByRole('button', { name: 'Editar Padaria Sol' }))
+    fireEvent.click(card.getByRole('button', { name: 'Ações de Padaria Sol' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
     return within(screen.getByRole('dialog', { name: 'Editar cliente' }))
   }
 

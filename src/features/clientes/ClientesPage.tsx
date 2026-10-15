@@ -4,13 +4,19 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
+import { MenuAcoes } from '@/components/ui/MenuDeAcoes'
 import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
+import { useExcluir } from '@/dados/excluir'
 import { useClientes } from '@/dados/tabelas'
+import { useAuth } from '@/features/auth/AuthContext'
 import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
+import { isLideranca } from '@/lib/permissoes'
 import { plural } from '@/lib/regras'
 import { STATUS_CLIENTE, opcao } from '@/lib/rotulos'
+import type { Client } from '@/types/database'
 import { ClienteModal } from './ClienteModal'
 import { fidelidadeDoCliente, linkInstagram } from './cliente'
 import { seloDoContrato } from './contrato'
@@ -22,6 +28,22 @@ type Formulario = undefined | 'novo' | string
 export function ClientesPage() {
   const clientes = useClientes()
   const [formulario, setFormulario] = useState<Formulario>()
+  const { perfil } = useAuth()
+  const lideranca = isLideranca(perfil?.cargo)
+  const excluir = useExcluir<Client>({
+    tabela: 'clients',
+    recarregar: ['client_payments', 'tasks', 'content_cards'],
+  })
+  const toast = useToast()
+
+  function excluirCliente(cliente: Client) {
+    excluir.mutate(cliente.id, {
+      onSuccess: () => toast.sucesso('Cliente excluído.'),
+      // O banco recusa enquanto houver anúncios do cliente
+      onError: () =>
+        toast.erro('Não foi possível excluir o cliente. Se ele tem anúncios, exclua os anúncios antes.'),
+    })
+  }
 
   const lista = clientes.data ?? []
   const emEdicao = lista.find((c) => c.id === formulario)
@@ -84,15 +106,6 @@ export function ClientesPage() {
                 </div>
 
                 <div className={styles.cardAcoes}>
-                  <button
-                    type="button"
-                    className={styles.cardAcao}
-                    aria-label={`Editar ${cliente.nome}`}
-                    title="Editar"
-                    onClick={() => setFormulario(cliente.id)}
-                  >
-                    <Icone nome="editar" tamanho={16} />
-                  </button>
                   {cliente.link_conta_anuncios && (
                     <a
                       className={styles.cardAcao}
@@ -117,6 +130,13 @@ export function ClientesPage() {
                       <Icone nome="instagram" tamanho={16} />
                     </a>
                   )}
+                  <MenuAcoes
+                    nome={cliente.nome}
+                    onEditar={() => setFormulario(cliente.id)}
+                    // Excluir leva o histórico de cobranças: só a liderança, que cuida do Financeiro
+                    onExcluir={lideranca ? () => excluirCliente(cliente) : undefined}
+                    aviso="As cobranças dele também são excluídas, e as tarefas e conteúdos ficam sem cliente."
+                  />
                 </div>
               </article>
             )

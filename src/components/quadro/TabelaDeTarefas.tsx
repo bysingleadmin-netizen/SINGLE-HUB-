@@ -20,6 +20,8 @@ interface TabelaDeTarefasProps<T extends { id: string }> {
   onAbrir?: (item: T) => void
   /** Coluna que ordena a lista ao abrir */
   ordemInicial?: string
+  /** Última coluna, com o menu ⋯ de cada linha */
+  acoes?: (item: T) => ReactNode
 }
 
 /**
@@ -33,6 +35,7 @@ export function TabelaDeTarefas<T extends { id: string }>({
   tituloDe,
   onAbrir,
   ordemInicial,
+  acoes,
 }: TabelaDeTarefasProps<T>) {
   const [ordenacao, setOrdenacao] = useState({ chave: ordemInicial ?? '', crescente: true })
   const coluna = colunas.find((c) => c.chave === ordenacao.chave)
@@ -79,6 +82,11 @@ export function TabelaDeTarefas<T extends { id: string }>({
                 </th>
               )
             })}
+            {acoes && (
+              <th scope="col">
+                <span className={styles.somenteLeitor}>Ações</span>
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -108,6 +116,7 @@ export function TabelaDeTarefas<T extends { id: string }>({
                   )}
                 </td>
               ))}
+              {acoes && <td className={styles.celulaAcoes}>{acoes(item)}</td>}
             </tr>
           ))}
         </tbody>

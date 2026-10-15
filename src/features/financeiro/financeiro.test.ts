@@ -1,6 +1,7 @@
 import type { Client, ClientPayment, Expense } from '@/types/database'
 import {
   custoPorLead,
+  datasDaRecorrencia,
   despesaDoMes,
   dreDoMes,
   faturamentoPorMes,
@@ -16,6 +17,7 @@ import {
   taxaDeConversao,
   totalDasDespesas,
   validarDespesa,
+  validarMeses,
   validarMetricas,
 } from './financeiro'
 
@@ -337,5 +339,28 @@ describe('pagamentos parciais nas contas', () => {
       { cliente: { id: 'c2', nome: 'Alfa' }, pago: 0, total: 1000, percentual: 0 },
       { cliente: { id: 'c1', nome: 'Scofield' }, pago: 2000, total: 2870, percentual: 70 },
     ])
+  })
+})
+
+describe('despesa recorrente', () => {
+  it('repete a data mês a mês a partir da informada', () => {
+    expect(datasDaRecorrencia('2026-10-14', 5)).toEqual([
+      '2026-10-14',
+      '2026-11-14',
+      '2026-12-14',
+      '2027-01-14',
+      '2027-02-14',
+    ])
+  })
+
+  it('dia que não existe no mês cai no último dia dele', () => {
+    expect(datasDaRecorrencia('2026-01-31', 3)).toEqual(['2026-01-31', '2026-02-28', '2026-03-31'])
+  })
+
+  it('aceita de 1 a 36 meses, inteiros', () => {
+    expect(validarMeses('5')).toBe(5)
+    expect(validarMeses('36')).toBe(36)
+    expect(validarMeses('1')).toBe(1)
+    for (const invalido of ['', '0', '37', '2,5', 'abc']) expect(validarMeses(invalido)).toBeNull()
   })
 })

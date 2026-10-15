@@ -138,6 +138,41 @@
   background: var(--vidro-hover);
 }
 
+/* Coluna do menu ⋯: estreita, à direita. O menu aparece ao passar o mouse na linha; no toque
+   fica sempre à vista */
+.celulaAcoes {
+  width: 1%;
+  padding-block: 4px;
+  text-align: right;
+}
+
+.celulaAcoes > * {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.tabela tbody tr:hover .celulaAcoes > *,
+.celulaAcoes > :focus-within,
+.celulaAcoes > [data-aberto],
+.celulaAcoes > :has([data-aberto]) {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .celulaAcoes > * {
+    opacity: 1;
+  }
+}
+
+.somenteLeitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .ordenar {
   display: inline-flex;
   align-items: center;

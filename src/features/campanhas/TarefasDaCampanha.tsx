@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Button } from '@/components/ui/Button'
-import { Icone } from '@/components/ui/Icone'
+import { MenuAcoes } from '@/components/ui/MenuDeAcoes'
 import { Selecao } from '@/components/ui/Selecao'
 import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
@@ -127,15 +127,8 @@ function Grupo({ grupo, campanhaId, perfis }: GrupoProps) {
                   atualizarTarefa(tarefa, { responsavel_id: evento.target.value || null })
                 }
               />
-              <button
-                type="button"
-                className={ui.botaoIcone}
-                aria-label={`Remover ${tarefa.titulo}`}
-                title="Remover"
-                onClick={() => removerTarefa(tarefa.id)}
-              >
-                <Icone nome="lixeira" tamanho={16} />
-              </button>
+              {/* Os campos da linha já editam a tarefa no lugar: o menu só exclui */}
+              <MenuAcoes nome={tarefa.titulo} onExcluir={() => removerTarefa(tarefa.id)} />
             </li>
           ))}
         </ul>

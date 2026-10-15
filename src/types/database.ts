@@ -157,6 +157,9 @@ export interface Expense {
   valor: number
   data: string
   forma_pagamento: string
+  /** Migration 0005: parte de um lançamento recorrente, uma linha por mês */
+  recorrente?: boolean
+  grupo_recorrencia?: string | null
   created_by: string | null
   created_at: string
 }

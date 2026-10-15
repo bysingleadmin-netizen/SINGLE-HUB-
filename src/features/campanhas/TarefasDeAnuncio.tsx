@@ -8,9 +8,12 @@ import { doColaborador } from '@/components/quadro/colunas'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
+import { MenuAcoes } from '@/components/ui/MenuDeAcoes'
 import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 import { juntarConsultas, porId } from '@/dados/base'
+import { useExcluir } from '@/dados/excluir'
 import { useCampanhas, useClientes, usePerfis, useTarefasDeCampanha } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
 import { FUNCOES_CAMPANHA, opcao } from '@/lib/rotulos'
@@ -27,6 +30,8 @@ export function TarefasDeAnuncio() {
   const criar = useCriar()
   const navigate = useNavigate()
   const statusDeAnuncio = useStatusDeAnuncio()
+  const excluir = useExcluir<CampaignTask>({ tabela: 'campaign_tasks' })
+  const toast = useToast()
   const [responsaveis, setResponsaveis] = useState<string[]>([])
 
   const consultas = juntarConsultas(tarefas, campanhas, clientes, perfis)
@@ -117,6 +122,19 @@ export function TarefasDeAnuncio() {
           tituloDe={(tarefa) => tarefa.titulo}
           ordemInicial="status"
           onAbrir={(tarefa) => navigate(`/app/anuncios/${tarefa.campaign_id}`)}
+          acoes={(tarefa) => (
+            <MenuAcoes
+              nome={tarefa.titulo}
+              // A tarefa de anúncio é editada na página do anúncio dela
+              onEditar={() => navigate(`/app/anuncios/${tarefa.campaign_id}`)}
+              onExcluir={() =>
+                excluir.mutate(tarefa.id, {
+                  onSuccess: () => toast.sucesso('Tarefa de anúncio excluída.'),
+                  onError: () => toast.erro('Não foi possível excluir a tarefa de anúncio.'),
+                })
+              }
+            />
+          )}
         />
       )}
     </>

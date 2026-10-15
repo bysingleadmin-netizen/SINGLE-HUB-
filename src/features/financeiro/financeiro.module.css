@@ -335,3 +335,48 @@
 .progressoBarra[data-completo] > span {
   background: var(--success);
 }
+
+/* Despesa recorrente: a marcação e, quando ligada, quantos meses */
+.recorrencia {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 20px;
+}
+
+.marcar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.marcar input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.meses {
+  width: 180px;
+}
+
+/* Menu ⋯ da linha: aparece ao passar o mouse; no toque fica sempre à vista */
+.acoesDaLinha {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+li:hover > .acoesDaLinha,
+.acoesDaLinha:focus-within,
+.acoesDaLinha[data-aberto],
+.acoesDaLinha:has([data-aberto]) {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .acoesDaLinha {
+    opacity: 1;
+  }
+}

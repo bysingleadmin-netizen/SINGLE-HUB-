@@ -16,6 +16,7 @@ import quadro from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
 import { useSituacao } from '@/components/quadro/useSituacao'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
+import { MenuAcoes } from '@/components/ui/MenuDeAcoes'
 import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { StatusSelect } from '@/components/ui/StatusSelect'
@@ -45,6 +46,11 @@ export function ConteudoPage() {
   const cards = useCards()
   const excluir = useExcluir<ContentCard>({ tabela: 'content_cards', quadro: 'conteudo' })
   const toast = useToast()
+  const excluirCard = (card: ContentCard) =>
+    excluir.mutate(card.id, {
+      onSuccess: () => toast.sucesso('Conteúdo excluído.'),
+      onError: () => toast.erro('Não foi possível excluir o conteúdo.'),
+    })
   const clientes = useClientes()
   const perfis = usePerfis()
   const criar = useCriar()
@@ -223,6 +229,13 @@ export function ConteudoPage() {
                 tituloDe={(card) => card.titulo}
                 ordemInicial="entrega"
                 onAbrir={abrir}
+                acoes={(card) => (
+                  <MenuAcoes
+                    nome={card.titulo}
+                    onEditar={() => abrir(card)}
+                    onExcluir={() => excluirCard(card)}
+                  />
+                )}
               />
             )
           ) : (
@@ -269,12 +282,7 @@ export function ConteudoPage() {
               )}
               onMover={(card, destino) => mover(card, destino, todos)}
               onArquivar={(card) => mover(card, 'arquivado', todos)}
-              onExcluir={(card) =>
-                excluir.mutate(card.id, {
-                  onSuccess: () => toast.sucesso('Conteúdo excluído.'),
-                  onError: () => toast.erro('Não foi possível excluir o conteúdo.'),
-                })
-              }
+              onExcluir={excluirCard}
               onCriar={(etapa) => criar({ categoria: 'conteudo', etapa: etapa as ContentEtapa })}
               onAbrir={abrir}
             />

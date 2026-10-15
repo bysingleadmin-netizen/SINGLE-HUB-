@@ -189,6 +189,27 @@ describe('CampanhasPage', () => {
     expect(within(screen.getByRole('dialog')).getByLabelText('Nome')).toHaveValue('Institucional')
   })
 
+  it('na lista de tarefas de anúncio, o menu edita (abre o anúncio) e exclui', async () => {
+    popular()
+    renderizar(
+      <Routes>
+        <Route path="/" element={<CampanhasPage />} />
+        <Route path="/app/anuncios/:id" element={<p>página do anúncio</p>} />
+      </Routes>,
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Lista' }))
+    const tabela = within(await screen.findByRole('table', { name: 'Tarefas de anúncio' }))
+    fireEvent.click(tabela.getByRole('button', { name: 'Ações de De outra campanha' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
+    expect(await screen.findByText('Tarefa de anúncio excluída.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.campaign_tasks.map((t) => t.id)).toEqual(['x1'])
+
+    fireEvent.click(tabela.getByRole('button', { name: 'Ações de Escrever anúncios' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
+    expect(await screen.findByText('página do anúncio')).toBeInTheDocument()
+  })
+
   it('cria a campanha, aceita orçamento com vírgula e registra a atividade', async () => {
     bancoFalso().reiniciar({ clients: [CLIENTE] })
     renderizar(<CampanhasPage />)
@@ -401,7 +422,9 @@ describe('CampanhaPage', () => {
   it('remove a tarefa', async () => {
     popular()
     abrir()
-    fireEvent.click(await screen.findByRole('button', { name: 'Remover Escrever anúncios' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Ações de Escrever anúncios' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
     expect(await screen.findByText('Tarefa removida.')).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByText('Escrever anúncios')).not.toBeInTheDocument())
   })

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { SyntheticEvent } from 'react'
+import { Flutuante } from './Flutuante'
 import { Icone } from './Icone'
 import type { NomeIcone } from './Icone'
 import styles from './menuDeAcoes.module.css'
@@ -19,8 +20,8 @@ interface MenuDeAcoesProps {
   className?: string
 }
 
-// Dentro de um card arrastável, apertar o menu não pode começar um arraste
-const naoArrastar = (evento: SyntheticEvent) => evento.stopPropagation()
+// Dentro de um card arrastável ou de uma linha que abre algo, o menu não pode disparar isso
+const parar = (evento: SyntheticEvent) => evento.stopPropagation()
 
 /** Botão ⋯ que abre as ações de um item. Fecha ao escolher, ao clicar fora e com Escape. */
 export function MenuDeAcoes({ rotulo, acoes, className }: MenuDeAcoesProps) {
@@ -28,32 +29,15 @@ export function MenuDeAcoes({ rotulo, acoes, className }: MenuDeAcoesProps) {
   const raiz = useRef<HTMLDivElement>(null)
   const botao = useRef<HTMLButtonElement>(null)
 
-  useEffect(() => {
-    if (!aberto) return
-    function aoClicarFora(evento: MouseEvent) {
-      if (!raiz.current?.contains(evento.target as Node)) setAberto(false)
-    }
-    function aoTeclar(evento: KeyboardEvent) {
-      if (evento.key !== 'Escape') return
-      setAberto(false)
-      botao.current?.focus()
-    }
-    document.addEventListener('mousedown', aoClicarFora)
-    document.addEventListener('keydown', aoTeclar)
-    return () => {
-      document.removeEventListener('mousedown', aoClicarFora)
-      document.removeEventListener('keydown', aoTeclar)
-    }
-  }, [aberto])
-
   return (
     <div
       ref={raiz}
       className={[styles.menu, className].filter(Boolean).join(' ')}
       data-aberto={aberto || undefined}
-      onMouseDown={naoArrastar}
-      onTouchStart={naoArrastar}
-      onPointerDown={naoArrastar}
+      onMouseDown={parar}
+      onTouchStart={parar}
+      onPointerDown={parar}
+      onClick={parar}
     >
       <button
         ref={botao}
@@ -68,24 +52,32 @@ export function MenuDeAcoes({ rotulo, acoes, className }: MenuDeAcoesProps) {
         <Icone nome="acoes" tamanho={18} />
       </button>
       {aberto && (
-        <div className={styles.lista} role="menu" aria-label={rotulo}>
-          {acoes.map((acao) => (
-            <button
-              key={acao.rotulo}
-              type="button"
-              role="menuitem"
-              className={styles.item}
-              data-perigo={acao.perigo || undefined}
-              onClick={() => {
-                setAberto(false)
-                acao.onEscolher()
-              }}
-            >
-              <Icone nome={acao.icone} tamanho={16} />
-              {acao.rotulo}
-            </button>
-          ))}
-        </div>
+        <Flutuante
+          ancora={raiz}
+          onFechar={() => {
+            setAberto(false)
+            botao.current?.focus()
+          }}
+        >
+          <div className={styles.lista} role="menu" aria-label={rotulo}>
+            {acoes.map((acao) => (
+              <button
+                key={acao.rotulo}
+                type="button"
+                role="menuitem"
+                className={styles.item}
+                data-perigo={acao.perigo || undefined}
+                onClick={() => {
+                  setAberto(false)
+                  acao.onEscolher()
+                }}
+              >
+                <Icone nome={acao.icone} tamanho={16} />
+                {acao.rotulo}
+              </button>
+            ))}
+          </div>
+        </Flutuante>
       )}
     </div>
   )
@@ -93,27 +85,30 @@ export function MenuDeAcoes({ rotulo, acoes, className }: MenuDeAcoesProps) {
 
 interface ConfirmarExclusaoProps {
   nome: string
+  /** O que mais sai junto, dito antes do "não pode ser desfeita" */
+  aviso?: string
   carregando?: boolean
   onCancelar: () => void
   onConfirmar: () => void
 }
 
 /** Confirmação no próprio item, no lugar do window.confirm. */
-export function ConfirmarExclusao({ nome, carregando, onCancelar, onConfirmar }: ConfirmarExclusaoProps) {
+export function ConfirmarExclusao({ nome, aviso, carregando, onCancelar, onConfirmar }: ConfirmarExclusaoProps) {
   return (
     <div
       className={styles.confirmar}
       role="group"
       aria-label={`Confirmar exclusão de ${nome}`}
-      onMouseDown={naoArrastar}
-      onTouchStart={naoArrastar}
-      onPointerDown={naoArrastar}
+      onMouseDown={parar}
+      onTouchStart={parar}
+      onPointerDown={parar}
+      onClick={parar}
       onKeyDown={(evento) => {
         if (evento.key === 'Escape') onCancelar()
       }}
     >
       <p className={styles.confirmarTexto}>
-        {`Excluir ${nome}? Esta ação não pode ser desfeita.`}
+        {`Excluir ${nome}? ${aviso ? `${aviso} ` : ''}Esta ação não pode ser desfeita.`}
       </p>
       <div className={styles.confirmarAcoes}>
         <button type="button" className={styles.cancelar} onClick={onCancelar} autoFocus>
@@ -130,6 +125,53 @@ export function ConfirmarExclusao({ nome, carregando, onCancelar, onConfirmar }:
           Excluir
         </button>
       </div>
+    </div>
+  )
+}
+
+interface MenuAcoesProps {
+  /** Nome do item, usado no botão ("Ações de …") e na confirmação */
+  nome: string
+  /** Abre o mesmo formulário da criação, preenchido. Sem ele, o menu não tem Editar */
+  onEditar?: () => void
+  /** Exclusão definitiva, depois da confirmação. Sem ele, o menu não tem Excluir */
+  onExcluir?: () => void
+  /** O que mais sai junto com o item, mostrado na confirmação */
+  aviso?: string
+  className?: string
+}
+
+/**
+ * Padrão de todo item do sistema: ⋯ com Editar e Excluir. A exclusão pede confirmação numa
+ * caixa presa ao próprio item.
+ */
+export function MenuAcoes({ nome, onEditar, onExcluir, aviso, className }: MenuAcoesProps) {
+  const [confirmando, setConfirmando] = useState(false)
+  const raiz = useRef<HTMLDivElement>(null)
+  const acoes: AcaoDoMenu[] = [
+    ...(onEditar ? [{ rotulo: 'Editar', icone: 'editar' as const, onEscolher: onEditar }] : []),
+    ...(onExcluir
+      ? [{ rotulo: 'Excluir', icone: 'lixeira' as const, perigo: true, onEscolher: () => setConfirmando(true) }]
+      : []),
+  ]
+  if (acoes.length === 0) return null
+
+  return (
+    <div ref={raiz} className={[styles.menuAcoes, className].filter(Boolean).join(' ')} data-aberto={confirmando || undefined}>
+      <MenuDeAcoes rotulo={`Ações de ${nome}`} acoes={acoes} />
+      {confirmando && onExcluir && (
+        <Flutuante ancora={raiz} onFechar={() => setConfirmando(false)} className={styles.confirmarFlutuante}>
+          <ConfirmarExclusao
+            nome={nome}
+            aviso={aviso}
+            onCancelar={() => setConfirmando(false)}
+            onConfirmar={() => {
+              setConfirmando(false)
+              onExcluir()
+            }}
+          />
+        </Flutuante>
+      )}
     </div>
   )
 }

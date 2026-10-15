@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
-import { Icone } from '@/components/ui/Icone'
+import { MenuAcoes } from '@/components/ui/MenuDeAcoes'
 import { Modal } from '@/components/ui/Modal'
 import { Painel } from '@/components/ui/Painel'
 import { Selecao } from '@/components/ui/Selecao'
@@ -11,20 +12,26 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRemover, useSalvar } from '@/dados/base'
+import type { Valores } from '@/dados/base'
 import { useDespesas } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
 import { vencimentoNoMes } from '@/features/clientes/cartoes'
+import { moedaParaCampo } from '@/features/clientes/cliente'
 import { hojeISO } from '@/lib/datas'
 import { formatarData, formatarMoeda } from '@/lib/formato'
 import type { Erros } from '@/lib/formulario'
 import { plural } from '@/lib/regras'
+import { supabase } from '@/lib/supabase'
 import type { Expense } from '@/types/database'
 import {
   CATEGORIAS,
   FORMAS_DE_PAGAMENTO,
+  MAXIMO_DE_MESES,
+  datasDaRecorrencia,
   filtrarDespesas,
   totalDasDespesas,
   validarDespesa,
+  validarMeses,
 } from './financeiro'
 import type { FiltroDeDespesas, FormDespesa } from './financeiro'
 import styles from './financeiro.module.css'
@@ -42,11 +49,56 @@ function formVazio(): FormDespesa {
   }
 }
 
-function NovaDespesa() {
+function formDaDespesa(despesa: Expense): FormDespesa {
+  return {
+    descricao: despesa.descricao,
+    categoria: despesa.categoria,
+    valor: moedaParaCampo(Number(despesa.valor)),
+    data: despesa.data,
+    forma_pagamento: despesa.forma_pagamento,
+  }
+}
+
+// O banco diz assim que a coluna pedida não existe (migration 0005 não rodada)
+const COLUNA_AUSENTE = new Set(['42703', 'PGRST204'])
+
+/**
+ * Grava as despesas de uma recorrência num insert só, marcadas com o mesmo grupo. Sem a
+ * migration 0005 o banco recusa a marca, e as despesas são gravadas sem ela.
+ */
+function useLancarDespesas() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (linhas: Valores<Expense>[]) => {
+      const grupo = crypto.randomUUID()
+      const { error } = await supabase
+        .from('expenses')
+        .insert(linhas.map((linha) => ({ ...linha, recorrente: true, grupo_recorrencia: grupo })))
+      if (!error) return
+      if (!COLUNA_AUSENTE.has(error.code ?? '')) throw error
+      const semGrupo = await supabase.from('expenses').insert(linhas)
+      if (semGrupo.error) throw semGrupo.error
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['expenses'] }),
+  })
+}
+
+interface FormularioDeDespesaProps {
+  /** Despesa em edição; sem ela, o formulário lança uma nova */
+  despesa?: Expense
+  /** Chamado ao salvar ou cancelar a edição */
+  onSalvo?: () => void
+}
+
+/** O mesmo formulário lança uma despesa (ou uma por mês, se recorrente) e edita uma existente. */
+function FormularioDeDespesa({ despesa, onSalvo }: FormularioDeDespesaProps) {
   const { perfil } = useAuth()
-  const [form, setForm] = useState(formVazio)
-  const [erros, setErros] = useState<Erros<FormDespesa>>({})
+  const [form, setForm] = useState(() => (despesa ? formDaDespesa(despesa) : formVazio()))
+  const [recorrente, setRecorrente] = useState(false)
+  const [meses, setMeses] = useState('12')
+  const [erros, setErros] = useState<Erros<FormDespesa & { meses: string }>>({})
   const salvar = useSalvar<Expense>('expenses')
+  const lancar = useLancarDespesas()
   const toast = useToast()
 
   const mudar = (campo: keyof FormDespesa) => (evento: { target: { value: string } }) =>
@@ -55,70 +107,136 @@ function NovaDespesa() {
   function aoEnviar(evento: FormEvent) {
     evento.preventDefault()
     const validacao = validarDespesa(form)
-    if ('erros' in validacao) {
-      setErros(validacao.erros)
+    const repeticoes = recorrente ? validarMeses(meses) : 1
+    if ('erros' in validacao || repeticoes == null) {
+      setErros({
+        ...('erros' in validacao ? validacao.erros : {}),
+        ...(repeticoes == null ? { meses: `Repita de 1 a ${MAXIMO_DE_MESES} meses.` } : {}),
+      })
       return
     }
     setErros({})
-    salvar.mutate(
-      { valores: { ...validacao.valores, created_by: perfil?.id ?? null } },
-      {
-        onSuccess: () => {
-          toast.sucesso('Despesa lançada.')
-          // Categoria, data e forma ficam, para lançar várias despesas seguidas
-          setForm((atual) => ({ ...atual, descricao: '', valor: '' }))
+    const valores = validacao.valores
+
+    if (despesa) {
+      salvar.mutate(
+        { id: despesa.id, valores },
+        {
+          onSuccess: () => {
+            toast.sucesso('Despesa atualizada.')
+            onSalvo?.()
+          },
+          onError: () => toast.erro('Não foi possível salvar a despesa.'),
         },
-        onError: () => toast.erro('Não foi possível lançar a despesa.'),
+      )
+      return
+    }
+
+    // Categoria, data e forma ficam, para lançar várias despesas seguidas
+    const limpar = () => setForm((atual) => ({ ...atual, descricao: '', valor: '' }))
+    if (repeticoes === 1) {
+      salvar.mutate(
+        { valores: { ...valores, created_by: perfil?.id ?? null } },
+        {
+          onSuccess: () => {
+            toast.sucesso('Despesa lançada.')
+            limpar()
+          },
+          onError: () => toast.erro('Não foi possível lançar a despesa.'),
+        },
+      )
+      return
+    }
+
+    const linhas = datasDaRecorrencia(valores.data, repeticoes).map((data) => ({
+      ...valores,
+      data,
+      created_by: perfil?.id ?? null,
+    }))
+    lancar.mutate(linhas, {
+      onSuccess: () => {
+        toast.sucesso(`${linhas.length} despesas lançadas com sucesso.`)
+        limpar()
       },
-    )
+      onError: () => toast.erro('Não foi possível lançar as despesas.'),
+    })
   }
 
   return (
-    <Painel titulo="Nova despesa">
-      <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
-        <div className={styles.campos}>
-          <Campo
-            className={styles.descricao}
-            rotulo="Descrição"
-            value={form.descricao}
-            erro={erros.descricao}
-            onChange={mudar('descricao')}
-          />
-          <Selecao
-            rotulo="Categoria"
-            opcoes={OPCOES_CATEGORIA}
-            value={form.categoria}
-            onChange={mudar('categoria')}
-          />
-          <Campo
-            rotulo="Valor"
-            inputMode="decimal"
-            placeholder="0,00"
-            value={form.valor}
-            erro={erros.valor}
-            onChange={mudar('valor')}
-          />
-          <Campo
-            rotulo="Data"
-            type="date"
-            value={form.data}
-            erro={erros.data}
-            onChange={mudar('data')}
-          />
-          <Selecao
-            rotulo="Forma de pagamento"
-            opcoes={OPCOES_FORMA}
-            value={form.forma_pagamento}
-            onChange={mudar('forma_pagamento')}
-          />
+    <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
+      <div className={styles.campos}>
+        <Campo
+          className={styles.descricao}
+          rotulo="Descrição"
+          value={form.descricao}
+          erro={erros.descricao}
+          onChange={mudar('descricao')}
+        />
+        <Selecao
+          rotulo="Categoria"
+          opcoes={OPCOES_CATEGORIA}
+          value={form.categoria}
+          onChange={mudar('categoria')}
+        />
+        <Campo
+          rotulo="Valor"
+          inputMode="decimal"
+          placeholder="0,00"
+          value={form.valor}
+          erro={erros.valor}
+          onChange={mudar('valor')}
+        />
+        <Campo
+          rotulo="Data"
+          type="date"
+          value={form.data}
+          erro={erros.data}
+          onChange={mudar('data')}
+        />
+        <Selecao
+          rotulo="Forma de pagamento"
+          opcoes={OPCOES_FORMA}
+          value={form.forma_pagamento}
+          onChange={mudar('forma_pagamento')}
+        />
+      </div>
+      {/* Editar mexe numa despesa só; a recorrência existe no lançamento */}
+      {!despesa && (
+        <div className={styles.recorrencia}>
+          <label className={styles.marcar}>
+            <input
+              type="checkbox"
+              checked={recorrente}
+              onChange={(evento) => setRecorrente(evento.target.checked)}
+            />
+            Despesa recorrente
+          </label>
+          {recorrente && (
+            <Campo
+              className={styles.meses}
+              rotulo="Repetir por (meses)"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={MAXIMO_DE_MESES}
+              value={meses}
+              erro={erros.meses}
+              onChange={(evento) => setMeses(evento.target.value)}
+            />
+          )}
         </div>
-        <div className={ui.acoes}>
-          <Button type="submit" carregando={salvar.isPending}>
-            Lançar despesa
+      )}
+      <div className={ui.acoes}>
+        {despesa && (
+          <Button variante="fantasma" onClick={onSalvo}>
+            Cancelar
           </Button>
-        </div>
-      </form>
-    </Painel>
+        )}
+        <Button type="submit" carregando={salvar.isPending || lancar.isPending}>
+          {despesa ? 'Salvar alterações' : 'Lançar despesa'}
+        </Button>
+      </div>
+    </form>
   )
 }
 
@@ -132,17 +250,15 @@ export function Lancamentos() {
     const mes = `${hojeISO().slice(0, 7)}-01`
     return { de: mes, ate: vencimentoNoMes(mes, 31), categoria: '' }
   })
-  const [excluindo, setExcluindo] = useState<Expense>()
+  const [editando, setEditando] = useState<Expense>()
 
   const mudarFiltro = (campo: keyof FiltroDeDespesas) => (evento: { target: { value: string } }) =>
     setFiltro((atual) => ({ ...atual, [campo]: evento.target.value }))
 
-  function excluir() {
-    if (!excluindo) return
-    remover.mutate(excluindo.id, {
+  function excluir(despesa: Expense) {
+    remover.mutate(despesa.id, {
       onSuccess: () => toast.sucesso('Despesa excluída.'),
       onError: () => toast.erro('Não foi possível excluir a despesa.'),
-      onSettled: () => setExcluindo(undefined),
     })
   }
 
@@ -150,7 +266,9 @@ export function Lancamentos() {
 
   return (
     <>
-      <NovaDespesa />
+      <Painel titulo="Nova despesa">
+        <FormularioDeDespesa />
+      </Painel>
 
       <Painel titulo="Despesas">
         <div className={styles.campos}>
@@ -198,15 +316,13 @@ export function Lancamentos() {
                       </span>
                     </div>
                     <span className={styles.valor}>{formatarMoeda(Number(despesa.valor))}</span>
-                    <button
-                      type="button"
-                      className={ui.botaoIcone}
-                      aria-label={`Excluir ${despesa.descricao}`}
-                      title="Excluir"
-                      onClick={() => setExcluindo(despesa)}
-                    >
-                      <Icone nome="lixeira" tamanho={16} />
-                    </button>
+                    <MenuAcoes
+                      className={styles.acoesDaLinha}
+                      nome={despesa.descricao}
+                      aviso="Ela sai do DRE do mês."
+                      onEditar={() => setEditando(despesa)}
+                      onExcluir={() => excluir(despesa)}
+                    />
                   </li>
                 ))}
               </ul>
@@ -215,22 +331,13 @@ export function Lancamentos() {
         )}
       </Painel>
 
-      {excluindo && (
-        <Modal aberto titulo="Excluir despesa" onFechar={() => setExcluindo(undefined)}>
-          <div className={ui.formulario}>
-            <p>
-              Excluir <strong>{excluindo.descricao}</strong>, de{' '}
-              <strong>{formatarMoeda(Number(excluindo.valor))}</strong>? Ela sai do DRE do mês.
-            </p>
-            <div className={ui.acoes}>
-              <Button variante="fantasma" onClick={() => setExcluindo(undefined)}>
-                Cancelar
-              </Button>
-              <Button carregando={remover.isPending} onClick={excluir}>
-                Excluir despesa
-              </Button>
-            </div>
-          </div>
+      {editando && (
+        <Modal aberto titulo="Editar despesa" onFechar={() => setEditando(undefined)}>
+          <FormularioDeDespesa
+            key={editando.id}
+            despesa={editando}
+            onSalvo={() => setEditando(undefined)}
+          />
         </Modal>
       )}
     </>

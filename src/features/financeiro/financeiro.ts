@@ -1,4 +1,4 @@
-import { restante, valorRecebido } from '@/features/clientes/cartoes'
+import { proximoMes, restante, valorRecebido, vencimentoNoMes } from '@/features/clientes/cartoes'
 import { diffDias } from '@/lib/datas'
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
@@ -218,6 +218,25 @@ export function validarDespesa(form: FormDespesa): Validacao<ValoresDespesa, For
       forma_pagamento: form.forma_pagamento,
     },
   }
+}
+
+/** Máximo de meses de uma despesa recorrente */
+export const MAXIMO_DE_MESES = 36
+
+/** Quantos meses repetir a despesa: inteiro de 1 a 36, ou null se não for. */
+export function validarMeses(texto: string): number | null {
+  if (!/^\d+$/.test(texto.trim())) return null
+  const meses = Number(texto)
+  return meses >= 1 && meses <= MAXIMO_DE_MESES ? meses : null
+}
+
+/** A data informada e as dos meses seguintes, no mesmo dia (ou no último dia do mês, se faltar). */
+export function datasDaRecorrencia(data: string, meses: number): string[] {
+  const dia = Number(data.slice(8, 10))
+  const datas: string[] = []
+  let mes = `${data.slice(0, 7)}-01`
+  for (let i = 0; i < meses; i++, mes = proximoMes(mes)) datas.push(vencimentoNoMes(mes, dia))
+  return datas
 }
 
 export interface FormMetricas {

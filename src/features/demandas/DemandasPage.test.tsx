@@ -235,6 +235,23 @@ describe('DemandasPage', () => {
     expect(await screen.findByRole('dialog', { name: 'Roteiro de reels' })).toBeInTheDocument()
   })
 
+  it('na lista, o menu da linha edita (abre o painel) e exclui sem abrir a linha', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Lista' }))
+    const tabela = within(screen.getByRole('table', { name: 'Lista de demandas' }))
+    fireEvent.click(tabela.getByRole('button', { name: 'Ações de Roteiro de reels' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
+    expect(await screen.findByText('Demanda excluída.')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(bancoFalso().tabelas.tasks.some((t) => t.id === 't1')).toBe(false)
+
+    fireEvent.click(tabela.getByRole('button', { name: 'Ações de Subir campanha' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
+    expect(await screen.findByRole('dialog', { name: 'Subir campanha' })).toBeInTheDocument()
+  })
+
   it('renomeia uma coluna com dois cliques e guarda o nome no banco', async () => {
     popular()
     renderizar(<DemandasPage />)

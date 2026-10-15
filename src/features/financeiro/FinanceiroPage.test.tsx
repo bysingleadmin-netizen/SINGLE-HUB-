@@ -383,14 +383,80 @@ describe('Despesas', () => {
   it('exclui uma despesa só depois de confirmar', async () => {
     abrir('despesas', { expenses: despesas })
     const lista = painel('Despesas')
-    fireEvent.click(await lista.findByRole('button', { name: 'Excluir Adobe' }))
+    fireEvent.click(await lista.findByRole('button', { name: 'Ações de Adobe' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir' }))
     expect(bancoFalso().tabelas.expenses).toHaveLength(3)
 
-    const confirmacao = within(screen.getByRole('dialog', { name: 'Excluir despesa' }))
-    fireEvent.click(confirmacao.getByRole('button', { name: 'Excluir despesa' }))
+    expect(screen.getByText(/^Excluir Adobe\? Ela sai do DRE do mês\./)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
     expect(await screen.findByText('Despesa excluída.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.expenses.map((d) => d.id)).toEqual(['d2', 'd3'])
     await waitFor(() => expect(lista.queryByText('Adobe')).not.toBeInTheDocument())
+  })
+
+  it('despesa recorrente lança uma por mês, no mesmo grupo', async () => {
+    abrir('despesas')
+    const form = painel('Nova despesa')
+    fireEvent.change(form.getByLabelText('Descrição'), { target: { value: 'Assinatura Figma' } })
+    fireEvent.change(form.getByLabelText('Valor'), { target: { value: '200' } })
+    fireEvent.change(form.getByLabelText('Data'), { target: { value: '2026-10-14' } })
+    fireEvent.click(form.getByLabelText('Despesa recorrente'))
+    fireEvent.change(form.getByLabelText('Repetir por (meses)'), { target: { value: '5' } })
+    fireEvent.click(form.getByRole('button', { name: 'Lançar despesa' }))
+
+    expect(await screen.findByText('5 despesas lançadas com sucesso.')).toBeInTheDocument()
+    const lancadas = bancoFalso().tabelas.expenses
+    expect(lancadas.map((d) => d.data)).toEqual(['2026-10-14', '2026-11-14', '2026-12-14', '2027-01-14', '2027-02-14'])
+    expect(lancadas.every((d) => d.descricao === 'Assinatura Figma' && d.valor === 200 && d.recorrente === true)).toBe(true)
+    expect(new Set(lancadas.map((d) => d.grupo_recorrencia)).size).toBe(1)
+    expect(lancadas[0].grupo_recorrencia).toEqual(expect.any(String))
+  })
+
+  it('não lança recorrência fora de 1 a 36 meses', async () => {
+    abrir('despesas')
+    const form = painel('Nova despesa')
+    fireEvent.change(form.getByLabelText('Descrição'), { target: { value: 'Assinatura' } })
+    fireEvent.change(form.getByLabelText('Valor'), { target: { value: '200' } })
+    fireEvent.click(form.getByLabelText('Despesa recorrente'))
+    fireEvent.change(form.getByLabelText('Repetir por (meses)'), { target: { value: '40' } })
+    fireEvent.click(form.getByRole('button', { name: 'Lançar despesa' }))
+
+    expect(await form.findByText('Repita de 1 a 36 meses.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.expenses).toHaveLength(0)
+  })
+
+  it('sem a migration 0005, a recorrência lança os meses sem marcar o grupo', async () => {
+    abrir('despesas')
+    bancoFalso().colunasAusentes = ['expenses.recorrente', 'expenses.grupo_recorrencia']
+    const form = painel('Nova despesa')
+    fireEvent.change(form.getByLabelText('Descrição'), { target: { value: 'Assinatura' } })
+    fireEvent.change(form.getByLabelText('Valor'), { target: { value: '200' } })
+    fireEvent.change(form.getByLabelText('Data'), { target: { value: '2026-10-14' } })
+    fireEvent.click(form.getByLabelText('Despesa recorrente'))
+    fireEvent.change(form.getByLabelText('Repetir por (meses)'), { target: { value: '3' } })
+    fireEvent.click(form.getByRole('button', { name: 'Lançar despesa' }))
+
+    expect(await screen.findByText('3 despesas lançadas com sucesso.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.expenses).toHaveLength(3)
+    expect(bancoFalso().tabelas.expenses[0]).not.toHaveProperty('recorrente')
+  })
+
+  it('edita pelo menu, no mesmo formulário da criação, já preenchido', async () => {
+    abrir('despesas', { expenses: despesas })
+    fireEvent.click(await painel('Despesas').findByRole('button', { name: 'Ações de Adobe' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
+
+    const modal = within(screen.getByRole('dialog', { name: 'Editar despesa' }))
+    expect(modal.getByLabelText('Descrição')).toHaveValue('Adobe')
+    expect(modal.getByLabelText('Valor')).toHaveValue('300,00')
+    expect(modal.queryByLabelText('Despesa recorrente')).not.toBeInTheDocument()
+    fireEvent.change(modal.getByLabelText('Valor'), { target: { value: '350' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar alterações' }))
+
+    expect(await screen.findByText('Despesa atualizada.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.expenses[0]).toMatchObject({ id: 'd1', descricao: 'Adobe', valor: 350 })
+    expect(bancoFalso().tabelas.expenses).toHaveLength(3)
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
   it('período sem despesas mostra estado vazio', async () => {

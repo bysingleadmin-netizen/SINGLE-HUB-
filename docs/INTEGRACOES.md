@@ -100,6 +100,16 @@ O que ela faz e o que o app faz enquanto ela não roda:
 | CRM | o menu CRM avisa que liga depois desta migration | pipeline Leads, Reunião e Fechamento de contrato; soltar em Cliente pede MRR, duração e início e cria o cliente pela função `converter_lead`, numa operação só. Tabelas `leads` e `lead_historico`, só para a liderança (RLS) |
 | Indicadores comerciais no Dashboard | MRR e ARR aparecem; leads no pipeline e conversão mostram um traço | MRR, ARR, leads no pipeline e conversão em 30 dias, só para a liderança, atualizando em tempo real (`clients` e `leads` na publicação `supabase_realtime`) |
 
+### Migration 0005 (despesas recorrentes, 2026-10-15)
+
+- [ ] Rodar `supabase/migrations/0005_recorrencia.sql` no SQL Editor (depois da 0004)
+
+Pode rodar mais de uma vez. Acrescenta `recorrente` e `grupo_recorrencia` em `expenses`.
+
+| Recurso | Sem a migration | Com a migration |
+|---|---|---|
+| Despesa recorrente | lança uma despesa por mês do mesmo jeito, mas sem marcar que elas são do mesmo lançamento | as despesas de um lançamento ficam marcadas com o mesmo `grupo_recorrencia`, para editar ou excluir o grupo no futuro |
+
 ### Pagamentos recorrentes
 
 Ninguém cadastra pagamento à mão. Para cada cliente ativo com valor mensal e dia de vencimento, o sistema grava em `client_payments` a cobrança do mês atual e as dos três meses seguintes. Meses anteriores ao atual não são criados depois do fato.

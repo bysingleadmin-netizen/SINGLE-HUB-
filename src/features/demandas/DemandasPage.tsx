@@ -16,6 +16,7 @@ import pagina from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
 import { useSituacao } from '@/components/quadro/useSituacao'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
+import { MenuAcoes } from '@/components/ui/MenuDeAcoes'
 import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { StatusSelect } from '@/components/ui/StatusSelect'
@@ -55,6 +56,11 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
   const subtarefas = useSubtarefas(quadro)
   const excluir = useExcluir<Task>({ tabela: 'tasks', quadro })
   const toast = useToast()
+  const excluirTarefa = (tarefa: Task) =>
+    excluir.mutate(tarefa.id, {
+      onSuccess: () => toast.sucesso(`${texto.Item} excluída.`),
+      onError: () => toast.erro(`Não foi possível excluir a ${texto.item}.`),
+    })
   const situacoes = useOpcoes('situacao', SITUACOES)
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
   const [verArquivados, setVerArquivados] = useState(false)
@@ -246,6 +252,13 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
                 tituloDe={(tarefa) => tarefa.titulo}
                 ordemInicial="entrega"
                 onAbrir={abrir}
+                acoes={(tarefa) => (
+                  <MenuAcoes
+                    nome={tarefa.titulo}
+                    onEditar={() => abrir(tarefa)}
+                    onExcluir={() => excluirTarefa(tarefa)}
+                  />
+                )}
               />
             )
           ) : (
@@ -297,12 +310,7 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
               )}
               onMover={(tarefa, destino) => mover(tarefa, destino, todas)}
               onArquivar={(tarefa) => mover(tarefa, 'arquivado', todas)}
-              onExcluir={(tarefa) =>
-                excluir.mutate(tarefa.id, {
-                  onSuccess: () => toast.sucesso(`${texto.Item} excluída.`),
-                  onError: () => toast.erro(`Não foi possível excluir a ${texto.item}.`),
-                })
-              }
+              onExcluir={excluirTarefa}
               onCriar={(status) =>
                 criar({ categoria: quadro === 'tarefas' ? 'tarefa' : 'demanda', status: status as TaskStatus })
               }

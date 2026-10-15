@@ -87,7 +87,7 @@
   background: var(--surface-2);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 16px 40px var(--sombra);
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 600;
@@ -116,7 +116,7 @@
 .novaColuna:hover,
 .novaColuna[data-aberta] {
   background: var(--vidro);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--realce-borda);
   color: var(--text);
 }
 
@@ -168,7 +168,7 @@
 
 .card {
   position: relative;
-  background: rgba(255, 255, 255, 0.045);
+  background: var(--realce);
   border: 1px solid var(--vidro-borda);
   border-radius: var(--radius-sm);
   cursor: grab;
@@ -181,8 +181,8 @@
 }
 
 .card:hover {
-  background: rgba(255, 255, 255, 0.075);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: var(--realce-forte);
+  border-color: var(--realce-borda);
   transform: translateX(2px);
 }
 
@@ -201,7 +201,7 @@
   background: var(--surface-2);
   cursor: grabbing;
   animation: none;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 16px 40px var(--sombra);
   transform: rotate(1.5deg);
 }
 
@@ -261,7 +261,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--realce);
   border: 1px solid var(--vidro-borda);
   border-radius: var(--radius-sm);
 }
@@ -322,7 +322,7 @@
 
 /* Todas as subtarefas concluídas: só um sinal visual, o card não muda de status */
 .infoContagem[data-completo] {
-  color: #3ecf8e;
+  color: var(--verde);
   font-weight: 600;
 }
 
@@ -337,15 +337,15 @@
 }
 
 .infoPrazo[data-prazo='folgado'] {
-  --prazo: #3ecf8e;
+  --prazo: var(--verde);
 }
 
 .infoPrazo[data-prazo='proximo'] {
-  --prazo: #e6a630;
+  --prazo: var(--amarelo);
 }
 
 .infoPrazo[data-prazo='atrasado'] {
-  --prazo: #f04444;
+  --prazo: var(--perigo);
   font-weight: 600;
 }
 
@@ -354,7 +354,7 @@
   display: block;
   height: 3px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--realce-forte);
   border-radius: 999px;
 }
 

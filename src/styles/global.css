@@ -14,6 +14,25 @@
   --vidro-hover: rgba(255, 255, 255, 0.055);
   --vidro-borda: rgba(255, 255, 255, 0.06);
   --campo-borda: rgba(255, 255, 255, 0.08);
+  /* Realces, sombras e véus: brancos translúcidos no escuro, escuros translúcidos no claro */
+  --realce: rgba(255, 255, 255, 0.045);
+  --realce-forte: rgba(255, 255, 255, 0.07);
+  --realce-borda: rgba(255, 255, 255, 0.16);
+  --afundado: rgba(0, 0, 0, 0.18);
+  --rolagem: rgba(255, 255, 255, 0.15);
+  --sombra: rgba(0, 0, 0, 0.5);
+  --veu: rgba(0, 0, 0, 0.6);
+  --surface-flutuante: #17171b;
+  /* Vermelho e laranja usados como texto: no claro escurecem para continuar legíveis */
+  --perigo: #f04444;
+  --laranja: #f08a3c;
+  --verde: #3ecf8e;
+  --amarelo: #e6a630;
+  --azul: #4a9eff;
+  --roxo: #a855f7;
+  /* Menu lateral e cabeçalho, translúcidos sobre o fundo */
+  --fundo-menu: rgba(20, 20, 23, 0.72);
+  --fundo-cabecalho: rgba(11, 11, 13, 0.72);
   --radius: 12px;
   --radius-sm: 8px;
   --sidebar-w: 220px;
@@ -22,6 +41,42 @@
   --font-body: 'Inter', system-ui, sans-serif;
   --font-display: 'Sora', 'Inter', system-ui, sans-serif;
   color-scheme: dark;
+}
+
+/* Tema claro, escolhido em Configurações > Aparência (src/lib/tema.ts) */
+:root[data-theme='light'] {
+  --bg: #f4f4f6;
+  --surface: #ffffff;
+  --surface-2: #efeff3;
+  --border: #dedee5;
+  --text: #17171c;
+  --text-muted: #4b4b57;
+  --text-fraco: #6c6c79;
+  --accent: #d92b2b;
+  --accent-hover: #c42020;
+  --accent-soft: rgba(217, 43, 43, 0.1);
+  --success: #15925a;
+  --vidro: rgba(255, 255, 255, 0.78);
+  --vidro-hover: rgba(20, 20, 30, 0.05);
+  --vidro-borda: rgba(20, 20, 30, 0.09);
+  --campo-borda: rgba(20, 20, 30, 0.14);
+  --realce: rgba(20, 20, 30, 0.035);
+  --realce-forte: rgba(20, 20, 30, 0.06);
+  --realce-borda: rgba(20, 20, 30, 0.18);
+  --afundado: rgba(20, 20, 30, 0.04);
+  --rolagem: rgba(20, 20, 30, 0.2);
+  --sombra: rgba(20, 20, 40, 0.14);
+  --veu: rgba(15, 15, 25, 0.35);
+  --surface-flutuante: #ffffff;
+  --perigo: #c62828;
+  --laranja: #b4570f;
+  --verde: #15925a;
+  --amarelo: #9a6400;
+  --azul: #1f6fd1;
+  --roxo: #8a3fd8;
+  --fundo-menu: rgba(255, 255, 255, 0.82);
+  --fundo-cabecalho: rgba(244, 244, 246, 0.8);
+  color-scheme: light;
 }
 
 *,
@@ -151,7 +206,7 @@ textarea {
 /* Barra de rolagem fina em toda a aplicação */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-color: var(--rolagem) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -164,7 +219,7 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--rolagem);
   border-radius: 4px;
 }
 

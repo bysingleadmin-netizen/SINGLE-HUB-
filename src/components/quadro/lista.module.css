@@ -201,15 +201,15 @@
 }
 
 .celulaPrazo[data-prazo='folgado'] {
-  color: #3ecf8e;
+  color: var(--verde);
 }
 
 .celulaPrazo[data-prazo='proximo'] {
-  color: #e6a630;
+  color: var(--amarelo);
 }
 
 .celulaPrazo[data-prazo='atrasado'] {
-  color: #f04444;
+  color: var(--perigo);
   font-weight: 600;
 }
 
@@ -229,7 +229,7 @@
 .aviso svg {
   flex-shrink: 0;
   margin-top: 1px;
-  color: #e6a630;
+  color: var(--amarelo);
 }
 
 .aviso strong {

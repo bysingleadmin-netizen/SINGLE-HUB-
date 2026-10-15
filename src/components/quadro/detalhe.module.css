@@ -25,15 +25,15 @@
 }
 
 .prazo[data-prazo='folgado'] {
-  --prazo: #3ecf8e;
+  --prazo: var(--verde);
 }
 
 .prazo[data-prazo='proximo'] {
-  --prazo: #e6a630;
+  --prazo: var(--amarelo);
 }
 
 .prazo[data-prazo='atrasado'] {
-  --prazo: #f04444;
+  --prazo: var(--perigo);
 }
 
 /* O título é o campo principal: maior e sem moldura até ganhar foco */

@@ -75,6 +75,29 @@ describe('meu perfil', () => {
   })
 })
 
+describe('aparência', () => {
+  it('começa no escuro e troca para o claro, guardando a escolha', () => {
+    abrir('Designer')
+    const grupo = within(screen.getByRole('group', { name: 'Tema' }))
+    expect(grupo.getByRole('button', { name: 'Escuro' })).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(grupo.getByRole('button', { name: 'Claro' }))
+    expect(grupo.getByRole('button', { name: 'Claro' })).toHaveAttribute('aria-pressed', 'true')
+    expect(localStorage.getItem('tema')).toBe('claro')
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+
+    fireEvent.click(grupo.getByRole('button', { name: 'Escuro' }))
+    expect(localStorage.getItem('tema')).toBe('escuro')
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+  })
+
+  it('a liderança também acha a aparência na aba do perfil', () => {
+    localStorage.setItem('tema', 'claro')
+    abrir('CEO')
+    expect(screen.getByRole('button', { name: 'Claro' })).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
 describe('aba Equipe', () => {
   it('não existe para quem não é da liderança', () => {
     abrir('Designer')

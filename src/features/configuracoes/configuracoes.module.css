@@ -77,3 +77,8 @@
     width: 100%;
   }
 }
+
+/* Escuro e Claro lado a lado, sem esticar na largura do painel */
+.tema {
+  align-self: flex-start;
+}

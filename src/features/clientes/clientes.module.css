@@ -41,7 +41,7 @@
 
 .card:hover {
   background: var(--vidro-hover);
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: var(--realce-borda);
   transform: translateX(2px);
 }
 

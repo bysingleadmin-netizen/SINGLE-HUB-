@@ -181,7 +181,7 @@
   display: block;
   height: 6px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--realce-forte);
   border-radius: 999px;
 }
 
@@ -275,7 +275,7 @@
 }
 
 .graficoGrade {
-  stroke: rgba(255, 255, 255, 0.06);
+  stroke: var(--realce-forte);
   stroke-dasharray: 3 5;
 }
 
@@ -328,7 +328,7 @@
   background: var(--surface-2);
   border: 1px solid rgba(230, 48, 48, 0.45);
   border-radius: var(--radius-sm);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 28px var(--sombra);
   transform: translate(-50%, -100%);
   pointer-events: none;
   white-space: nowrap;
@@ -399,7 +399,7 @@
 
 .roscaTrilho {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.05);
+  stroke: var(--realce);
   stroke-width: 5;
 }
 

@@ -36,27 +36,27 @@
 
 /* A cor vem do tom da opção; status criado pela equipe fica no tom neutro */
 .situacao[data-tom='vermelho'] {
-  --tom: #f04444;
+  --tom: var(--perigo);
 }
 
 .situacao[data-tom='amarelo'] {
-  --tom: #e6a630;
+  --tom: var(--amarelo);
 }
 
 .situacao[data-tom='laranja'] {
-  --tom: #f08a3c;
+  --tom: var(--laranja);
 }
 
 .situacao[data-tom='verde'] {
-  --tom: #3ecf8e;
+  --tom: var(--verde);
 }
 
 .situacao[data-tom='azul'] {
-  --tom: #4a9eff;
+  --tom: var(--azul);
 }
 
 .situacao[data-tom='roxo'] {
-  --tom: #a855f7;
+  --tom: var(--roxo);
 }
 
 .situacao[data-situacao][data-tom='cinza'] {
@@ -78,7 +78,7 @@
   height: 26px;
   padding: 0;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--realce);
   border: 1px solid var(--vidro-borda);
   border-radius: 6px;
   color: var(--text-muted);
@@ -147,7 +147,7 @@
 }
 
 .itemLink:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--realce-borda);
 }
 
 .itemImagem,
@@ -236,4 +236,10 @@
     width: 36px;
     height: 36px;
   }
+}
+
+/* No claro, a cor do status como texto escurece para continuar legível, inclusive a escolhida
+   pela equipe */
+:global([data-theme='light']) .situacao {
+  color: color-mix(in srgb, var(--tom) 62%, #000);
 }

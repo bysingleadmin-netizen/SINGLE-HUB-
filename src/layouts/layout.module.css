@@ -17,7 +17,7 @@
   flex-direction: column;
   gap: 16px;
   padding: 16px 10px;
-  background: rgba(20, 20, 23, 0.72);
+  background: var(--fundo-menu);
   border-right: 1px solid var(--vidro-borda);
   backdrop-filter: blur(12px);
   transition: width 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -104,13 +104,17 @@
 
 /* Cabeçalho de um grupo de itens e o recuo dos itens dele */
 .grupo {
-  margin-top: 8px;
-  padding: 0 12px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  /* Rótulo, não botão: menor, mais espaçado e mais apagado que os itens, com folga acima e
+     colado ao primeiro item dele. Não reage ao mouse. */
+  margin-top: 14px;
+  padding: 0 12px 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-fraco);
+  pointer-events: none;
+  user-select: none;
 }
 
 .sidebar:not([data-colapsada]) .item[data-agrupado] {
@@ -197,7 +201,7 @@
   gap: 12px;
   height: var(--header-h);
   padding: 0 28px;
-  background: rgba(11, 11, 13, 0.72);
+  background: var(--fundo-cabecalho);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--vidro-borda);
 }
@@ -231,7 +235,7 @@
 
   .sidebar[data-aberta] {
     transform: translateX(0);
-    box-shadow: 16px 0 48px rgba(0, 0, 0, 0.6);
+    box-shadow: 16px 0 48px var(--sombra);
   }
 
   .sidebar[data-colapsada] .rotulo {
@@ -275,7 +279,7 @@
     position: fixed;
     inset: 0;
     z-index: 35;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--veu);
   }
 }
 
@@ -363,10 +367,10 @@
   gap: 10px;
   padding: 14px;
   /* Sólido: dentro do cabeçalho o desfoque não alcança o conteúdo da página */
-  background: #17171b;
+  background: var(--surface-flutuante);
   border: 1px solid var(--campo-borda);
   border-radius: var(--radius);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 24px 64px var(--sombra);
   overflow-y: auto;
   animation: fadeUp 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
@@ -459,7 +463,7 @@
 }
 
 .buscaBotao:hover {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: var(--realce-borda);
   color: var(--text);
 }
 

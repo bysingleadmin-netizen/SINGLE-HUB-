@@ -22,7 +22,10 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { emailValido } from '@/lib/formulario'
 import { CARGOS, isLideranca } from '@/lib/permissoes'
 import type { Cargo } from '@/lib/permissoes'
+import { lerTema, salvarTema } from '@/lib/tema'
+import type { Tema } from '@/lib/tema'
 import type { Profile } from '@/types/database'
+import alternar from '@/components/quadro/lista.module.css'
 import styles from './configuracoes.module.css'
 
 const OPCOES_CARGO = CARGOS.map((cargo) => ({ valor: cargo, rotulo: cargo }))
@@ -242,6 +245,41 @@ function Equipe({ eu }: { eu: Profile }) {
   )
 }
 
+const TEMAS = [
+  { valor: 'escuro', rotulo: 'Escuro', icone: 'lua' },
+  { valor: 'claro', rotulo: 'Claro', icone: 'sol' },
+] as const
+
+/** Tema do sistema neste navegador. */
+function Aparencia() {
+  const [tema, setTema] = useState<Tema>(lerTema)
+
+  function escolher(novo: Tema) {
+    setTema(novo)
+    salvarTema(novo)
+  }
+
+  return (
+    <Painel titulo="Aparência">
+      <p className={ui.mudo}>Vale para este navegador.</p>
+      <div className={`${alternar.alternar} ${styles.tema}`} role="group" aria-label="Tema">
+        {TEMAS.map((opcao) => (
+          <button
+            key={opcao.valor}
+            type="button"
+            className={alternar.alternarBotao}
+            aria-pressed={tema === opcao.valor}
+            onClick={() => escolher(opcao.valor)}
+          >
+            <Icone nome={opcao.icone} tamanho={15} />
+            {opcao.rotulo}
+          </button>
+        ))}
+      </div>
+    </Painel>
+  )
+}
+
 export function ConfiguracoesPage() {
   const { perfil } = useAuth()
   const [aba, setAba] = useState<Aba>('perfil')
@@ -252,6 +290,7 @@ export function ConfiguracoesPage() {
     return (
       <div className={styles.pagina}>
         <MeuPerfil perfil={perfil} />
+        <Aparencia />
       </div>
     )
   }
@@ -259,7 +298,14 @@ export function ConfiguracoesPage() {
   return (
     <div className={styles.pagina}>
       <Abas rotulo="Seções de configurações" abas={ABAS} ativa={aba} onMudar={setAba}>
-        {aba === 'perfil' ? <MeuPerfil perfil={perfil} /> : <Equipe eu={perfil} />}
+        {aba === 'perfil' ? (
+          <>
+            <MeuPerfil perfil={perfil} />
+            <Aparencia />
+          </>
+        ) : (
+          <Equipe eu={perfil} />
+        )}
       </Abas>
     </div>
   )

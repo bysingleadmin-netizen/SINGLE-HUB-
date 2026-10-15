@@ -94,7 +94,7 @@
 }
 
 .campoInput:hover {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: var(--realce-borda);
 }
 
 .campoInput:focus-visible {
@@ -164,7 +164,7 @@
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 12px 32px var(--sombra);
   pointer-events: auto;
   animation: subir 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
@@ -326,29 +326,35 @@
   white-space: nowrap;
 }
 
+/* No claro, a cor do selo como texto fica fraca sobre o fundo branco: escurece mantendo o tom,
+   inclusive nas cores escolhidas pela equipe */
+:global([data-theme='light']) .pill {
+  color: color-mix(in srgb, var(--tom) 62%, #000);
+}
+
 .pill[data-tom='verde'] {
-  --tom: #3ecf8e;
+  --tom: var(--verde);
 }
 
 .pill[data-tom='amarelo'] {
-  --tom: #e6a630;
+  --tom: var(--amarelo);
 }
 
 .pill[data-tom='laranja'] {
-  --tom: #f08a3c;
+  --tom: var(--laranja);
 }
 
 .pill[data-tom='vermelho'] {
-  --tom: #f04444;
+  --tom: var(--perigo);
   background: color-mix(in srgb, #e63030 18%, transparent);
 }
 
 .pill[data-tom='azul'] {
-  --tom: #4a9eff;
+  --tom: var(--azul);
 }
 
 .pill[data-tom='roxo'] {
-  --tom: #a855f7;
+  --tom: var(--roxo);
 }
 
 /* Painel */
@@ -534,7 +540,7 @@ a.linhaTitulo:hover {
   inset: 0;
   z-index: 60;
   display: flex;
-  background: rgba(0, 0, 0, 0.62);
+  background: var(--veu);
   animation: surgir 0.18s ease both;
 }
 
@@ -553,7 +559,7 @@ a.linhaTitulo:hover {
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 24px 64px var(--sombra);
 }
 
 .camada:focus-visible {

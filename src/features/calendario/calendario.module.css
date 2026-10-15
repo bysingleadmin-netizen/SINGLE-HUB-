@@ -75,7 +75,7 @@
 
 .dia:hover {
   background: var(--vidro-hover);
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: var(--realce-borda);
 }
 
 /* O botão do dia cobre a célula inteira; os itens ficam por cima e são clicáveis por si */
@@ -105,7 +105,7 @@
 
 /* Dias do mês vizinho: mais discretos pela cor, sem apagar o texto com opacidade */
 .dia[data-fora] {
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--afundado);
 }
 
 .dia[data-fora] .diaNumero {
@@ -188,22 +188,22 @@
 
 .chip[data-tom='azul'],
 .evento[data-tom='azul'] {
-  --tom: #4a9eff;
+  --tom: var(--azul);
 }
 
 .chip[data-tom='roxo'],
 .evento[data-tom='roxo'] {
-  --tom: #a855f7;
+  --tom: var(--roxo);
 }
 
 .chip[data-tom='vermelho'],
 .evento[data-tom='vermelho'] {
-  --tom: #f04444;
+  --tom: var(--perigo);
 }
 
 .chip[data-tom='laranja'],
 .evento[data-tom='laranja'] {
-  --tom: #f08a3c;
+  --tom: var(--laranja);
 }
 
 .chip {

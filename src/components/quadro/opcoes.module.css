@@ -49,27 +49,27 @@
 }
 
 .cor[data-tom='verde'] {
-  --tom: #3ecf8e;
+  --tom: var(--verde);
 }
 
 .cor[data-tom='amarelo'] {
-  --tom: #e6a630;
+  --tom: var(--amarelo);
 }
 
 .cor[data-tom='laranja'] {
-  --tom: #f08a3c;
+  --tom: var(--laranja);
 }
 
 .cor[data-tom='vermelho'] {
-  --tom: #f04444;
+  --tom: var(--perigo);
 }
 
 .cor[data-tom='azul'] {
-  --tom: #4a9eff;
+  --tom: var(--azul);
 }
 
 .cor[data-tom='roxo'] {
-  --tom: #a855f7;
+  --tom: var(--roxo);
 }
 
 .fixa {
@@ -156,7 +156,7 @@
   flex: 1;
   height: 6px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--realce-forte);
   border-radius: 999px;
 }
 

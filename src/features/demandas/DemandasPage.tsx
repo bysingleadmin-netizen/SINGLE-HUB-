@@ -266,7 +266,7 @@ export function DemandasPage() {
                       tipoDaTarefa && <Pill tom={tipoDaTarefa.tom}>{tipoDaTarefa.rotulo}</Pill>
                     }
                     cliente={clienteDa(tarefa)}
-                    responsavel={responsavelDa(tarefa)}
+                    responsaveis={[responsavelDa(tarefa)].filter((p) => !!p)}
                     dataEntrega={tarefa.data_entrega}
                     prazo={prazoDa(tarefa)}
                     prioridade={

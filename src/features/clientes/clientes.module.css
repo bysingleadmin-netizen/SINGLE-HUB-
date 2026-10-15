@@ -168,8 +168,7 @@
   gap: 8px;
 }
 
-.enviar,
-.botaoLink {
+.enviar {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -184,8 +183,7 @@
   transition: border-color 0.18s ease;
 }
 
-.enviar:hover,
-.botaoLink:hover {
+.enviar:hover {
   border-color: var(--text-muted);
 }
 
@@ -199,13 +197,6 @@
   cursor: progress;
 }
 
-.botaoLink {
-  align-self: flex-start;
-  min-height: 40px;
-  padding: 0 16px;
-  font-size: 14px;
-}
-
 /* O campo de arquivo fica fora da vista, mas continua focável pelo teclado */
 .arquivo {
   position: absolute;
@@ -215,14 +206,14 @@
   clip-path: inset(50%);
 }
 
-.numeros {
+.dados {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin: 0;
 }
 
-.numeros div {
+.dados div {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -232,12 +223,12 @@
   border-radius: var(--radius-sm);
 }
 
-.numeros dt {
+.dados dt {
   font-size: 12px;
   color: var(--text-muted);
 }
 
-.numeros dd {
+.dados dd {
   margin: 0;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -309,11 +300,82 @@
   overflow-wrap: anywhere;
 }
 
-.duasColunas {
+/* Perfil do cliente: Informações básicas, Canais, Contrato e Financeiro em duas colunas */
+.perfil {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
   align-items: start;
+}
+
+/* Canais: um por linha, com o ícone da plataforma à esquerda */
+.canais {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.canal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 0;
+  border-top: 1px solid var(--vidro-borda);
+}
+
+.canal:first-child {
+  border-top: 0;
+}
+
+.canalIcone {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--vidro-hover);
+  color: var(--text-muted);
+}
+
+.canalConteudo {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.telefone {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(62, 207, 142, 0.14);
+  color: #3ecf8e;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.3s ease, transform 0.12s ease;
+}
+
+.whatsapp:hover {
+  background: rgba(62, 207, 142, 0.24);
+}
+
+.whatsapp:active {
+  transform: scale(0.97);
 }
 
 .status {
@@ -321,7 +383,7 @@
 }
 
 @media (max-width: 767px) {
-  .duasColunas {
+  .perfil {
     grid-template-columns: minmax(0, 1fr);
   }
 }

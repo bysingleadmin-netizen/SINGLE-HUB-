@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
+import { BlocoDeVinculo } from '@/components/ui/BlocoDeVinculo'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
@@ -88,7 +89,7 @@ export function ClientesPage() {
             return (
               <article key={cliente.id} className={styles.card}>
                 <div className={styles.cardTopo}>
-                  <Avatar nome={cliente.nome} url={cliente.logo_url} tamanho={40} />
+                  <Avatar nome={cliente.nome} url={cliente.logo_url} tamanho={40} forma="quadrado" />
                   {/* O link cobre o card inteiro; as ações rápidas ficam por cima dele */}
                   <Link to={`/app/clientes/${cliente.id}`} className={styles.cardNome}>
                     {cliente.nome}
@@ -96,6 +97,9 @@ export function ClientesPage() {
                   <Pill tom={status.tom}>{status.rotulo}</Pill>
                 </div>
                 <span className={styles.cardValor}>{formatarMoeda(Number(cliente.mrr))}</span>
+                {cliente.contato_nome && (
+                  <BlocoDeVinculo pessoas={[{ nome: cliente.contato_nome, detalhe: 'Contato' }]} />
+                )}
                 <div className={styles.cardContrato}>
                   <span className={styles.cardFidelidade}>
                     {cliente.data_inicio_contrato

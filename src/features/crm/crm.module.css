@@ -25,16 +25,6 @@
   text-align: left;
 }
 
-.nome {
-  font-family: var(--font-display);
-  font-size: 15px;
-}
-
-.empresa {
-  font-size: 13px;
-  color: var(--text);
-}
-
 .origem {
   align-self: flex-start;
   padding: 2px 8px;

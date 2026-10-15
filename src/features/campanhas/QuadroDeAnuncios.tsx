@@ -78,7 +78,7 @@ export function QuadroDeAnuncios() {
                 campanha ? <Pill tom="vermelho">{campanha.nome}</Pill> : <Pill tom="cinza">Sem campanha</Pill>
               }
               cliente={clienteId ? clientePorId.get(clienteId) : undefined}
-              responsavel={tarefa.responsavel_id ? perfilPorId.get(tarefa.responsavel_id) : undefined}
+              responsaveis={[tarefa.responsavel_id && perfilPorId.get(tarefa.responsavel_id)].filter((p) => !!p)}
               dataEntrega={null}
               prazo={null}
               progresso={progressoNoQuadro(tarefa.status, colunas)}

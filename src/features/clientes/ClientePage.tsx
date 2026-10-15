@@ -4,9 +4,11 @@ import { Link, useParams } from 'react-router-dom'
 import { Abas } from '@/components/ui/Abas'
 import { AreaTexto } from '@/components/ui/AreaTexto'
 import { Avatar } from '@/components/ui/Avatar'
+import { BlocoDeVinculo } from '@/components/ui/BlocoDeVinculo'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
+import type { NomeIcone } from '@/components/ui/Icone'
 import type { NomeIlustracao } from '@/components/ui/Ilustracao'
 import { Painel } from '@/components/ui/Painel'
 import { Pill } from '@/components/ui/Pill'
@@ -30,11 +32,12 @@ import {
   opcao,
 } from '@/lib/rotulos'
 import type { Client, ClientStatus } from '@/types/database'
+import { linkDoWhatsapp } from '@/features/crm/crm'
 import { rotaDaTarefa } from '@/features/demandas/tarefa'
 import { ClienteModal } from './ClienteModal'
 import { Pagamentos } from './Pagamentos'
-import { fidelidadeDoCliente, linkInstagram } from './cliente'
-import { seloDoContrato } from './contrato'
+import { fidelidadeDoCliente, linkInstagram, plataformaDoLink } from './cliente'
+import { fimDoContrato, seloDoContrato } from './contrato'
 import styles from './clientes.module.css'
 
 type Aba = 'visao' | 'pagamentos' | 'demandas' | 'campanhas' | 'conteudos'
@@ -51,12 +54,44 @@ function tituloDe(colunas: readonly { id: string; titulo: string }[], id: string
   return colunas.find((coluna) => coluna.id === id)?.titulo ?? 'Arquivado'
 }
 
-function VisaoGeral({ cliente }: { cliente: Client }) {
+/** Uma linha de canal: o ícone diz qual é, e o conteúdo vem ao lado */
+function Canal({ icone, rotulo, children }: { icone: NomeIcone; rotulo: string; children: ReactNode }) {
+  return (
+    <li className={styles.canal}>
+      <span className={styles.canalIcone} title={rotulo}>
+        <Icone nome={icone} tamanho={18} />
+        <span className={ui.somenteLeitor}>{rotulo}</span>
+      </span>
+      <span className={styles.canalConteudo}>{children}</span>
+    </li>
+  )
+}
+
+/** Dados com rótulo, numa grade de duas colunas */
+function Dados({ itens }: { itens: [string, ReactNode][] }) {
+  return (
+    <dl className={styles.dados}>
+      {itens.map(([rotulo, valor]) => (
+        <div key={rotulo}>
+          <dt>{rotulo}</dt>
+          <dd>{valor}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function VisaoGeral({ cliente, lideranca }: { cliente: Client; lideranca: boolean }) {
   const atualizar = useAtualizarOtimista<Client>('clients')
   const toast = useToast()
   const [observacoes, setObservacoes] = useState(cliente.observacoes ?? '')
-  const mrr = Number(cliente.mrr)
   const instagram = linkInstagram(cliente.instagram)
+  const whatsapp = linkDoWhatsapp(cliente.contato_telefone)
+  const selo = seloDoContrato(cliente, hojeISO())
+  const fim =
+    cliente.data_inicio_contrato && cliente.contrato_meses
+      ? fimDoContrato(cliente.data_inicio_contrato, cliente.contrato_meses)
+      : null
 
   function trocarStatus(status: ClientStatus) {
     atualizar.mutate(
@@ -67,8 +102,6 @@ function VisaoGeral({ cliente }: { cliente: Client }) {
       },
     )
   }
-
-  const selo = seloDoContrato(cliente, hojeISO())
 
   function salvarObservacoes() {
     const novas = textoOuNull(observacoes)
@@ -83,91 +116,120 @@ function VisaoGeral({ cliente }: { cliente: Client }) {
   }
 
   return (
-    <>
-      <dl className={styles.numeros}>
-        <div>
-          <dt>MRR</dt>
-          <dd>{formatarMoeda(mrr)}</dd>
+    <div className={styles.perfil}>
+      <Painel titulo="Informações básicas">
+        <div className={styles.secao}>
+          <StatusSelect
+            className={styles.status}
+            rotulo="Status"
+            opcoes={STATUS_CLIENTE}
+            value={cliente.status}
+            onChange={(valor) => trocarStatus(valor as ClientStatus)}
+          />
+          <Dados
+            itens={[
+              ['Tempo de casa', cliente.data_inicio_contrato ? fidelidadeDoCliente(cliente) : 'Sem data de início'],
+              ['CNPJ ou CPF', cliente.cnpj ?? 'Não informado'],
+            ]}
+          />
+          <AreaTexto
+            rotulo="Observações"
+            placeholder="Anote aqui o que a equipe precisa saber. Salva ao sair do campo."
+            value={observacoes}
+            onChange={(evento) => setObservacoes(evento.target.value)}
+            onBlur={salvarObservacoes}
+          />
         </div>
-        <div>
-          <dt>ARR</dt>
-          <dd>{formatarMoeda(mrr * 12)}</dd>
-        </div>
-        <div>
-          <dt>Tempo de casa</dt>
-          <dd>{fidelidadeDoCliente(cliente)}</dd>
-        </div>
-        <div>
-          <dt>Contrato</dt>
-          <dd>{selo ? <Pill tom={selo.tom}>{selo.texto}</Pill> : 'Sem duração definida'}</dd>
-        </div>
-      </dl>
+      </Painel>
 
-      <div className={styles.duasColunas}>
-        <Painel titulo="Canais">
+      <Painel titulo="Canais">
+        <div className={styles.secao}>
+          {cliente.contato_nome && (
+            <BlocoDeVinculo
+              empresa={{ nome: cliente.nome, logoUrl: cliente.logo_url }}
+              pessoas={[{ nome: cliente.contato_nome, detalhe: 'Contato' }]}
+            />
+          )}
+          <ul className={styles.canais}>
+            <Canal icone="instagram" rotulo="Instagram">
+              {instagram ? (
+                <a href={instagram} target="_blank" rel="noopener noreferrer" className={ui.linkAcao}>
+                  {cliente.instagram}
+                </a>
+              ) : (
+                <span className={ui.mudo}>{cliente.instagram ?? 'Não informado'}</span>
+              )}
+            </Canal>
+            <Canal icone="campanhas" rotulo="Conta de anúncios">
+              {cliente.link_conta_anuncios ? (
+                <a
+                  href={cliente.link_conta_anuncios}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={ui.linkAcao}
+                >
+                  {plataformaDoLink(cliente.link_conta_anuncios)}
+                </a>
+              ) : (
+                <span className={ui.mudo}>Não informada</span>
+              )}
+            </Canal>
+            <Canal icone="email" rotulo="E-mail">
+              {cliente.contato_email ? (
+                <a href={`mailto:${cliente.contato_email}`} className={ui.linkAcao}>
+                  {cliente.contato_email}
+                </a>
+              ) : (
+                <span className={ui.mudo}>Não informado</span>
+              )}
+            </Canal>
+            <Canal icone="telefone" rotulo="Telefone">
+              {cliente.contato_telefone ? (
+                <span className={styles.telefone}>
+                  <span>{cliente.contato_telefone}</span>
+                  {whatsapp && (
+                    <a
+                      href={whatsapp}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.whatsapp}
+                      aria-label={`Abrir WhatsApp de ${cliente.contato_nome ?? cliente.nome}`}
+                    >
+                      <Icone nome="whatsapp" tamanho={16} />
+                      WhatsApp
+                    </a>
+                  )}
+                </span>
+              ) : (
+                <span className={ui.mudo}>Não informado</span>
+              )}
+            </Canal>
+          </ul>
+        </div>
+      </Painel>
+
+      <Painel titulo="Contrato">
+        <div className={styles.secao}>
+          <Dados
+            itens={[
+              ['Início', cliente.data_inicio_contrato ? formatarData(cliente.data_inicio_contrato) : 'Não informado'],
+              ['Duração', cliente.contrato_meses ? `${cliente.contrato_meses} meses` : 'Sem fidelidade'],
+              ['Fim', fim ? formatarData(fim) : '—'],
+              ['Situação', selo ? <Pill tom={selo.tom}>{selo.texto}</Pill> : 'Sem duração definida'],
+            ]}
+          />
+        </div>
+      </Painel>
+
+      {lideranca && (
+        <Painel titulo="Financeiro">
           <div className={styles.secao}>
-            {cliente.data_inicio_contrato && (
-              <p className={ui.mudo}>Contrato desde {formatarData(cliente.data_inicio_contrato)}</p>
-            )}
-            {instagram ? (
-              <a href={instagram} target="_blank" rel="noopener noreferrer" className={ui.linkAcao}>
-                {cliente.instagram}
-              </a>
-            ) : (
-              <p className={ui.mudo}>{cliente.instagram ?? 'Instagram não informado'}</p>
-            )}
-            {cliente.link_conta_anuncios ? (
-              <a
-                href={cliente.link_conta_anuncios}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.botaoLink}
-              >
-                <Icone nome="externo" tamanho={16} />
-                Abrir conta de anúncios
-              </a>
-            ) : (
-              <p className={ui.mudo}>Conta de anúncios não informada</p>
-            )}
+            <Dados itens={[['Valor mensal do contrato', formatarMoeda(Number(cliente.mrr))]]} />
+            <p className={ui.mudo}>Cobranças e pagamentos, como estão no Asaas, ficam na aba Pagamentos.</p>
           </div>
         </Painel>
-
-        <Painel titulo="Contato">
-          <div className={styles.secao}>
-            {cliente.contato_nome || cliente.contato_email || cliente.contato_telefone ? (
-              <>
-                {cliente.contato_nome && <p>{cliente.contato_nome}</p>}
-                {cliente.contato_email && (
-                  <a href={`mailto:${cliente.contato_email}`} className={ui.linkAcao}>
-                    {cliente.contato_email}
-                  </a>
-                )}
-                {cliente.contato_telefone && <p className={ui.mudo}>{cliente.contato_telefone}</p>}
-              </>
-            ) : (
-              <p className={ui.mudo}>Nenhum contato informado</p>
-            )}
-          </div>
-        </Painel>
-      </div>
-
-      <div className={ui.painel}>
-        <StatusSelect
-          className={styles.status}
-          rotulo="Status"
-          opcoes={STATUS_CLIENTE}
-          value={cliente.status}
-          onChange={(valor) => trocarStatus(valor as ClientStatus)}
-        />
-        <AreaTexto
-          rotulo="Observações"
-          placeholder="Anote aqui o que a equipe precisa saber. Salva ao sair do campo."
-          value={observacoes}
-          onChange={(evento) => setObservacoes(evento.target.value)}
-          onBlur={salvarObservacoes}
-        />
-      </div>
-    </>
+      )}
+    </div>
   )
 }
 
@@ -350,7 +412,7 @@ export function ClientePage() {
       </div>
 
       <Abas rotulo="Seções do cliente" abas={abas} ativa={ativa} onMudar={setAba}>
-        {ativa === 'visao' && <VisaoGeral key={cliente.id} cliente={cliente} />}
+        {ativa === 'visao' && <VisaoGeral key={cliente.id} cliente={cliente} lideranca={lideranca} />}
         {ativa === 'pagamentos' && (
           <div className={ui.painel}>
             <Pagamentos cliente={cliente} />

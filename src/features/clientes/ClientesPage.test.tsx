@@ -198,22 +198,48 @@ describe('ClientesPage', () => {
 })
 
 describe('página do cliente: visão geral', () => {
-  it('mostra valores, links e contato', async () => {
+  it('perfil em seções: informações, canais com ícone, contrato e financeiro', async () => {
     await abrirCliente()
-    expect(screen.getByText(/18\.000,00/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '@padariasol' })).toHaveAttribute(
-      'href',
-      'https://instagram.com/padariasol',
+    for (const secao of ['Informações básicas', 'Canais', 'Contrato', 'Financeiro']) {
+      expect(screen.getByRole('region', { name: secao })).toBeInTheDocument()
+    }
+    // Nenhum ARR calculado solto; o valor mensal fica na seção Financeiro
+    expect(screen.queryByText(/18\.000,00/)).not.toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'Financeiro' })).getByText(/1\.500,00/)).toBeInTheDocument()
+
+    const canais = within(screen.getByRole('region', { name: 'Canais' }))
+    expect(canais.getByRole('link', { name: '@padariasol' })).toHaveAttribute('href', 'https://instagram.com/padariasol')
+    expect(canais.getByRole('link', { name: /Meta Ads/ })).toHaveAttribute('href', 'https://business.facebook.com/padaria')
+    expect(canais.getByText('Instagram')).toBeInTheDocument()
+    expect(canais.getByText('ana@padaria.com')).toBeInTheDocument()
+    // O contato aparece como pessoa, separado da empresa
+    expect(canais.getByText('Ana')).toBeInTheDocument()
+    expect(canais.getByText('Contato')).toBeInTheDocument()
+
+    const contrato = within(screen.getByRole('region', { name: 'Contrato' }))
+    expect(contrato.getByText('01/01/2025')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Voltar para Clientes' })).toHaveAttribute('href', '/app/clientes')
+  })
+
+  it('telefone ganha o botão do WhatsApp, só com os números', async () => {
+    popular()
+    bancoFalso().tabelas.clients[0].contato_telefone = '(27) 99999-0000'
+    renderizar(
+      <Routes>
+        <Route path="/app/clientes/:id" element={<ClientePage />} />
+      </Routes>,
+      { rota: '/app/clientes/c1' },
     )
-    expect(screen.getByRole('link', { name: 'Abrir conta de anúncios' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'Abrir WhatsApp de Ana' })).toHaveAttribute(
       'href',
-      'https://business.facebook.com/padaria',
+      'https://wa.me/5527999990000',
     )
-    expect(screen.getByText('ana@padaria.com')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Voltar para Clientes' })).toHaveAttribute(
-      'href',
-      '/app/clientes',
-    )
+  })
+
+  it('quem não é liderança não vê a seção Financeiro', async () => {
+    await abrirCliente('Social Media')
+    expect(screen.queryByRole('region', { name: 'Financeiro' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/1\.500,00/)).not.toBeInTheDocument()
   })
 
   it('troca o status direto na página', async () => {

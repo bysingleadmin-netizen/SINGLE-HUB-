@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Avatar } from '@/components/ui/Avatar'
+import { BlocoDeVinculo } from '@/components/ui/BlocoDeVinculo'
 import { Icone } from '@/components/ui/Icone'
 import { Pill } from '@/components/ui/Pill'
 import type { OpcaoDeCampo } from '@/dados/opcoes'
@@ -16,7 +16,8 @@ interface CardInfoProps {
   /** Pill com o tipo da demanda ou do conteúdo */
   etiqueta: ReactNode
   cliente: Client | undefined
-  responsavel: Profile | undefined
+  /** Todos os responsáveis do card, o principal primeiro */
+  responsaveis: Profile[]
   dataEntrega: string | null
   /** Define a cor do indicador de prazo; null deixa neutro */
   prazo: SituacaoDoPrazo | null
@@ -31,16 +32,16 @@ interface CardInfoProps {
 }
 
 /**
- * Miolo dos cards de Demandas e de Conteúdo.
- * Hierarquia: título, depois a empresa em destaque, o colaborador logo abaixo em corpo menor
- * e o cargo dele como legenda. O rodapé junta prazo, comentários e o avanço no quadro.
+ * Miolo dos cards de Demandas, Conteúdo e Anúncios.
+ * Hierarquia: título; depois o bloco com a empresa em cima e os responsáveis embaixo, cada um
+ * com sua marca (logo quadrado, avatar redondo). O rodapé junta prazo, comentários e o avanço.
  */
 export function CardInfo({
   titulo,
   legenda,
   etiqueta,
   cliente,
-  responsavel,
+  responsaveis,
   dataEntrega,
   prazo,
   prioridade,
@@ -57,17 +58,11 @@ export function CardInfo({
       <span className={styles.infoTitulo}>{titulo}</span>
       {legenda && <span className={styles.infoCargo}>{legenda}</span>}
 
-      <span className={styles.infoVinculo}>
-        <Avatar nome={cliente?.nome ?? null} url={cliente?.logo_url} tamanho={30} />
-        <span className={styles.infoVinculoTexto}>
-          <span className={styles.infoEmpresa}>{cliente?.nome ?? 'Sem cliente'}</span>
-          <span className={styles.infoPessoa}>{responsavel?.nome ?? 'Sem responsável'}</span>
-          {responsavel && <span className={styles.infoCargo}>{responsavel.cargo}</span>}
-        </span>
-        {responsavel && (
-          <Avatar nome={responsavel.nome} url={responsavel.avatar_url} tamanho={24} />
-        )}
-      </span>
+      <BlocoDeVinculo
+        empresa={cliente ? { nome: cliente.nome, logoUrl: cliente.logo_url } : null}
+        pessoas={responsaveis.map((p) => ({ id: p.id, nome: p.nome, avatarUrl: p.avatar_url, detalhe: p.cargo }))}
+        semPessoa="Sem responsável"
+      />
 
       <span className={styles.infoRodape}>
         <span className={styles.infoPrazo} data-prazo={prazo ?? undefined}>

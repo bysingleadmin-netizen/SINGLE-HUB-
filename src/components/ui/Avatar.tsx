@@ -6,11 +6,18 @@ interface AvatarProps {
   nome: string | null
   url?: string | null
   tamanho?: number
+  /** Empresa usa o quadrado (logo); pessoa, o círculo */
+  forma?: 'circulo' | 'quadrado'
 }
 
-export function Avatar({ nome, url, tamanho = 36 }: AvatarProps) {
+export function Avatar({ nome, url, tamanho = 36, forma = 'circulo' }: AvatarProps) {
   const [falhou, setFalhou] = useState(false)
-  const estilo = { width: tamanho, height: tamanho, fontSize: Math.round(tamanho * 0.38) }
+  const estilo = {
+    width: tamanho,
+    height: tamanho,
+    fontSize: Math.round(tamanho * 0.38),
+    ...(forma === 'quadrado' ? { borderRadius: Math.round(tamanho * 0.28) } : {}),
+  }
 
   if (url && !falhou) {
     return (

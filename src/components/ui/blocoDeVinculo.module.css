@@ -1,0 +1,98 @@
+/* Empresa em cima, pessoa embaixo, separadas por uma linha: cada uma com sua marca visual */
+.bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius-sm);
+}
+
+.empresa,
+.pessoa {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.empresaNome {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empresaNome[data-vazio] {
+  color: var(--text-fraco);
+  font-weight: 500;
+}
+
+.divisor {
+  display: block;
+  height: 1px;
+  background: var(--vidro-borda);
+}
+
+.pessoaTexto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pessoaNome {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pessoaDetalhe {
+  overflow: hidden;
+  color: var(--text-fraco);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pessoaVazia {
+  color: var(--text-fraco);
+  font-size: 13px;
+}
+
+/* Vários responsáveis: avatares sobrepostos, com um anel da cor do fundo separando cada um */
+.pilha {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.pilha > * {
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.pilha > * + * {
+  margin-left: -8px;
+}
+
+.mais {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}

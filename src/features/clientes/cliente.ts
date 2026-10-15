@@ -146,3 +146,12 @@ export function formatarMes(iso: string): string {
   return `${mes}/${ano}`
 }
 
+/** Nome da plataforma de um link de conta de anúncios, para o link não aparecer cru. */
+export function plataformaDoLink(link: string): string {
+  const host = link.replace(/^https?:\/\//i, '').split('/')[0].toLowerCase()
+  if (/facebook\.com|meta\.com|fb\.com/.test(host)) return 'Meta Ads (Gerenciador de Anúncios)'
+  if (/google\./.test(host)) return 'Google Ads'
+  if (/tiktok\./.test(host)) return 'TikTok Ads'
+  if (/linkedin\./.test(host)) return 'LinkedIn Ads'
+  return host || 'Abrir conta de anúncios'
+}

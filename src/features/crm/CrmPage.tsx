@@ -4,6 +4,7 @@ import { Quadro } from '@/components/quadro/Quadro'
 import { proximaPosicao } from '@/components/quadro/colunas'
 import { useMover } from '@/components/quadro/useMover'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
+import { BlocoDeVinculo } from '@/components/ui/BlocoDeVinculo'
 import { Icone } from '@/components/ui/Icone'
 import { Painel } from '@/components/ui/Painel'
 import { Pill } from '@/components/ui/Pill'
@@ -114,8 +115,12 @@ export function CrmPage() {
         tituloDe={(lead) => lead.nome}
         renderCard={(lead) => (
           <div className={styles.card}>
-            <strong className={styles.nome}>{lead.nome}</strong>
-            {lead.empresa && <span className={styles.empresa}>{lead.empresa}</span>}
+            {/* Empresa e pessoa separadas: o lead é a pessoa; a empresa dele, quando há, vem em cima */}
+            <BlocoDeVinculo
+              empresa={lead.empresa ? { nome: lead.empresa } : null}
+              semEmpresa="Sem empresa"
+              pessoas={[{ nome: lead.nome, detalhe: 'Lead' }]}
+            />
             {lead.origem && <span className={styles.origem}>{lead.origem}</span>}
             {esquema.perfilDoLead && lead.temperatura && lead.temperatura !== 'frio' && (
               <span className={styles.temperatura}>

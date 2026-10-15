@@ -257,7 +257,7 @@ export function ConteudoPage() {
                     titulo={card.titulo}
                     etiqueta={tipoDoCard && <Pill tom={tipoDoCard.tom} cor={tipoDoCard.cor}>{tipoDoCard.rotulo}</Pill>}
                     cliente={clienteDo(card)}
-                    responsavel={responsavelDo(card)}
+                    responsaveis={[responsavelDo(card)].filter((p) => !!p)}
                     dataEntrega={card.data_entrega}
                     prazo={prazoDo(card)}
                     prioridade={

@@ -8,6 +8,7 @@ import type {
 } from '@/types/database'
 import { diffDias, somarDias } from './datas'
 import { formatarData } from './formato'
+import { responsaveisDe } from './pessoas'
 
 export function tarefaAberta(tarefa: Pick<Task, 'status'>): boolean {
   return tarefa.status !== 'concluido' && tarefa.status !== 'arquivado'
@@ -185,17 +186,19 @@ export interface CargaDaPessoa {
  * Do mais carregado para o menos; quem não tem nada em aberto não entra.
  */
 export function cargaPorPessoa(
-  tarefas: Pick<Task, 'status' | 'responsavel_id'>[],
-  cards: Pick<ContentCard, 'etapa' | 'responsavel_id'>[],
+  tarefas: Pick<Task, 'status' | 'responsavel_id' | 'responsaveis'>[],
+  cards: Pick<ContentCard, 'etapa' | 'responsavel_id' | 'responsaveis'>[],
   tarefasDeAnuncio: Pick<CampaignTask, 'status' | 'responsavel_id'>[],
 ): CargaDaPessoa[] {
+  // Card com vários responsáveis conta para cada um deles
   const responsaveis = [
-    ...tarefas.filter(tarefaAberta),
-    ...cards.filter(cardAberto),
-    ...tarefasDeAnuncio.filter((t) => t.status !== 'concluido'),
+    ...tarefas.filter(tarefaAberta).flatMap(responsaveisDe),
+    ...cards.filter(cardAberto).flatMap(responsaveisDe),
+    ...tarefasDeAnuncio
+      .filter((t) => t.status !== 'concluido')
+      .map((t) => t.responsavel_id)
+      .filter((id): id is string => id != null),
   ]
-    .map((item) => item.responsavel_id)
-    .filter((id): id is string => id != null)
   const contagem = new Map<string, number>()
   for (const id of responsaveis) contagem.set(id, (contagem.get(id) ?? 0) + 1)
   return [...contagem]

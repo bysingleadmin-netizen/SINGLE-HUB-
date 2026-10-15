@@ -1,3 +1,4 @@
+import { CampoDeResponsaveis } from '@/components/quadro/CampoDeResponsaveis'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { proximaPosicao } from '@/components/quadro/colunas'
@@ -17,7 +18,6 @@ import { useCards, useClientes, usePerfis } from '@/dados/tabelas'
 import { formNovoCard, validarCard } from '@/features/conteudo/card'
 import type { FormCard } from '@/features/conteudo/card'
 import type { Erros } from '@/lib/formulario'
-import { opcoesDePessoas } from '@/lib/pessoas'
 import { COLUNAS_CONTEUDO, PRIORIDADES, TIPOS_CONTEUDO } from '@/lib/rotulos'
 import type { ContentCard, ContentEtapa, Prioridade } from '@/types/database'
 
@@ -34,6 +34,8 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
   const perfis = usePerfis()
   const [form, setForm] = useState<FormCard>(() => formNovoCard(etapaInicial))
   const [erros, setErros] = useState<Erros<FormCard>>({})
+  // Todos os responsáveis; o primeiro também vai em responsavel_id (form.responsavel_id)
+  const [responsaveis, setResponsaveis] = useState<string[]>([])
   const [prioridade, setPrioridade] = useState<Prioridade>('media')
   const esquema = useColunasOpcionais()
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
@@ -63,6 +65,7 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
       {
         valores: {
           ...valores,
+          ...(esquema.responsaveisMultiplos ? { responsaveis } : {}),
           posicao,
           // A média é o padrão do banco; só vai junto quando a pessoa escolhe outra
           ...(esquema.prioridadeConteudo && prioridade !== 'media' ? { prioridade } : {}),
@@ -115,12 +118,14 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
           value={form.client_id}
           onChange={(evento) => mudar('client_id', evento.target.value)}
         />
-        <Selecao
-          rotulo="Responsável"
-          vazio="Sem responsável"
-          opcoes={opcoesDePessoas(perfis.data ?? [])}
-          value={form.responsavel_id}
-          onChange={(evento) => mudar('responsavel_id', evento.target.value)}
+        <CampoDeResponsaveis
+          perfis={perfis.data ?? []}
+          ids={responsaveis}
+          multiplo={esquema.responsaveisMultiplos}
+          onMudar={(ids) => {
+            setResponsaveis(ids)
+            mudar('responsavel_id', ids[0] ?? '')
+          }}
         />
       </div>
       <div className={ui.duasColunas}>

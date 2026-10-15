@@ -1,3 +1,4 @@
+import { responsaveisDe } from '@/lib/pessoas'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
@@ -96,7 +97,7 @@ export function ConteudoPage() {
   const noQuadro = todos.filter((card) => !arquivado(card))
   const visiveis = noQuadro.filter(
     (card) =>
-      (tipo === '' || card.tipo_conteudo === tipo) && doColaborador(card.responsavel_id, responsaveis),
+      (tipo === '' || card.tipo_conteudo === tipo) && doColaborador(responsaveisDe(card), responsaveis),
   )
   const clientePorId = porId(clientes.data)
   const perfilPorId = porId(perfis.data)
@@ -104,8 +105,10 @@ export function ConteudoPage() {
   const aberto = todos.find((c) => c.id === abertoId)
 
   const clienteDo = (card: ContentCard) => (card.client_id ? clientePorId.get(card.client_id) : undefined)
-  const responsavelDo = (card: ContentCard) =>
-    card.responsavel_id ? perfilPorId.get(card.responsavel_id) : undefined
+  // Todos os responsáveis do conteúdo, o principal primeiro
+  const responsaveisDo = (card: ContentCard) =>
+    responsaveisDe(card).flatMap((id) => perfilPorId.get(id) ?? [])
+  const responsavelDo = (card: ContentCard) => responsaveisDo(card)[0]
   const prazoDo = (card: ContentCard) => situacaoDoPrazo(card.data_entrega, hoje, !cardAberto(card))
   const abrir = (card: ContentCard) => setParametros({ abrir: card.id }, { replace: true })
 
@@ -153,7 +156,7 @@ export function ConteudoPage() {
     {
       chave: 'responsavel',
       titulo: 'Responsável',
-      render: (c) => <CelulaPessoa perfil={responsavelDo(c)} />,
+      render: (c) => <CelulaPessoa perfil={responsavelDo(c)} outros={responsaveisDo(c).length - 1} />,
       ordem: (c) => responsavelDo(c)?.nome ?? null,
     },
     {
@@ -257,7 +260,7 @@ export function ConteudoPage() {
                     titulo={card.titulo}
                     etiqueta={tipoDoCard && <Pill tom={tipoDoCard.tom} cor={tipoDoCard.cor}>{tipoDoCard.rotulo}</Pill>}
                     cliente={clienteDo(card)}
-                    responsaveis={[responsavelDo(card)].filter((p) => !!p)}
+                    responsaveis={responsaveisDo(card)}
                     dataEntrega={card.data_entrega}
                     prazo={prazoDo(card)}
                     prioridade={
@@ -301,7 +304,7 @@ export function ConteudoPage() {
                 {
                   chave: 'responsavel',
                   titulo: 'Responsável',
-                  render: (c) => <CelulaPessoa perfil={responsavelDo(c)} />,
+                  render: (c) => <CelulaPessoa perfil={responsavelDo(c)} outros={responsaveisDo(c).length - 1} />,
                   ordem: (c) => responsavelDo(c)?.nome ?? null,
                 },
               ]}

@@ -1,3 +1,4 @@
+import { CampoDeResponsaveis } from '@/components/quadro/CampoDeResponsaveis'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { proximaPosicao } from '@/components/quadro/colunas'
@@ -19,7 +20,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { formNovaTarefa, rotaDaTarefa, validarTarefa } from '@/features/demandas/tarefa'
 import type { FormTarefa } from '@/features/demandas/tarefa'
 import type { Erros } from '@/lib/formulario'
-import { opcoesDePessoas } from '@/lib/pessoas'
+import { responsaveisDe } from '@/lib/pessoas'
 import { COLUNAS_TAREFA, PRIORIDADES, TIPOS_TAREFA } from '@/lib/rotulos'
 import type { Task, TaskStatus, TaskTipo } from '@/types/database'
 
@@ -41,6 +42,8 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
   const { colunas } = useColunasDoQuadro('demandas', COLUNAS_TAREFA)
   const [form, setForm] = useState<FormTarefa>(() => formNovaTarefa(statusInicial))
   const [erros, setErros] = useState<Erros<FormTarefa>>({})
+  // Todos os responsáveis; o primeiro também vai em responsavel_id (form.responsavel_id)
+  const [responsaveis, setResponsaveis] = useState<string[]>([])
   const salvar = useSalvar<Task>('tasks')
   const registrarAtividade = useRegistrarAtividade()
   const notificar = useNotificar()
@@ -66,6 +69,7 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
       {
         valores: {
           ...valores,
+          ...(esquema.responsaveisMultiplos ? { responsaveis } : {}),
           posicao,
           created_by: perfil?.id ?? null,
           // A média é o padrão do banco; só vai junto quando a pessoa escolhe outra
@@ -83,7 +87,7 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
             entidade: 'tasks',
             entidadeId: salva.id,
           })
-          void notificar([salva.responsavel_id], {
+          void notificar(responsaveisDe(salva), {
             tipo: 'tarefa',
             titulo: `Nova ${item} para você`,
             mensagem: `${perfil?.nome ?? 'Alguém'} atribuiu a ${item} "${salva.titulo}" a você.`,
@@ -119,12 +123,14 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
           value={form.client_id}
           onChange={(evento) => mudar('client_id', evento.target.value)}
         />
-        <Selecao
-          rotulo="Responsável"
-          vazio="Sem responsável"
-          opcoes={opcoesDePessoas(perfis.data ?? [])}
-          value={form.responsavel_id}
-          onChange={(evento) => mudar('responsavel_id', evento.target.value)}
+        <CampoDeResponsaveis
+          perfis={perfis.data ?? []}
+          ids={responsaveis}
+          multiplo={esquema.responsaveisMultiplos}
+          onMudar={(ids) => {
+            setResponsaveis(ids)
+            mudar('responsavel_id', ids[0] ?? '')
+          }}
         />
       </div>
       <div className={ui.duasColunas}>

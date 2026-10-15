@@ -12,6 +12,8 @@ import styles from './anexos.module.css'
 
 /** Anexos de card aceitam imagens maiores que logos e avatares */
 const LIMITE_MB = 5
+/** Quantas imagens dá para escolher de uma vez; o card pode juntar quantas quiser */
+const POR_ENVIO = 10
 
 interface AnexosProps {
   quadro: QuadroId
@@ -47,22 +49,34 @@ export function Anexos({ quadro, cardId, anexos }: AnexosProps) {
     )
   }
 
-  function anexarImagem(evento: ChangeEvent<HTMLInputElement>) {
-    const arquivo = evento.target.files?.[0]
+  /** Várias imagens de uma vez, até POR_ENVIO; cada uma é conferida e enviada na ordem */
+  async function anexarImagens(evento: ChangeEvent<HTMLInputElement>) {
+    const escolhidos = [...(evento.target.files ?? [])]
     evento.target.value = ''
-    if (!arquivo) return
-    const recusa = validarImagem(arquivo, LIMITE_MB)
+    if (escolhidos.length === 0) return
+    if (escolhidos.length > POR_ENVIO) {
+      toast.erro(`Escolha até ${POR_ENVIO} imagens por vez.`)
+      return
+    }
+    const recusa = escolhidos.map((arquivo) => validarImagem(arquivo, LIMITE_MB)).find(Boolean)
     if (recusa) {
       toast.erro(recusa)
       return
     }
-    anexar.mutate(
-      { tipo: 'imagem', arquivo },
-      {
-        onSuccess: () => toast.sucesso('Imagem anexada.'),
-        onError: () => toast.erro('Não foi possível enviar a imagem.'),
-      },
-    )
+    let enviadas = 0
+    try {
+      for (const arquivo of escolhidos) {
+        await anexar.mutateAsync({ tipo: 'imagem', arquivo })
+        enviadas++
+      }
+      toast.sucesso(enviadas === 1 ? 'Imagem anexada.' : `${enviadas} imagens anexadas.`)
+    } catch {
+      toast.erro(
+        enviadas === 0
+          ? 'Não foi possível enviar a imagem.'
+          : `${enviadas} de ${escolhidos.length} imagens anexadas; as outras não foram enviadas.`,
+      )
+    }
   }
 
   function removerAnexo(anexo: CardAttachment) {
@@ -126,13 +140,14 @@ export function Anexos({ quadro, cardId, anexos }: AnexosProps) {
 
       <label className={styles.enviar} aria-busy={anexar.isPending || undefined}>
         <Icone nome="enviar" tamanho={16} />
-        Enviar imagem
+        Enviar imagens (até {POR_ENVIO} por vez)
         <input
           type="file"
           accept={ACEITA_IMAGENS}
+          multiple
           className={ui.somenteLeitor}
           disabled={anexar.isPending}
-          onChange={anexarImagem}
+          onChange={(evento) => void anexarImagens(evento)}
         />
       </label>
     </div>

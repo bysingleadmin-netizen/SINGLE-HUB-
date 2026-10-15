@@ -5,7 +5,7 @@ vi.mock('@/lib/supabase', async () => {
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
-import { escolher } from '@/test/escolher'
+import { escolher, escolherPessoa } from '@/test/escolher'
 import { BotaoCriar } from './BotaoCriar'
 import { useCriar } from './CriacaoContext'
 
@@ -48,11 +48,13 @@ describe('criação central de tarefas', () => {
     const modal = await abrir()
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Banner da campanha' } })
     escolher(modal.getByLabelText('Área'), 'trafego')
-    fireEvent.change(modal.getByLabelText('Responsável'), { target: { value: 'u2' } })
+    escolherPessoa(screen.getByRole('dialog', { name: 'Nova tarefa' }), 'Bia Souza')
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
     expect(await screen.findByText('Demanda criada.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.tasks[1]).toMatchObject({
+      responsavel_id: 'u2',
+      responsaveis: ['u2'],
       titulo: 'Banner da campanha',
       tipo: 'trafego',
       status: 'a_fazer',

@@ -93,6 +93,8 @@ export interface Task {
   descricao: string | null
   client_id: string | null
   responsavel_id: string | null
+  /** Migration 0009: todos os responsáveis; responsavel_id é o primeiro */
+  responsaveis?: string[]
   /** Área da demanda; tarefa interna não tem */
   tipo: TaskTipo | null
   /** Migration 0004; sem ela, tudo é demanda */
@@ -117,6 +119,8 @@ export interface ContentCard {
   tipo_conteudo: TipoConteudo
   client_id: string | null
   responsavel_id: string | null
+  /** Migration 0009: todos os responsáveis; responsavel_id é o primeiro */
+  responsaveis?: string[]
   etapa: ContentEtapa
   data_entrega: string | null
   /** Só existe depois da migration 0003; sem valor conta como 'media' */

@@ -6,7 +6,7 @@ vi.mock('@/lib/supabase', async () => {
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { hojeISO, somarDias } from '@/lib/datas'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
-import { escolher } from '@/test/escolher'
+import { escolher, escolherPessoa } from '@/test/escolher'
 import { DemandasPage } from './DemandasPage'
 
 const HOJE = hojeISO()
@@ -130,7 +130,7 @@ describe('DemandasPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar em A Fazer' }))
     const modal = within(screen.getByRole('dialog', { name: 'Nova tarefa' }))
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Banner da campanha' } })
-    fireEvent.change(modal.getByLabelText('Responsável'), { target: { value: 'u2' } })
+    escolherPessoa(screen.getByRole('dialog', { name: 'Nova tarefa' }), 'Bia Souza')
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
     await screen.findByText('Demanda criada.')
@@ -154,7 +154,7 @@ describe('DemandasPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar em A Fazer' }))
     const modal = within(screen.getByRole('dialog', { name: 'Nova tarefa' }))
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Minha tarefa' } })
-    fireEvent.change(modal.getByLabelText('Responsável'), { target: { value: 'u1' } })
+    escolherPessoa(screen.getByRole('dialog', { name: 'Nova tarefa' }), 'Luan Uliana')
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
     await screen.findByText('Demanda criada.')
@@ -187,6 +187,54 @@ describe('DemandasPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Luan Uliana, CEO' }))
     expect(screen.queryByText('Subir campanha')).not.toBeInTheDocument()
     expect(screen.getByText('Nenhuma demanda com esses filtros.')).toBeInTheDocument()
+  })
+
+  it('a demanda pode ter vários responsáveis: todos gravados, avisados e no card', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar em A Fazer' }))
+    const dialogo = screen.getByRole('dialog', { name: 'Nova tarefa' })
+    fireEvent.change(within(dialogo).getByLabelText('Título'), { target: { value: 'Campanha de Natal' } })
+    escolherPessoa(dialogo, 'Bia Souza')
+    escolherPessoa(dialogo, 'Luan Uliana')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }))
+
+    await screen.findByText('Demanda criada.')
+    const criada = bancoFalso().tabelas.tasks.find((t) => t.titulo === 'Campanha de Natal')!
+    expect(criada).toMatchObject({ responsavel_id: 'u2', responsaveis: ['u2', 'u1'] })
+    // Quem criou não se avisa; a outra pessoa, sim
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.notifications).toEqual([expect.objectContaining({ user_id: 'u2' })]),
+    )
+    const card = within(screen.getByRole('button', { name: 'Abrir Campanha de Natal' }))
+    expect(card.getByText('Bia, Luan')).toBeInTheDocument()
+    expect(card.getByText('2 responsáveis')).toBeInTheDocument()
+  })
+
+  it('o filtro por colaborador acha a demanda em que ele é um dos responsáveis', async () => {
+    popular()
+    bancoFalso().tabelas.tasks[0].responsaveis = ['u1', 'u2']
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+    fireEvent.click(screen.getByRole('button', { name: 'Bia Souza, Designer' }))
+    expect(screen.getByText('Roteiro de reels')).toBeInTheDocument()
+  })
+
+  it('sem a migration 0009, um responsável só, como antes', async () => {
+    popular()
+    bancoFalso().colunasAusentes = ['tasks.responsaveis']
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar em A Fazer' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Nova tarefa' }))
+    fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Uma pessoa só' } })
+    fireEvent.change(await modal.findByLabelText('Responsável'), { target: { value: 'u2' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    await screen.findByText('Demanda criada.')
+    const criada = bancoFalso().tabelas.tasks.find((t) => t.titulo === 'Uma pessoa só')!
+    expect(criada.responsavel_id).toBe('u2')
+    expect(criada).not.toHaveProperty('responsaveis')
   })
 
   it('o filtro por colaborador aceita mais de uma pessoa e pode ser limpo', async () => {
@@ -382,7 +430,7 @@ describe('DemandasPage', () => {
     const painel = await abrirCard()
     expect(painel.getByLabelText('Título')).toHaveValue('Roteiro de reels')
     expect(painel.getByLabelText('Cliente')).toHaveValue('c1')
-    expect(painel.getByLabelText('Responsável')).toHaveValue('u1')
+    expect(painel.getByRole('button', { name: 'Remover Luan Uliana' })).toBeInTheDocument()
     expect(painel.getByLabelText('Status')).toHaveValue('a_fazer')
     expect(painel.queryByRole('button', { name: 'Salvar' })).not.toBeInTheDocument()
   })
@@ -409,8 +457,8 @@ describe('DemandasPage', () => {
     const painel = await abrirCard()
     escolher(painel.getByLabelText('Área'), 'audiovisual')
     await waitFor(() => expect(bancoFalso().tabelas.tasks[0].tipo).toBe('audiovisual'))
-    fireEvent.change(painel.getByLabelText('Responsável'), { target: { value: '' } })
-    await waitFor(() => expect(bancoFalso().tabelas.tasks[0].responsavel_id).toBeNull())
+    fireEvent.click(painel.getByRole('button', { name: 'Remover Luan Uliana' }))
+    await waitFor(() => expect(bancoFalso().tabelas.tasks[0]).toMatchObject({ responsavel_id: null, responsaveis: [] }))
     fireEvent.change(painel.getByLabelText('Data de entrega'), { target: { value: '2026-12-01' } })
     await waitFor(() => expect(bancoFalso().tabelas.tasks[0].data_entrega).toBe('2026-12-01'))
   })
@@ -553,7 +601,7 @@ describe('anexos do card', () => {
     await abrirQuadro([])
     const modal = await abrirAnexos()
     const imagem = new File(['x'], 'layout.png', { type: 'image/png' })
-    fireEvent.change(modal.getByLabelText('Enviar imagem'), { target: { files: [imagem] } })
+    fireEvent.change(modal.getByLabelText(/Enviar imagens/), { target: { files: [imagem] } })
 
     expect(await screen.findByText('Imagem anexada.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.card_attachments[0]).toMatchObject({ tipo: 'imagem', nome: 'layout.png' })
@@ -562,15 +610,29 @@ describe('anexos do card', () => {
     )
   })
 
+  it('envia várias imagens de uma vez, até dez', async () => {
+    await abrirQuadro([])
+    const modal = await abrirAnexos()
+    const imagens = ['a.png', 'b.png', 'c.png'].map((nome) => new File(['x'], nome, { type: 'image/png' }))
+    fireEvent.change(modal.getByLabelText(/Enviar imagens/), { target: { files: imagens } })
+    expect(await screen.findByText('3 imagens anexadas.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.card_attachments.map((a) => a.nome)).toEqual(['a.png', 'b.png', 'c.png'])
+
+    const demais = Array.from({ length: 11 }, (_, i) => new File(['x'], `${i}.png`, { type: 'image/png' }))
+    fireEvent.change(modal.getByLabelText(/Enviar imagens/), { target: { files: demais } })
+    expect(await screen.findByText('Escolha até 10 imagens por vez.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.card_attachments).toHaveLength(3)
+  })
+
   it('recusa arquivo que não é imagem ou é grande demais', async () => {
     await abrirQuadro([])
     const modal = await abrirAnexos()
     const pdf = new File(['x'], 'contrato.pdf', { type: 'application/pdf' })
-    fireEvent.change(modal.getByLabelText('Enviar imagem'), { target: { files: [pdf] } })
+    fireEvent.change(modal.getByLabelText(/Enviar imagens/), { target: { files: [pdf] } })
     expect(await screen.findByText('Envie uma imagem PNG, JPG, WEBP ou SVG.')).toBeInTheDocument()
 
     const grande = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'foto.png', { type: 'image/png' })
-    fireEvent.change(modal.getByLabelText('Enviar imagem'), { target: { files: [grande] } })
+    fireEvent.change(modal.getByLabelText(/Enviar imagens/), { target: { files: [grande] } })
     expect(await screen.findByText('A imagem deve ter no máximo 5 MB.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.card_attachments).toHaveLength(0)
   })

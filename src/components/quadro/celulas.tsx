@@ -21,14 +21,18 @@ export function CelulaCliente({ cliente }: { cliente: Client | undefined }) {
 }
 
 /** Nome com o cargo como legenda, como no card. */
-export function CelulaPessoa({ perfil }: { perfil: Profile | undefined }) {
+/** Responsável principal; `outros` conta os demais responsáveis do card */
+export function CelulaPessoa({ perfil, outros = 0 }: { perfil: Profile | undefined; outros?: number }) {
   if (!perfil) return <span className={styles.celulaMuda}>Sem responsável</span>
   return (
     <span className={styles.celulaPessoa}>
       <Avatar nome={perfil.nome} url={perfil.avatar_url} tamanho={24} />
       <span className={styles.celulaPessoaTexto}>
         {perfil.nome}
-        <span className={styles.celulaLegenda}>{perfil.cargo}</span>
+        <span className={styles.celulaLegenda}>
+          {perfil.cargo}
+          {outros > 0 && ` · +${outros}`}
+        </span>
       </span>
     </span>
   )

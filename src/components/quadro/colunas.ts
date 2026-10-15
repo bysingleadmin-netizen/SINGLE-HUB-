@@ -56,6 +56,9 @@ export function destinoDoArraste(
 }
 
 /** Filtro por colaborador: sem ninguém marcado passa tudo; senão, só o que é de alguém marcado. */
-export function doColaborador(responsavelId: string | null, selecionados: string[]): boolean {
-  return selecionados.length === 0 || (responsavelId != null && selecionados.includes(responsavelId))
+/** O card é de algum dos colaboradores escolhidos? Sem escolha, todos passam. */
+export function doColaborador(responsaveis: string | null | string[], selecionados: string[]): boolean {
+  if (selecionados.length === 0) return true
+  const ids = Array.isArray(responsaveis) ? responsaveis : responsaveis ? [responsaveis] : []
+  return ids.some((id) => selecionados.includes(id))
 }

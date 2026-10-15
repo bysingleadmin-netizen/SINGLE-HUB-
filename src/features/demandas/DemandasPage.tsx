@@ -1,3 +1,4 @@
+import { responsaveisDe } from '@/lib/pessoas'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
@@ -110,8 +111,10 @@ export function DemandasPage() {
   const aberta = todas.find((t) => t.id === abertaId)
 
   const clienteDa = (tarefa: Task) => (tarefa.client_id ? clientePorId.get(tarefa.client_id) : undefined)
-  const responsavelDa = (tarefa: Task) =>
-    tarefa.responsavel_id ? perfilPorId.get(tarefa.responsavel_id) : undefined
+  // Todos os responsáveis da demanda, o principal primeiro
+  const responsaveisDa = (tarefa: Task) =>
+    responsaveisDe(tarefa).flatMap((id) => perfilPorId.get(id) ?? [])
+  const responsavelDa = (tarefa: Task) => responsaveisDa(tarefa)[0]
   const prazoDa = (tarefa: Task) => situacaoDoPrazo(tarefa.data_entrega, hoje, !tarefaAberta(tarefa))
   const abrir = (tarefa: Task) => setParametros({ abrir: tarefa.id }, { replace: true })
 
@@ -160,7 +163,7 @@ export function DemandasPage() {
     {
       chave: 'responsavel',
       titulo: 'Responsável',
-      render: (t) => <CelulaPessoa perfil={responsavelDa(t)} />,
+      render: (t) => <CelulaPessoa perfil={responsavelDa(t)} outros={responsaveisDa(t).length - 1} />,
       ordem: (t) => responsavelDa(t)?.nome ?? null,
     },
     {
@@ -266,7 +269,7 @@ export function DemandasPage() {
                       tipoDaTarefa && <Pill tom={tipoDaTarefa.tom}>{tipoDaTarefa.rotulo}</Pill>
                     }
                     cliente={clienteDa(tarefa)}
-                    responsaveis={[responsavelDa(tarefa)].filter((p) => !!p)}
+                    responsaveis={responsaveisDa(tarefa)}
                     dataEntrega={tarefa.data_entrega}
                     prazo={prazoDa(tarefa)}
                     prioridade={
@@ -313,7 +316,7 @@ export function DemandasPage() {
                 {
                   chave: 'responsavel',
                   titulo: 'Responsável',
-                  render: (t) => <CelulaPessoa perfil={responsavelDa(t)} />,
+                  render: (t) => <CelulaPessoa perfil={responsavelDa(t)} outros={responsaveisDa(t).length - 1} />,
                   ordem: (t) => responsavelDa(t)?.nome ?? null,
                 },
               ]}

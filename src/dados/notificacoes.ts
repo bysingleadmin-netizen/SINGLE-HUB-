@@ -1,3 +1,4 @@
+import { responsaveisDe } from '@/lib/pessoas'
 import { useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/Toast'
@@ -83,7 +84,7 @@ export function useNotificar() {
 export function tarefasComPrazoAmanha(tarefas: Task[], userId: string, hoje: string): Task[] {
   const amanha = somarDias(hoje, 1)
   return tarefas.filter(
-    (t) => tarefaAberta(t) && t.responsavel_id === userId && t.data_entrega === amanha,
+    (t) => tarefaAberta(t) && responsaveisDe(t).includes(userId) && t.data_entrega === amanha,
   )
 }
 

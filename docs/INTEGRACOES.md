@@ -129,6 +129,18 @@ Pode rodar mais de uma vez e não apaga nada.
 | Campanhas | sem plataforma, objetivo e histórico | `campaigns.plataforma` e `campaigns.objetivo`; tabela `campaign_historico` com as otimizações de cada campanha |
 | Demanda de anúncio | precisa de uma campanha | a campanha é opcional; a demanda pode ter só o cliente (`campaign_tasks.client_id`) |
 
+### Migration 0009 (vários responsáveis, recorrência das despesas e meta anual)
+
+- [ ] Rodar `supabase/migrations/0009_responsaveis_recorrencia_metas.sql` no SQL Editor (depois da 0008)
+
+Pode rodar mais de uma vez e não apaga nada.
+
+| Recurso | Sem a migration | Com a migration |
+|---|---|---|
+| Responsáveis de demandas e conteúdos | um responsável por card | vários (`tasks.responsaveis` e `content_cards.responsaveis`); o primeiro continua em `responsavel_id`. Quem já tinha responsável ganha a lista com ele |
+| Despesa recorrente | mensal, com quantidade de meses | semanal, quinzenal, mensal, trimestral ou anual, com fim ou sem fim (`expenses.frequencia`, `expenses.sem_fim`) |
+| Meta de faturamento | só mensal | mensal e anual (`monthly_goals.tipo`) |
+
 ## Asaas (fonte das receitas dos clientes)
 
 O Asaas é a fonte das receitas dos clientes. O sistema não lança nem confirma cobrança de

@@ -1,3 +1,4 @@
+import { CampoDeResponsaveis } from '@/components/quadro/CampoDeResponsaveis'
 import { useState } from 'react'
 import { Anexos } from '@/components/quadro/Anexos'
 import { ConfigurarOpcoes } from '@/components/quadro/ConfigurarOpcoes'
@@ -18,7 +19,7 @@ import { useOpcoes } from '@/dados/opcoes'
 import { hojeISO } from '@/lib/datas'
 import { formatarData } from '@/lib/formato'
 import { textoOuNull } from '@/lib/formulario'
-import { opcoesDePessoas } from '@/lib/pessoas'
+import { responsaveisDe, valoresDeResponsaveis } from '@/lib/pessoas'
 import { cardAberto, descreverPrazo, situacaoDoPrazo } from '@/lib/regras'
 import { PRIORIDADES, TIPOS_CONTEUDO } from '@/lib/rotulos'
 import type {
@@ -145,12 +146,11 @@ export function CardDrawer({
               value={card.client_id ?? ''}
               onChange={(evento) => salvar({ client_id: evento.target.value || null })}
             />
-            <Selecao
-              rotulo="Responsável"
-              vazio="Sem responsável"
-              opcoes={opcoesDePessoas(perfis)}
-              value={card.responsavel_id ?? ''}
-              onChange={(evento) => salvar({ responsavel_id: evento.target.value || null })}
+            <CampoDeResponsaveis
+              perfis={perfis}
+              ids={responsaveisDe(card)}
+              multiplo={esquema.responsaveisMultiplos}
+              onMudar={(ids) => salvar(valoresDeResponsaveis(ids, esquema.responsaveisMultiplos))}
             />
             <Campo
               rotulo="Data de entrega"

@@ -1,3 +1,4 @@
+import { responsaveisDe } from '@/lib/pessoas'
 import { doColaborador } from '@/components/quadro/colunas'
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
@@ -68,7 +69,7 @@ export function filtrarTarefas(tarefas: Task[], { tipo, responsaveis }: FiltrosT
   return tarefas.filter(
     (tarefa) =>
       (tipo === '' || tarefa.tipo === tipo) &&
-      doColaborador(tarefa.responsavel_id, responsaveis),
+      doColaborador(responsaveisDe(tarefa), responsaveis),
   )
 }
 

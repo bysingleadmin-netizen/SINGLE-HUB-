@@ -60,7 +60,12 @@ interface CelulaProps {
  */
 function Celula({ iso, itens, hoje, limite, fora, rotulo, onAbrir }: CelulaProps) {
   return (
-    <div className={styles.dia} data-fora={fora || undefined} data-curta={rotulo ? true : undefined}>
+    <div
+      className={styles.dia}
+      data-fora={fora || undefined}
+      data-curta={rotulo ? true : undefined}
+      data-hoje={iso === hoje || undefined}
+    >
       <button
         type="button"
         className={styles.diaAbrir}
@@ -118,6 +123,8 @@ export function CalendarioPage() {
   const [mes, setMes] = useState(() => mesDe(diaAberto ?? hoje))
   /** Primeiro dia de referência das visões de 15 dias e de semana */
   const [ancora, setAncora] = useState(diaAberto ?? hoje)
+  /** Muda a cada clique em Hoje: a célula de hoje é recriada e pisca de novo */
+  const [pulso, setPulso] = useState(0)
   /** Dia em que o modal de novo evento abre; null quando fechado */
   const [criandoEm, setCriandoEm] = useState<string | null>(null)
 
@@ -146,7 +153,10 @@ export function CalendarioPage() {
   function voltarParaHoje() {
     setMes(mesDe(hoje))
     setAncora(hoje)
+    setPulso((atual) => atual + 1)
   }
+
+  const chaveDa = (iso: string) => (iso === hoje ? `${iso}-${pulso}` : iso)
 
   function nomesDosParticipantes(evento: CalendarEvent): string {
     return (participantes.data ?? [])
@@ -228,7 +238,7 @@ export function CalendarioPage() {
                 <div className={styles.grade}>
                   {grade.map((dia) => (
                     <Celula
-                      key={dia.iso}
+                      key={chaveDa(dia.iso)}
                       iso={dia.iso}
                       itens={porDia.get(dia.iso) ?? []}
                       hoje={hoje}
@@ -243,7 +253,7 @@ export function CalendarioPage() {
               <div className={styles.grade} data-periodo={periodo}>
                 {dias.map((dia) => (
                   <Celula
-                    key={dia}
+                    key={chaveDa(dia)}
                     iso={dia}
                     itens={porDia.get(dia) ?? []}
                     hoje={hoje}

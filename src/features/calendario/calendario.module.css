@@ -175,6 +175,32 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Hoje: a célula inteira ganha a borda da cor primária e pisca ao clicar em Hoje */
+.dia[data-hoje] {
+  border-color: rgba(230, 48, 48, 0.6);
+  box-shadow: inset 0 0 0 1px rgba(230, 48, 48, 0.35);
+  animation: pulsoDeHoje 0.9s ease-out;
+}
+
+@keyframes pulsoDeHoje {
+  0% {
+    box-shadow:
+      inset 0 0 0 1px rgba(230, 48, 48, 0.35),
+      0 0 0 0 rgba(230, 48, 48, 0.45);
+  }
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(230, 48, 48, 0.35),
+      0 0 0 10px rgba(230, 48, 48, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dia[data-hoje] {
+    animation: none;
+  }
+}
+
 .diaAbrir[aria-current] .diaNumero {
   background: var(--accent);
   color: #fff;

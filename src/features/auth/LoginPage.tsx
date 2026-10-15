@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
 import { Logotipo } from '@/components/ui/Logotipo'
+import { definirLembrarConta, lembrarConta } from '@/lib/sessao'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './AuthContext'
 import { traduzirErroAuth } from './erros'
@@ -20,6 +21,7 @@ export function LoginPage() {
   const [senhaConfirm, setSenhaConfirm] = useState('')
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [lembrar, setLembrar] = useState(lembrarConta)
 
   if (!carregando && sessao) return <Navigate to="/app/dashboard" replace />
 
@@ -27,6 +29,8 @@ export function LoginPage() {
     evento.preventDefault()
     setErro(null)
     setEnviando(true)
+    // Antes de entrar: é a preferência que decide onde a sessão nova fica guardada
+    definirLembrarConta(lembrar)
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -144,6 +148,13 @@ export function LoginPage() {
             />
           )}
         </div>
+
+        {modo === 'entrar' && (
+          <label className={styles.lembrar}>
+            <input type="checkbox" checked={lembrar} onChange={(e) => setLembrar(e.target.checked)} />
+            Lembrar minha conta
+          </label>
+        )}
 
         {erro && (
           <p role="alert" className={styles.erro}>

@@ -40,6 +40,22 @@
   gap: 16px;
 }
 
+/* "Lembrar minha conta": mantém a sessão depois de fechar o navegador */
+.lembrar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.lembrar input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
 .erro {
   padding: 10px 14px;
   background: var(--accent-soft);

@@ -253,6 +253,10 @@ describe('CalendarioPage', () => {
     ).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Hoje' }))
     expect(screen.getByRole('heading', { name: nomeDoMes(MES.ano, MES.mes) })).toBeInTheDocument()
+    // O dia de hoje fica destacado: a célula inteira, não só o número
+    const hoje = screen.getByRole('button', { name: new RegExp(`^${nomeDoDia(HOJE)}`) })
+    expect(hoje).toHaveAttribute('aria-current', 'date')
+    expect(hoje.closest('[data-hoje]')).not.toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Mês anterior' }))
     const anterior = mesVizinho(MES, -1)
     expect(

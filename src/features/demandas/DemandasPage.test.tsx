@@ -252,6 +252,17 @@ describe('DemandasPage', () => {
     expect(await screen.findByRole('dialog', { name: 'Subir campanha' })).toBeInTheDocument()
   })
 
+  it('na lista, o selo de status é um seletor que move a demanda sem abrir a linha', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Lista' }))
+    escolher(screen.getByLabelText('Status de Roteiro de reels'), 'concluido')
+
+    expect(await screen.findByText('Demanda movida para Concluído.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.tasks.find((t) => t.id === 't1')).toMatchObject({ status: 'concluido' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('renomeia uma coluna com dois cliques e guarda o nome no banco', async () => {
     popular()
     renderizar(<DemandasPage />)
@@ -522,77 +533,6 @@ describe('quadro de Tarefas', () => {
     bancoFalso().colunasAusentes = ['tasks.quadro']
     renderizar(<DemandasPage quadro="tarefas" />)
     expect(await screen.findByText('O quadro de Tarefas liga depois da migration 0004.')).toBeInTheDocument()
-  })
-})
-
-describe('status do card', () => {
-  async function abrirQuadro() {
-    popular()
-    renderizar(<DemandasPage />)
-    await screen.findByText('Roteiro de reels')
-  }
-
-  const menu = (titulo: string) => screen.getByLabelText(`Status de ${titulo}`)
-
-  it('marcar como Travado grava no banco e pinta o selo do card', async () => {
-    await abrirQuadro()
-    expect(menu('Roteiro de reels')).toHaveAttribute('data-valor', '')
-    escolher(menu('Roteiro de reels'), 'travado')
-
-    expect(await screen.findByText('Status atualizado.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.tasks[0]).toMatchObject({ situacao: 'travado', status: 'a_fazer' })
-    await waitFor(() => expect(menu('Roteiro de reels')).toHaveAttribute('data-valor', 'travado'))
-    expect(coluna('A Fazer').getByText('Roteiro de reels')).toBeInTheDocument()
-  })
-
-  it('Feito leva o card para a coluna seguinte, onde ele chega sem status', async () => {
-    await abrirQuadro()
-    escolher(menu('Roteiro de reels'), 'em_andamento')
-    await screen.findByText('Status atualizado.')
-
-    escolher(menu('Roteiro de reels'), 'feito')
-    expect(await screen.findByText('Demanda movida para Em Andamento.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.tasks[0]).toMatchObject({ status: 'em_andamento', situacao: null })
-    expect(await coluna('Em Andamento').findByText('Roteiro de reels')).toBeInTheDocument()
-    expect(menu('Roteiro de reels')).toHaveAttribute('data-valor', '')
-  })
-
-  it('na última coluna não há para onde andar: o card fica marcado como Feito', async () => {
-    bancoFalso().reiniciar({
-      profiles: [perfilDeTeste()],
-      tasks: [tarefa({ id: 't9', titulo: 'Entregue', status: 'concluido' })],
-    })
-    renderizar(<DemandasPage />)
-    await screen.findByText('Entregue')
-    escolher(menu('Entregue'), 'feito')
-
-    expect(await screen.findByText('Status atualizado.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.tasks[0]).toMatchObject({ status: 'concluido', situacao: 'feito' })
-  })
-
-  it('avisa e desfaz quando o banco recusa', async () => {
-    await abrirQuadro()
-    bancoFalso().erroEscrita = { message: 'negado' }
-    escolher(menu('Roteiro de reels'), 'travado')
-    expect(await screen.findByText('Não foi possível atualizar o status.')).toBeInTheDocument()
-    await waitFor(() => expect(menu('Roteiro de reels')).toHaveAttribute('data-valor', ''))
-  })
-
-  it('sem a coluna no banco, só Feito funciona, e ele move o card do mesmo jeito', async () => {
-    popular()
-    bancoFalso().colunasAusentes = ['tasks.situacao']
-    renderizar(<DemandasPage />)
-    await screen.findByText('Roteiro de reels')
-
-    fireEvent.click(menu('Roteiro de reels'))
-    await waitFor(() =>
-      expect(screen.getByRole('option', { name: 'Travado' })).toHaveAttribute('aria-disabled', 'true'),
-    )
-    expect(screen.getByRole('option', { name: 'Feito' })).not.toHaveAttribute('aria-disabled')
-
-    fireEvent.click(screen.getByRole('option', { name: 'Feito' }))
-    expect(await screen.findByText('Demanda movida para Em Andamento.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.tasks[0]).not.toHaveProperty('situacao')
   })
 })
 

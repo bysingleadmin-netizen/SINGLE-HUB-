@@ -10,7 +10,10 @@ export interface AcaoDoMenu {
   icone: NomeIcone
   /** Ação destrutiva: aparece em vermelho */
   perigo?: boolean
-  onEscolher: () => void
+  /** Sem subações, executa ao escolher */
+  onEscolher?: () => void
+  /** Abre uma segunda lista no lugar da primeira, como "Mover para…" com as colunas */
+  subacoes?: { rotulo: string; onEscolher: () => void }[]
 }
 
 interface MenuDeAcoesProps {
@@ -26,8 +29,14 @@ const parar = (evento: SyntheticEvent) => evento.stopPropagation()
 /** Botão ⋯ que abre as ações de um item. Fecha ao escolher, ao clicar fora e com Escape. */
 export function MenuDeAcoes({ rotulo, acoes, className }: MenuDeAcoesProps) {
   const [aberto, setAberto] = useState(false)
+  const [sub, setSub] = useState<AcaoDoMenu>()
   const raiz = useRef<HTMLDivElement>(null)
   const botao = useRef<HTMLButtonElement>(null)
+
+  function fechar() {
+    setAberto(false)
+    setSub(undefined)
+  }
 
   return (
     <div
@@ -47,7 +56,7 @@ export function MenuDeAcoes({ rotulo, acoes, className }: MenuDeAcoesProps) {
         aria-haspopup="menu"
         aria-expanded={aberto}
         title="Ações"
-        onClick={() => setAberto((atual) => !atual)}
+        onClick={() => (aberto ? fechar() : setAberto(true))}
       >
         <Icone nome="acoes" tamanho={18} />
       </button>
@@ -55,27 +64,61 @@ export function MenuDeAcoes({ rotulo, acoes, className }: MenuDeAcoesProps) {
         <Flutuante
           ancora={raiz}
           onFechar={() => {
-            setAberto(false)
+            fechar()
             botao.current?.focus()
           }}
         >
-          <div className={styles.lista} role="menu" aria-label={rotulo}>
-            {acoes.map((acao) => (
-              <button
-                key={acao.rotulo}
-                type="button"
-                role="menuitem"
-                className={styles.item}
-                data-perigo={acao.perigo || undefined}
-                onClick={() => {
-                  setAberto(false)
-                  acao.onEscolher()
-                }}
-              >
-                <Icone nome={acao.icone} tamanho={16} />
-                {acao.rotulo}
-              </button>
-            ))}
+          <div className={styles.lista} role="menu" aria-label={sub ? sub.rotulo : rotulo}>
+            {sub ? (
+              <>
+                <button type="button" role="menuitem" className={styles.item} onClick={() => setSub(undefined)}>
+                  <Icone nome="setaEsquerda" tamanho={16} />
+                  Voltar
+                </button>
+                {sub.subacoes?.map((subacao) => (
+                  <button
+                    key={subacao.rotulo}
+                    type="button"
+                    role="menuitem"
+                    className={styles.item}
+                    onClick={() => {
+                      fechar()
+                      subacao.onEscolher()
+                    }}
+                  >
+                    <span className={styles.recuo} aria-hidden="true" />
+                    {subacao.rotulo}
+                  </button>
+                ))}
+              </>
+            ) : (
+              acoes.map((acao) => (
+                <button
+                  key={acao.rotulo}
+                  type="button"
+                  role="menuitem"
+                  aria-haspopup={acao.subacoes ? 'menu' : undefined}
+                  className={styles.item}
+                  data-perigo={acao.perigo || undefined}
+                  onClick={() => {
+                    if (acao.subacoes) {
+                      setSub(acao)
+                      return
+                    }
+                    fechar()
+                    acao.onEscolher?.()
+                  }}
+                >
+                  <Icone nome={acao.icone} tamanho={16} />
+                  {acao.rotulo}
+                  {acao.subacoes && (
+                    <span className={styles.seta} aria-hidden="true">
+                      <Icone nome="seta" tamanho={14} />
+                    </span>
+                  )}
+                </button>
+              ))
+            )}
           </div>
         </Flutuante>
       )}

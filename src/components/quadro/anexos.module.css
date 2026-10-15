@@ -1,17 +1,11 @@
-/* Faixa de baixo do card: status à esquerda, anexos à direita */
+/* Faixa de baixo do card: anexos à direita */
 .rodape {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   padding: 0 12px 10px;
-}
-
-/* O menu de status é o próprio selo (StatusSelect em pílula); não estica no rodapé */
-.situacao {
-  min-width: 0;
-  max-width: 100%;
 }
 
 .miniaturas {

@@ -20,14 +20,13 @@ import { formatarData } from '@/lib/formato'
 import { textoOuNull } from '@/lib/formulario'
 import { opcoesDePessoas } from '@/lib/pessoas'
 import { descreverPrazo, situacaoDoPrazo, tarefaAberta } from '@/lib/regras'
-import { PRIORIDADES, SITUACOES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
+import { PRIORIDADES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
 import type {
   CardAttachment,
   CardSubtarefa,
   Client,
   Profile,
   QuadroDeTarefa,
-  SituacaoDoCard,
   Task,
   TaskStatus,
   TaskTipo,
@@ -47,8 +46,6 @@ interface TarefaDrawerProps {
   anexos?: CardAttachment[]
   /** undefined quando o banco ainda não tem a tabela de subtarefas */
   subtarefas?: CardSubtarefa[]
-  /** Marcar como Feito move o card para a coluna seguinte: quem faz isso é a página */
-  onSituacao: (situacao: SituacaoDoCard | null) => void
   /** Trocar o status é mover o card: quem sabe a posição e registra a atividade é a página */
   onMover: (destino: TaskStatus) => void
   onFechar: () => void
@@ -63,7 +60,6 @@ export function TarefaDrawer({
   quadro = 'demandas',
   anexos,
   subtarefas,
-  onSituacao,
   onMover,
   onFechar,
 }: TarefaDrawerProps) {
@@ -71,7 +67,6 @@ export function TarefaDrawer({
   const [descricao, setDescricao] = useState(tarefa.descricao ?? '')
   const [erroTitulo, setErroTitulo] = useState<string>()
   const esquema = useColunasOpcionais()
-  const situacoes = useOpcoes('situacao', SITUACOES)
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
   const salvar = useEdicaoInline<Task>('tasks', tarefa.id, {
     sucesso: 'Demanda atualizada.',
@@ -141,18 +136,6 @@ export function TarefaDrawer({
               value={tarefa.status}
               onChange={(evento) => onMover(evento.target.value as TaskStatus)}
             />
-            {esquema.situacaoTarefa && (
-              <div className={opcoes.comEngrenagem}>
-                <StatusSelect
-                  rotulo="Status do card"
-                  vazio="Sem status"
-                  opcoes={situacoes.opcoes}
-                  value={tarefa.situacao ?? ''}
-                  onChange={(valor) => onSituacao(valor || null)}
-                />
-                <ConfigurarOpcoes campo="status" opcoes={situacoes.opcoes} edicao={situacoes.edicao} />
-              </div>
-            )}
             {quadro === 'demandas' && (
               <StatusSelect
                 rotulo="Área"

@@ -101,7 +101,7 @@ describe('Quadro', () => {
     const { onAbrir, onExcluir } = montar()
     fireEvent.click(screen.getByRole('button', { name: 'Ações de Segundo' }))
     const menu = within(screen.getByRole('menu', { name: 'Ações de Segundo' }))
-    expect(menu.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Editar', 'Arquivar', 'Excluir'])
+    expect(menu.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Editar', 'Mover para…', 'Arquivar', 'Excluir'])
 
     fireEvent.click(menu.getByRole('menuitem', { name: 'Excluir' }))
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
@@ -115,6 +115,16 @@ describe('Quadro', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
     expect(onExcluir).toHaveBeenCalledWith(ITENS[0])
     expect(onAbrir).not.toHaveBeenCalled()
+  })
+
+  it('Mover para… no menu lista as outras colunas e move o card', () => {
+    const { onMover } = montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Segundo' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Mover para…' }))
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Voltar', 'Concluído'])
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Concluído' }))
+    expect(onMover).toHaveBeenCalledWith(ITENS[0], 'concluido')
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
   it('Editar abre o card; Escape e clique fora fecham o menu', () => {

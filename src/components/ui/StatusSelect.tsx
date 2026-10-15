@@ -157,6 +157,8 @@ export function StatusSelect({
       onMouseDown={naoArrastar}
       onTouchStart={naoArrastar}
       onPointerDown={naoArrastar}
+      // Numa linha que abre o item ao clicar, escolher aqui não abre a linha
+      onClick={naoArrastar}
     >
       <span id={`${id}-rotulo`} className={ocultarRotulo ? ui.somenteLeitor : ui.campoRotulo}>
         {rotulo}

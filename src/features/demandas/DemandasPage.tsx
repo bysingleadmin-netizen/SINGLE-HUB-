@@ -14,7 +14,6 @@ import { datasDoCiclo, venceuOPrazoVisivel } from '@/components/quadro/ciclo'
 import { progressoNoQuadro } from '@/components/quadro/colunas'
 import pagina from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
-import { useSituacao } from '@/components/quadro/useSituacao'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { MenuAcoes } from '@/components/ui/MenuDeAcoes'
 import { Pill } from '@/components/ui/Pill'
@@ -33,7 +32,7 @@ import { useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
 import { hojeISO } from '@/lib/datas'
 import { situacaoDoPrazo, tarefaAberta, tarefaAtrasada } from '@/lib/regras'
-import { COLUNAS_TAREFA, PRIORIDADES, SITUACOES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
+import { COLUNAS_TAREFA, PRIORIDADES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
 import type { QuadroDeTarefa, Task, TaskStatus, TaskTipo } from '@/types/database'
 import { TarefaDrawer } from './TarefaDrawer'
 import { filtrarTarefas } from './tarefa'
@@ -61,7 +60,6 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
       onSuccess: () => toast.sucesso(`${texto.Item} excluída.`),
       onError: () => toast.erro(`Não foi possível excluir a ${texto.item}.`),
     })
-  const situacoes = useOpcoes('situacao', SITUACOES)
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
   const [verArquivados, setVerArquivados] = useState(false)
   const {
@@ -102,14 +100,6 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
           },
   })
 
-  const mudarSituacao = useSituacao<Task>({
-    tabela: 'tasks',
-    colunaDe: (tarefa) => tarefa.status,
-    colunas,
-    mover,
-    disponivel: esquema.situacaoTarefa,
-  })
-
   const consultas = juntarConsultas(tarefas, clientes, perfis)
   const todas = (tarefas.data ?? []).filter((t) => (t.quadro ?? 'demandas') === quadro)
   // Fora do quadro: o que foi arquivado e o que está concluído há mais de 7 dias
@@ -138,7 +128,21 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
     {
       chave: 'status',
       titulo: 'Status',
-      render: (t) => <Pill tom={tarefaAberta(t) ? 'cinza' : 'verde'}>{tituloDoStatus(t.status)}</Pill>,
+      // O selo é o próprio seletor: clicar abre as colunas e move a tarefa
+      render: (t) => (
+        <StatusSelect
+          pilula
+          ocultarRotulo
+          rotulo={`Status de ${t.titulo}`}
+          opcoes={colunas.map((coluna) => ({
+            valor: coluna.id,
+            rotulo: coluna.titulo,
+            tom: coluna.id === 'concluido' ? 'verde' : 'cinza',
+          }))}
+          value={t.status}
+          onChange={(destino) => mover(t, destino, todas)}
+        />
+      ),
       ordem: (t) => colunas.findIndex((coluna) => coluna.id === t.status),
     },
     ...(esquema.prioridadeTarefa
@@ -301,10 +305,6 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
                   quadro={quadro}
                   cardId={tarefa.id}
                   titulo={tarefa.titulo}
-                  situacao={tarefa.situacao}
-                  situacoes={situacoes.opcoes}
-                  situacaoDisponivel={esquema.situacaoTarefa}
-                  onSituacao={(situacao) => mudarSituacao(tarefa, situacao, todas)}
                   anexos={anexos.disponivel ? (anexos.porCard.get(tarefa.id) ?? []) : undefined}
                 />
               )}
@@ -353,7 +353,6 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
           quadro={quadro}
           anexos={anexos.disponivel ? (anexos.porCard.get(aberta.id) ?? []) : undefined}
           subtarefas={subtarefas.disponivel ? (subtarefas.porCard.get(aberta.id) ?? []) : undefined}
-          onSituacao={(situacao) => mudarSituacao(aberta, situacao, todas)}
           onMover={(destino) => mover(aberta, destino, todas)}
           onFechar={() => setParametros({}, { replace: true })}
         />

@@ -20,7 +20,7 @@ import { formatarData } from '@/lib/formato'
 import { textoOuNull } from '@/lib/formulario'
 import { opcoesDePessoas } from '@/lib/pessoas'
 import { cardAberto, descreverPrazo, situacaoDoPrazo } from '@/lib/regras'
-import { PRIORIDADES, SITUACOES, TIPOS_CONTEUDO } from '@/lib/rotulos'
+import { PRIORIDADES, TIPOS_CONTEUDO } from '@/lib/rotulos'
 import type {
   CardAttachment,
   CardSubtarefa,
@@ -28,7 +28,6 @@ import type {
   ContentCard,
   ContentEtapa,
   Profile,
-  SituacaoDoCard,
 } from '@/types/database'
 
 interface CardDrawerProps {
@@ -41,8 +40,6 @@ interface CardDrawerProps {
   anexos?: CardAttachment[]
   /** undefined quando o banco ainda não tem a tabela de subtarefas */
   subtarefas?: CardSubtarefa[]
-  /** Marcar como Feito move o card para a etapa seguinte: quem faz isso é a página */
-  onSituacao: (situacao: SituacaoDoCard | null) => void
   /** Trocar a etapa é mover o card: quem sabe a posição e registra a atividade é a página */
   onMover: (destino: ContentEtapa) => void
   onFechar: () => void
@@ -56,7 +53,6 @@ export function CardDrawer({
   colunas,
   anexos,
   subtarefas,
-  onSituacao,
   onMover,
   onFechar,
 }: CardDrawerProps) {
@@ -64,7 +60,6 @@ export function CardDrawer({
   const [observacoes, setObservacoes] = useState(card.observacoes ?? '')
   const [erroTitulo, setErroTitulo] = useState<string>()
   const esquema = useColunasOpcionais()
-  const situacoes = useOpcoes('situacao', SITUACOES)
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
   const tipos = useOpcoes('tipo_conteudo', TIPOS_CONTEUDO)
   const salvar = useEdicaoInline<ContentCard>('content_cards', card.id, {
@@ -134,18 +129,6 @@ export function CardDrawer({
               value={card.etapa}
               onChange={(evento) => onMover(evento.target.value as ContentEtapa)}
             />
-            {esquema.situacaoConteudo && (
-              <div className={opcoes.comEngrenagem}>
-                <StatusSelect
-                  rotulo="Status do card"
-                  vazio="Sem status"
-                  opcoes={situacoes.opcoes}
-                  value={card.situacao ?? ''}
-                  onChange={(valor) => onSituacao(valor || null)}
-                />
-                <ConfigurarOpcoes campo="status" opcoes={situacoes.opcoes} edicao={situacoes.edicao} />
-              </div>
-            )}
             <div className={opcoes.comEngrenagem}>
               <StatusSelect
                 rotulo="Tipo de conteúdo"

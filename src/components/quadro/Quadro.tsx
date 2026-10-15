@@ -67,13 +67,39 @@ interface CardProps {
   onAbrir: () => void
   onArquivar?: () => void
   onExcluir?: () => void
+  /** Outras colunas, para o "Mover para…" do menu */
+  destinos: readonly ColunaQuadro[]
+  onMoverPara: (coluna: string) => void
 }
 
-function Card({ id, titulo, atrasado, children, rodape, onAbrir, onArquivar, onExcluir }: CardProps) {
+function Card({
+  id,
+  titulo,
+  atrasado,
+  children,
+  rodape,
+  onAbrir,
+  onArquivar,
+  onExcluir,
+  destinos,
+  onMoverPara,
+}: CardProps) {
   const { setNodeRef, listeners, isDragging } = useDraggable({ id })
   const [confirmando, setConfirmando] = useState(false)
   const acoes: AcaoDoMenu[] = [
     { rotulo: 'Editar', icone: 'editar', onEscolher: onAbrir },
+    ...(destinos.length > 0
+      ? [
+          {
+            rotulo: 'Mover para…',
+            icone: 'colunas' as const,
+            subacoes: destinos.map((coluna) => ({
+              rotulo: coluna.titulo,
+              onEscolher: () => onMoverPara(coluna.id),
+            })),
+          },
+        ]
+      : []),
     ...(onArquivar ? [{ rotulo: 'Arquivar', icone: 'arquivar' as const, onEscolher: onArquivar }] : []),
     ...(onExcluir
       ? [{ rotulo: 'Excluir', icone: 'lixeira' as const, perigo: true, onEscolher: () => setConfirmando(true) }]
@@ -336,6 +362,8 @@ export function Quadro<T extends ItemQuadro>({
                   onAbrir={() => onAbrir(item)}
                   onArquivar={onArquivar ? () => onArquivar(item) : undefined}
                   onExcluir={onExcluir ? () => onExcluir(item) : undefined}
+                  destinos={colunas.filter((outra) => outra.id !== coluna.id)}
+                  onMoverPara={(destino) => onMover(item, destino)}
                 >
                   {renderCard(item)}
                 </Card>

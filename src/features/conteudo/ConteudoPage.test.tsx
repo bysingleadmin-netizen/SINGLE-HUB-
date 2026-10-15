@@ -199,15 +199,6 @@ describe('ConteudoPage', () => {
     expect(await coluna('Editar').findByText('Carrossel de dicas')).toBeInTheDocument()
   })
 
-  it('marcar Feito no painel leva o card para a etapa seguinte, sem status', async () => {
-    const painel = await abrirCard()
-    escolher(await painel.findByLabelText('Status do card'), 'feito')
-
-    await waitFor(() =>
-      expect(bancoFalso().tabelas.content_cards[0]).toMatchObject({ etapa: 'editar', situacao: null }),
-    )
-  })
-
   it('subtarefas: cria, marca e mostra o andamento no card, sem mover o card', async () => {
     const painel = await abrirCard()
     const bloco = within(await painel.findByRole('region', { name: 'Subtarefas' }))
@@ -250,19 +241,15 @@ describe('ConteudoPage', () => {
     expect(modal.getByRole('button', { name: 'Remover Podcast' })).toBeInTheDocument()
   })
 
-  it('escolhe a cor de um status pela engrenagem e o selo do card usa a cor', async () => {
+  it('escolhe a cor de um tipo pela engrenagem', async () => {
     const painel = await abrirCard()
-    fireEvent.click(await painel.findByRole('button', { name: 'Configurar status' }))
-    const modal = within(await screen.findByRole('dialog', { name: 'Configurar status' }))
-    fireEvent.change(await modal.findByLabelText('Cor de Travado'), { target: { value: '#123456' } })
+    fireEvent.click(await painel.findByRole('button', { name: 'Configurar tipos de conteúdo' }))
+    const modal = within(await screen.findByRole('dialog', { name: 'Configurar tipos de conteúdo' }))
+    fireEvent.change(await modal.findByLabelText('Cor de Reels'), { target: { value: '#123456' } })
     await waitFor(() =>
       expect(bancoFalso().tabelas.card_options).toContainEqual(
-        expect.objectContaining({ campo: 'situacao', chave: 'travado', cor: '#123456' }),
+        expect.objectContaining({ campo: 'tipo_conteudo', chave: 'reels', cor: '#123456' }),
       ),
-    )
-    // As outras opções vão para o banco com a cor de fábrica em branco
-    expect(bancoFalso().tabelas.card_options).toContainEqual(
-      expect.objectContaining({ campo: 'situacao', chave: 'feito', cor: null }),
     )
   })
 

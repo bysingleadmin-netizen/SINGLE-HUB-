@@ -14,7 +14,6 @@ import { datasDoCiclo, venceuOPrazoVisivel } from '@/components/quadro/ciclo'
 import { doColaborador, progressoNoQuadro } from '@/components/quadro/colunas'
 import quadro from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
-import { useSituacao } from '@/components/quadro/useSituacao'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { MenuAcoes } from '@/components/ui/MenuDeAcoes'
 import { Pill } from '@/components/ui/Pill'
@@ -32,7 +31,7 @@ import { useCards, useClientes, usePerfis } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
 import { hojeISO } from '@/lib/datas'
 import { cardAberto, situacaoDoPrazo } from '@/lib/regras'
-import { COLUNAS_CONTEUDO, PRIORIDADES, SITUACOES, TIPOS_CONTEUDO } from '@/lib/rotulos'
+import { COLUNAS_CONTEUDO, PRIORIDADES, TIPOS_CONTEUDO } from '@/lib/rotulos'
 import type { ContentCard, ContentEtapa, TipoConteudo } from '@/types/database'
 import { CardDrawer } from './CardDrawer'
 import { atividadeDoMovimento } from './card'
@@ -57,7 +56,6 @@ export function ConteudoPage() {
   const esquema = useColunasOpcionais()
   const anexos = useAnexos('conteudo')
   const subtarefas = useSubtarefas('conteudo')
-  const situacoes = useOpcoes('situacao', SITUACOES)
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
   const tipos = useOpcoes('tipo_conteudo', TIPOS_CONTEUDO)
   const [verArquivados, setVerArquivados] = useState(false)
@@ -88,14 +86,6 @@ export function ConteudoPage() {
     extras: (_card, destino) =>
       esquema.cicloConteudo ? datasDoCiclo(destino, colunas[colunas.length - 1]?.id) : undefined,
     atividade: (card, destino) => atividadeDoMovimento(card, destino, tituloDaEtapa(destino)),
-  })
-
-  const mudarSituacao = useSituacao<ContentCard>({
-    tabela: 'content_cards',
-    colunaDe: (card) => card.etapa,
-    colunas,
-    mover,
-    disponivel: esquema.situacaoConteudo,
   })
 
   const consultas = juntarConsultas(cards, clientes, perfis)
@@ -129,7 +119,21 @@ export function ConteudoPage() {
     {
       chave: 'etapa',
       titulo: 'Etapa',
-      render: (c) => <Pill tom={cardAberto(c) ? 'cinza' : 'verde'}>{tituloDaEtapa(c.etapa)}</Pill>,
+      // O selo é o próprio seletor: clicar abre as etapas e move o conteúdo
+      render: (c) => (
+        <StatusSelect
+          pilula
+          ocultarRotulo
+          rotulo={`Etapa de ${c.titulo}`}
+          opcoes={colunas.map((coluna) => ({
+            valor: coluna.id,
+            rotulo: coluna.titulo,
+            tom: coluna.id === 'publicado' ? 'verde' : 'cinza',
+          }))}
+          value={c.etapa}
+          onChange={(destino) => mover(c, destino, todos)}
+        />
+      ),
       ordem: (c) => colunas.findIndex((coluna) => coluna.id === c.etapa),
     },
     ...(esquema.prioridadeConteudo
@@ -273,10 +277,6 @@ export function ConteudoPage() {
                   quadro="conteudo"
                   cardId={card.id}
                   titulo={card.titulo}
-                  situacao={card.situacao}
-                  situacoes={situacoes.opcoes}
-                  situacaoDisponivel={esquema.situacaoConteudo}
-                  onSituacao={(situacao) => mudarSituacao(card, situacao, todos)}
                   anexos={anexos.disponivel ? (anexos.porCard.get(card.id) ?? []) : undefined}
                 />
               )}
@@ -322,7 +322,6 @@ export function ConteudoPage() {
           colunas={colunas}
           anexos={anexos.disponivel ? (anexos.porCard.get(aberto.id) ?? []) : undefined}
           subtarefas={subtarefas.disponivel ? (subtarefas.porCard.get(aberto.id) ?? []) : undefined}
-          onSituacao={(situacao) => mudarSituacao(aberto, situacao, todos)}
           onMover={(destino) => mover(aberto, destino, todos)}
           onFechar={() => setParametros({}, { replace: true })}
         />

@@ -43,6 +43,7 @@ function montar(rota: string, parcial: Partial<AuthValor>) {
                 <Route path="/app/dashboard" element={<p>tela dashboard</p>} />
                 <Route element={<RotaLideranca />}>
                   <Route path="/app/financeiro" element={<p>tela financeiro</p>} />
+                  <Route path="/app/crm" element={<p>tela crm</p>} />
                 </Route>
               </Route>
             </Routes>
@@ -95,6 +96,17 @@ describe('RotaLideranca', () => {
     const avisos = screen.getAllByRole('status')
     expect(avisos).toHaveLength(1)
     expect(avisos[0]).toHaveTextContent('Acesso não autorizado.')
+  })
+
+  it('o CRM também é só da liderança', () => {
+    montar('/app/crm', { sessao, perfil: perfil('Designer') })
+    expect(screen.getByText('tela dashboard')).toBeInTheDocument()
+    expect(screen.queryByText('tela crm')).not.toBeInTheDocument()
+  })
+
+  it('libera o CRM para a liderança', () => {
+    montar('/app/crm', { sessao, perfil: perfil('CEO') })
+    expect(screen.getByText('tela crm')).toBeInTheDocument()
   })
 
   it.each(['CEO', 'Founder', 'Co-Founder'] as const)('libera o financeiro para %s', (cargo) => {

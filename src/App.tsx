@@ -12,6 +12,7 @@ import { ClientePage } from '@/features/clientes/ClientePage'
 import { ClientesPage } from '@/features/clientes/ClientesPage'
 import { ConfiguracoesPage } from '@/features/configuracoes/ConfiguracoesPage'
 import { ConteudoPage } from '@/features/conteudo/ConteudoPage'
+import { CrmPage } from '@/features/crm/CrmPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { DemandasPage } from '@/features/demandas/DemandasPage'
 import { FinanceiroPage } from '@/features/financeiro/FinanceiroPage'
@@ -55,6 +56,7 @@ export default function App() {
                   <Route path="calendario" element={<CalendarioPage />} />
                   <Route element={<RotaLideranca />}>
                     <Route path="financeiro/:aba?" element={<FinanceiroPage />} />
+                    <Route path="crm" element={<CrmPage />} />
                   </Route>
                   <Route path="configuracoes" element={<ConfiguracoesPage />} />
                 </Route>

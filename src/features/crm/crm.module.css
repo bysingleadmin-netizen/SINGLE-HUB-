@@ -1,0 +1,71 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  text-align: left;
+}
+
+.nome {
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.empresa {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.origem {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--vidro-hover);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.tempo {
+  font-size: 12px;
+  color: var(--text-fraco);
+}
+
+/* Telefone e WhatsApp ficam fora do botão que abre o lead */
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px 10px;
+}
+
+.telefone {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(62, 207, 142, 0.14);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .whatsapp {
+    min-height: 38px;
+  }
+}

@@ -16,6 +16,7 @@ export interface ItemNav {
 export const ITENS_NAV: readonly ItemNav[] = [
   { rota: '/app/dashboard', rotulo: 'Dashboard', icone: 'dashboard' },
   { rota: '/app/clientes', rotulo: 'Clientes', icone: 'clientes' },
+  { rota: '/app/crm', rotulo: 'CRM', icone: 'usuario', apenasLideranca: true },
   // Os quatro quadros de produção ficam sob um cabeçalho só; cada um tem colunas próprias.
   // As rotas continuam as mesmas, então links e notificações antigos seguem valendo.
   { rota: '/app/tarefas', rotulo: 'Tarefas', icone: 'confirmar', grupo: 'Produção' },

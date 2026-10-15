@@ -18,6 +18,7 @@ describe('itensVisiveis', () => {
     expect(itensVisiveis('CEO').map((i) => i.rotulo)).toEqual([
       'Dashboard',
       'Clientes',
+      'CRM',
       'Tarefas',
       'Demandas',
       'Conteúdo',

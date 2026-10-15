@@ -13,6 +13,8 @@ export interface FormCampanha {
   data_fim: string
   orcamento: string
   proxima_otimizacao: string
+  plataforma: string
+  objetivo: string
 }
 
 export type ValoresCampanha = Pick<
@@ -24,6 +26,8 @@ export type ValoresCampanha = Pick<
   | 'data_fim'
   | 'orcamento'
   | 'proxima_otimizacao'
+  | 'plataforma'
+  | 'objetivo'
 >
 
 export function formNovaCampanha(): FormCampanha {
@@ -35,6 +39,8 @@ export function formNovaCampanha(): FormCampanha {
     data_fim: '',
     orcamento: '',
     proxima_otimizacao: '',
+    plataforma: 'Meta Ads',
+    objetivo: '',
   }
 }
 
@@ -47,15 +53,21 @@ export function formDaCampanha(campanha: Campaign): FormCampanha {
     data_fim: campanha.data_fim ?? '',
     orcamento: Number(campanha.orcamento).toFixed(2).replace('.', ','),
     proxima_otimizacao: campanha.proxima_otimizacao ?? '',
+    plataforma: campanha.plataforma ?? 'Meta Ads',
+    objetivo: campanha.objetivo ?? '',
   }
 }
 
-export function validarCampanha(form: FormCampanha): Validacao<ValoresCampanha, FormCampanha> {
+/** `comPlataforma`: o banco já tem plataforma e objetivo (migration 0008); sem eles, os dois ficam de fora. */
+export function validarCampanha(
+  form: FormCampanha,
+  { comPlataforma = false }: { comPlataforma?: boolean } = {},
+): Validacao<ValoresCampanha, FormCampanha> {
   const erros: Erros<FormCampanha> = {}
   const nome = form.nome.trim()
   const orcamento = form.orcamento.trim() === '' ? 0 : parseMoeda(form.orcamento)
 
-  if (nome === '') erros.nome = 'Informe o nome do anúncio.'
+  if (nome === '') erros.nome = 'Informe o nome da campanha.'
   if (form.client_id === '') erros.client_id = 'Escolha o cliente.'
   if (orcamento == null) erros.orcamento = 'Informe um valor como 1.500,00.'
   if (form.data_inicio && form.data_fim && form.data_fim < form.data_inicio) {
@@ -72,8 +84,18 @@ export function validarCampanha(form: FormCampanha): Validacao<ValoresCampanha, 
       data_fim: textoOuNull(form.data_fim),
       orcamento,
       proxima_otimizacao: textoOuNull(form.proxima_otimizacao),
+      ...(comPlataforma ? { plataforma: form.plataforma, objetivo: textoOuNull(form.objetivo) } : {}),
     },
   }
+}
+
+/** O cliente de uma demanda de anúncio: o da campanha ou, sem campanha, o da própria demanda. */
+export function clienteDaDemanda(
+  tarefa: Pick<CampaignTask, 'campaign_id' | 'client_id'>,
+  campanhaPorId: Map<string, Pick<Campaign, 'client_id'>>,
+): string | null {
+  const campanha = tarefa.campaign_id ? campanhaPorId.get(tarefa.campaign_id) : undefined
+  return campanha?.client_id ?? tarefa.client_id ?? null
 }
 
 export function periodoDaCampanha({

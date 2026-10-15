@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
 import { Abas } from '@/components/ui/Abas'
 import { Button } from '@/components/ui/Button'
@@ -7,6 +6,7 @@ import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
 import { ConfirmarExclusao, MenuDeAcoes } from '@/components/ui/MenuDeAcoes'
 import { Pill } from '@/components/ui/Pill'
+import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
@@ -14,12 +14,13 @@ import ui from '@/components/ui/ui.module.css'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useColunasOpcionais } from '@/dados/esquema'
 import { useExcluir } from '@/dados/excluir'
-import { useCampanhas, useClientes } from '@/dados/tabelas'
+import { useCampanhas, useClientes, usePerfis } from '@/dados/tabelas'
 import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
 import { otimizacaoPendente } from '@/lib/regras'
 import { STATUS_CAMPANHA, opcao } from '@/lib/rotulos'
 import type { Campaign, CampaignStatus } from '@/types/database'
+import { CampanhaDrawer } from './CampanhaDrawer'
 import { CampanhaModal } from './CampanhaModal'
 import { QuadroDeAnuncios } from './QuadroDeAnuncios'
 import { TarefasDeAnuncio } from './TarefasDeAnuncio'
@@ -27,16 +28,20 @@ import { periodoDaCampanha } from './campanha'
 import styles from './campanhas.module.css'
 
 const ABAS = [
-  { id: 'quadro', rotulo: 'Tarefas' },
+  { id: 'quadro', rotulo: 'Demandas' },
   { id: 'campanhas', rotulo: 'Campanhas' },
 ] as const
 
 type Aba = (typeof ABAS)[number]['id']
 
-function Anuncios() {
+/** Aba Campanhas: a lista por cliente; cada campanha abre no painel com o histórico. */
+function Campanhas() {
   const campanhas = useCampanhas()
   const clientes = useClientes()
+  const perfis = usePerfis()
   const [criando, setCriando] = useState(false)
+  const [abertaId, setAbertaId] = useState<string>()
+  const [clienteId, setClienteId] = useState('')
   const [editando, setEditando] = useState<Campaign>()
   const [confirmando, setConfirmando] = useState<string>()
   const [status, setStatus] = useState<CampaignStatus | ''>('')
@@ -47,27 +52,38 @@ function Anuncios() {
   function aoExcluir(campanha: Campaign) {
     setConfirmando(undefined)
     excluir.mutate(campanha.id, {
-      onSuccess: () => toast.sucesso('Anúncio excluído.'),
-      onError: () => toast.erro('Não foi possível excluir o anúncio.'),
+      onSuccess: () => toast.sucesso('Campanha excluída.'),
+      onError: () => toast.erro('Não foi possível excluir a campanha.'),
     })
   }
 
   const consultas = juntarConsultas(campanhas, clientes)
   const lista = campanhas.data ?? []
-  const visiveis = lista.filter((campanha) => status === '' || campanha.status === status)
+  const visiveis = lista.filter(
+    (campanha) => (status === '' || campanha.status === status) && (clienteId === '' || campanha.client_id === clienteId),
+  )
+  const aberta = lista.find((campanha) => campanha.id === abertaId)
   const clientePorId = porId(clientes.data)
   const hoje = hojeISO()
 
   const botaoNova = (
     <Button onClick={() => setCriando(true)}>
       <Icone nome="mais" tamanho={16} />
-      Novo anúncio
+      Nova campanha
     </Button>
   )
 
   return (
     <>
       <div className={styles.barra}>
+        <Selecao
+          className={styles.filtro}
+          rotulo="Cliente"
+          vazio="Todos os clientes"
+          opcoes={(clientes.data ?? []).map((c) => ({ valor: c.id, rotulo: c.nome }))}
+          value={clienteId}
+          onChange={(evento) => setClienteId(evento.target.value)}
+        />
         <StatusSelect
           className={styles.filtro}
           rotulo="Status"
@@ -88,12 +104,13 @@ function Anuncios() {
         </div>
       ) : lista.length === 0 ? (
         <EstadoVazio
-          ilustracao="campanhas" titulo="Nenhum anúncio ainda."
-          texto="Crie a primeira para acompanhar estratégia, tarefas e otimizações."
+          ilustracao="campanhas"
+          titulo="Nenhuma campanha ainda."
+          texto="Crie a primeira para acompanhar orçamento, estratégia e o histórico de otimizações."
           acao={botaoNova}
         />
       ) : visiveis.length === 0 ? (
-        <EstadoVazio ilustracao="busca" titulo="Nenhum anúncio com esse status." />
+        <EstadoVazio ilustracao="busca" titulo="Nenhuma campanha com esses filtros." />
       ) : (
         <ul className={`${styles.lista} stagger`}>
           {visiveis.map((campanha) => {
@@ -101,9 +118,9 @@ function Anuncios() {
             return (
               <li key={campanha.id} className={styles.item}>
                 <div className={ui.linhaTexto}>
-                  <Link to={`/app/anuncios/${campanha.id}`} className={styles.itemNome}>
+                  <button type="button" className={styles.itemNome} onClick={() => setAbertaId(campanha.id)}>
                     {campanha.nome}
-                  </Link>
+                  </button>
                   <span className={ui.mudo}>
                     {clientePorId.get(campanha.client_id)?.nome ?? 'Sem cliente'},{' '}
                     {periodoDaCampanha(campanha)}
@@ -147,6 +164,15 @@ function Anuncios() {
       {criando && (
         <CampanhaModal clientes={clientes.data ?? []} onFechar={() => setCriando(false)} />
       )}
+      {aberta && (
+        <CampanhaDrawer
+          key={aberta.id}
+          campanha={aberta}
+          clientes={clientes.data ?? []}
+          perfis={perfis.data ?? []}
+          onFechar={() => setAbertaId(undefined)}
+        />
+      )}
       {editando && (
         <CampanhaModal
           campanha={editando}
@@ -173,13 +199,13 @@ function TarefasDosAnuncios() {
   )
 }
 
-/** Menu Anúncios: as tarefas de todos os anúncios em quadro ou lista e, na outra aba, as campanhas. */
+/** Menu Anúncios: as demandas de anúncio em quadro ou lista e, na outra aba, as campanhas. */
 export function CampanhasPage() {
   const [aba, setAba] = useState<Aba>('quadro')
   return (
     <div className={styles.pagina}>
       <Abas rotulo="Seções de anúncios" abas={ABAS} ativa={aba} onMudar={setAba}>
-        {aba === 'campanhas' ? <Anuncios /> : <TarefasDosAnuncios />}
+        {aba === 'campanhas' ? <Campanhas /> : <TarefasDosAnuncios />}
       </Abas>
     </div>
   )

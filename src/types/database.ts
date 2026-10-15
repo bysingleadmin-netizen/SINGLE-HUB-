@@ -139,12 +139,33 @@ export interface Campaign {
   orcamento: number
   estrategia: string | null
   proxima_otimizacao: string | null
+  /** Migration 0008: Meta Ads, Google Ads... */
+  plataforma?: string
+  /** Migration 0008 */
+  objetivo?: string | null
+  created_at: string
+}
+
+export type TipoDeOtimizacao = 'orcamento' | 'criativo' | 'segmentacao' | 'pausar' | 'nota' | 'desativar'
+
+/** Uma otimização registrada numa campanha (migration 0008) */
+export interface CampaignHistorico {
+  id: string
+  campaign_id: string
+  tipo: TipoDeOtimizacao
+  descricao: string
+  valor_anterior: string | null
+  valor_novo: string | null
+  user_id: string | null
   created_at: string
 }
 
 export interface CampaignTask {
   id: string
-  campaign_id: string
+  /** Opcional depois da migration 0008: a demanda pode existir sem campanha */
+  campaign_id: string | null
+  /** Migration 0008: o cliente da demanda sem campanha */
+  client_id?: string | null
   funcao: CampaignFuncao
   titulo: string
   status: CampaignTaskStatus

@@ -51,16 +51,23 @@
 }
 
 .itemNome {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--text);
   font-family: var(--font-display);
+  font-size: inherit;
   font-weight: 600;
+  text-align: left;
   overflow-wrap: anywhere;
+  cursor: pointer;
 }
 
 .item:hover .itemNome {
   color: var(--accent-hover);
 }
 
-/* O link do nome cobre o card inteiro, para o clique valer em qualquer ponto dele */
+/* O nome cobre o card inteiro, para o clique valer em qualquer ponto dele */
 .itemNome::after {
   content: '';
   position: absolute;
@@ -277,4 +284,126 @@
     min-width: 0;
     text-align: left;
   }
+}
+
+/* Histórico de otimizações: linha do tempo, a mais recente no topo */
+.historico {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.historicoTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.historicoTitulo {
+  font-size: 15px;
+}
+
+.otimizacao {
+  padding: 14px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius-sm);
+}
+
+.linhaDoTempo {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marco {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 0 18px 22px;
+}
+
+/* O traço que liga os marcos e o ponto de cada um */
+.marco::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: -6px;
+  left: 5px;
+  width: 1px;
+  background: var(--vidro-borda);
+}
+
+.marco:last-child::before {
+  display: none;
+}
+
+.marco::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.marcoTopo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.marcoTexto {
+  margin: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.marcoValores {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Painel lateral da campanha */
+.painelDados {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.painelDados div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.painelDados dt {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.painelDados dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.painelAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }

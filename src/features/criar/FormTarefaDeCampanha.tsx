@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
 import { useSalvar } from '@/dados/base'
+import { useColunasOpcionais } from '@/dados/esquema'
 import { useNotificar } from '@/dados/notificacoes'
 import { useCampanhas, useClientes, usePerfis } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -23,7 +24,7 @@ interface FormTarefaDeCampanhaProps {
   onFechar: () => void
 }
 
-/** Campos e gravação de uma tarefa dentro de uma campanha. */
+/** Campos e gravação de uma demanda de anúncio. Depois da migration 0008, a campanha é opcional. */
 export function FormTarefaDeCampanha({
   campanhaInicial,
   funcaoInicial,
@@ -33,9 +34,12 @@ export function FormTarefaDeCampanha({
   const { perfil } = useAuth()
   const campanhas = useCampanhas()
   const perfis = usePerfis()
-  // Carregada também aqui para as três categorias abrirem com as mesmas listas prontas
-  useClientes()
+  const clientes = useClientes()
+  const esquema = useColunasOpcionais()
+  // Sem a migration 0008 o banco ainda exige a campanha
+  const campanhaOpcional = esquema.demandaSemCampanha
   const [campanhaId, setCampanhaId] = useState(campanhaInicial)
+  const [clienteId, setClienteId] = useState('')
   const [funcao, setFuncao] = useState<CampaignFuncao>(funcaoInicial)
   const [titulo, setTitulo] = useState('')
   const [responsavelId, setResponsavelId] = useState('')
@@ -49,8 +53,8 @@ export function FormTarefaDeCampanha({
     evento.preventDefault()
     const limpo = titulo.trim()
     const novos = {
-      campanha: campanhaId === '' ? 'Escolha o anúncio.' : undefined,
-      titulo: limpo === '' ? 'Informe o título da tarefa.' : undefined,
+      campanha: campanhaId === '' && !campanhaOpcional ? 'Escolha a campanha.' : undefined,
+      titulo: limpo === '' ? 'Informe o título da demanda.' : undefined,
     }
     setErros(novos)
     if (novos.campanha || novos.titulo) return
@@ -58,7 +62,9 @@ export function FormTarefaDeCampanha({
     salvar.mutate(
       {
         valores: {
-          campaign_id: campanhaId,
+          campaign_id: campanhaId || null,
+          // Com campanha, o cliente vem dela; sem, fica na própria demanda
+          ...(campanhaOpcional ? { client_id: campanhaId ? null : clienteId || null } : {}),
           funcao,
           titulo: limpo,
           status: statusInicial,
@@ -67,30 +73,30 @@ export function FormTarefaDeCampanha({
       },
       {
         onSuccess: (salva) => {
-          toast.sucesso('Tarefa adicionada ao anúncio.')
+          toast.sucesso('Demanda de anúncio criada.')
           void registrarAtividade({
             acao: 'tarefa_de_anuncio_criada',
-            descricao: `criou a tarefa de anúncio "${salva.titulo}"`,
-            entidade: 'campaigns',
-            entidadeId: salva.campaign_id,
+            descricao: `criou a demanda de anúncio "${salva.titulo}"`,
+            entidade: salva.campaign_id ? 'campaigns' : 'campaign_tasks',
+            entidadeId: salva.campaign_id ?? salva.id,
           })
           void notificar([salva.responsavel_id], {
             tipo: 'tarefa',
-            titulo: 'Nova tarefa de anúncio para você',
-            mensagem: `${perfil?.nome ?? 'Alguém'} atribuiu a tarefa "${salva.titulo}" a você.`,
-            link: `/app/anuncios/${salva.campaign_id}`,
+            titulo: 'Nova demanda de anúncio para você',
+            mensagem: `${perfil?.nome ?? 'Alguém'} atribuiu a demanda "${salva.titulo}" a você.`,
+            link: salva.campaign_id ? `/app/anuncios/${salva.campaign_id}` : '/app/anuncios',
           })
           onFechar()
         },
-        onError: () => toast.erro('Não foi possível adicionar a tarefa.'),
+        onError: () => toast.erro('Não foi possível criar a demanda de anúncio.'),
       },
     )
   }
 
-  if (campanhas.isSuccess && campanhas.data.length === 0) {
+  if (!campanhaOpcional && esquema.pronto && campanhas.isSuccess && campanhas.data.length === 0) {
     return (
       <>
-        <p>Crie um anúncio antes de adicionar tarefas a ele.</p>
+        <p>Crie uma campanha antes de adicionar demandas a ela.</p>
         <Link to="/app/anuncios" className={ui.linkAcao} onClick={onFechar}>
           Ir para Anúncios
         </Link>
@@ -102,8 +108,8 @@ export function FormTarefaDeCampanha({
     <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
       <div className={ui.duasColunas}>
         <Selecao
-          rotulo="Anúncio"
-          vazio="Escolha o anúncio"
+          rotulo="Campanha"
+          vazio={campanhaOpcional ? 'Sem campanha' : 'Escolha a campanha'}
           opcoes={(campanhas.data ?? []).map((c) => ({ valor: c.id, rotulo: c.nome }))}
           value={campanhaId}
           erro={erros.campanha}
@@ -123,6 +129,15 @@ export function FormTarefaDeCampanha({
         erro={erros.titulo}
         onChange={(evento) => setTitulo(evento.target.value)}
       />
+      {campanhaOpcional && campanhaId === '' && (
+        <Selecao
+          rotulo="Cliente"
+          vazio="Sem cliente"
+          opcoes={(clientes.data ?? []).map((c) => ({ valor: c.id, rotulo: c.nome }))}
+          value={clienteId}
+          onChange={(evento) => setClienteId(evento.target.value)}
+        />
+      )}
       <Selecao
         rotulo="Responsável"
         vazio="Sem responsável"

@@ -1,6 +1,7 @@
 import type { Campaign, CampaignTask } from '@/types/database'
 import {
   agruparPorFuncao,
+  clienteDaDemanda,
   formDaCampanha,
   formNovaCampanha,
   periodoDaCampanha,
@@ -10,7 +11,7 @@ import {
 describe('validarCampanha', () => {
   it('exige nome e cliente', () => {
     expect(validarCampanha(formNovaCampanha())).toEqual({
-      erros: { nome: 'Informe o nome do anúncio.', client_id: 'Escolha o cliente.' },
+      erros: { nome: 'Informe o nome da campanha.', client_id: 'Escolha o cliente.' },
     })
   })
 
@@ -59,6 +60,31 @@ describe('validarCampanha', () => {
   })
 })
 
+describe('plataforma e objetivo', () => {
+  const base = { ...formNovaCampanha(), nome: 'A', client_id: 'c1', plataforma: 'Google Ads', objetivo: ' Leads ' }
+
+  it('com a migration 0008, vão junto', () => {
+    expect(validarCampanha(base, { comPlataforma: true })).toMatchObject({
+      valores: { plataforma: 'Google Ads', objetivo: 'Leads' },
+    })
+  })
+
+  it('sem ela, ficam de fora para o salvar não falhar', () => {
+    const resultado = validarCampanha(base)
+    expect('valores' in resultado && resultado.valores).not.toHaveProperty('plataforma')
+  })
+})
+
+describe('clienteDaDemanda', () => {
+  const campanhas = new Map([['g1', { client_id: 'c1' }]])
+
+  it('vem da campanha; sem campanha, da própria demanda', () => {
+    expect(clienteDaDemanda({ campaign_id: 'g1', client_id: null }, campanhas)).toBe('c1')
+    expect(clienteDaDemanda({ campaign_id: null, client_id: 'c2' }, campanhas)).toBe('c2')
+    expect(clienteDaDemanda({ campaign_id: null, client_id: null }, campanhas)).toBeNull()
+  })
+})
+
 describe('formDaCampanha', () => {
   it('prepara a campanha para edição', () => {
     const campanha = {
@@ -78,6 +104,8 @@ describe('formDaCampanha', () => {
       data_fim: '',
       orcamento: '3000,50',
       proxima_otimizacao: '',
+      plataforma: 'Meta Ads',
+      objetivo: '',
     })
   })
 })

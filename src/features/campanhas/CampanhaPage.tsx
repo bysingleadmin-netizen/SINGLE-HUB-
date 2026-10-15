@@ -9,7 +9,6 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { juntarConsultas, porId, useAtualizarOtimista } from '@/dados/base'
-import { useRegistrarOtimizacao } from '@/dados/otimizacao'
 import { useCampanhas, useClientes, usePerfis, useTarefasDeCampanha } from '@/dados/tabelas'
 import { hojeISO } from '@/lib/datas'
 import { formatarData, formatarMoeda } from '@/lib/formato'
@@ -18,6 +17,7 @@ import { otimizacaoPendente } from '@/lib/regras'
 import { STATUS_CAMPANHA, opcao } from '@/lib/rotulos'
 import type { Campaign } from '@/types/database'
 import { CampanhaModal } from './CampanhaModal'
+import { HistoricoDaCampanha } from './HistoricoDaCampanha'
 import { TarefasDaCampanha } from './TarefasDaCampanha'
 import { periodoDaCampanha } from './campanha'
 import styles from './campanhas.module.css'
@@ -59,7 +59,6 @@ export function CampanhaPage() {
   const clientes = useClientes()
   const perfis = usePerfis()
   const tarefas = useTarefasDeCampanha()
-  const { registrar, registrando } = useRegistrarOtimizacao()
   const [editando, setEditando] = useState(false)
 
   const consultas = juntarConsultas(campanhas, clientes, perfis, tarefas)
@@ -80,7 +79,8 @@ export function CampanhaPage() {
   if (!campanha) {
     return (
       <EstadoVazio
-        ilustracao="busca" titulo="Anúncio não encontrado."
+        ilustracao="busca"
+        titulo="Campanha não encontrada."
         texto="Ela pode ter sido removida ou o endereço está incorreto."
         acao={
           <Link to="/app/anuncios" className={ui.linkAcao}>
@@ -110,9 +110,6 @@ export function CampanhaPage() {
           <div className={styles.cabecalhoAcoes}>
             <Button variante="secundario" onClick={() => setEditando(true)}>
               Editar
-            </Button>
-            <Button disabled={registrando} onClick={() => registrar(campanha)}>
-              Registrar otimização
             </Button>
           </div>
         </div>
@@ -149,6 +146,10 @@ export function CampanhaPage() {
       </div>
 
       <Estrategia key={campanha.id} campanha={campanha} />
+
+      <div className={ui.painel}>
+        <HistoricoDaCampanha campanha={campanha} perfis={perfis.data ?? []} />
+      </div>
 
       <h2 className={styles.titulo}>Tarefas por função</h2>
       <TarefasDaCampanha

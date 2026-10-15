@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { FiltroDeColaboradores } from '@/components/quadro/FiltroDeColaboradores'
 import { TabelaDeTarefas } from '@/components/quadro/TabelaDeTarefas'
 import type { ColunaDaTabela } from '@/components/quadro/TabelaDeTarefas'
@@ -13,22 +12,26 @@ import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import { juntarConsultas, porId } from '@/dados/base'
+import { useColunasDoQuadro } from '@/dados/colunas'
 import { useExcluir } from '@/dados/excluir'
 import { useCampanhas, useClientes, usePerfis, useTarefasDeCampanha } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
-import { FUNCOES_CAMPANHA, opcao } from '@/lib/rotulos'
+import { COLUNAS_ANUNCIO, FUNCOES_CAMPANHA, opcao } from '@/lib/rotulos'
 import type { CampaignTask } from '@/types/database'
+import { DemandaDeAnuncioDrawer } from './DemandaDeAnuncioDrawer'
+import { clienteDaDemanda } from './campanha'
 import styles from './campanhas.module.css'
 import { useStatusDeAnuncio } from './statusDeAnuncio'
 
-/** Todas as tarefas de anúncio em uma lista só, sem precisar abrir anúncio por anúncio. */
+/** Todas as demandas de anúncio em uma lista só, com ou sem campanha. */
 export function TarefasDeAnuncio() {
   const tarefas = useTarefasDeCampanha()
   const campanhas = useCampanhas()
   const clientes = useClientes()
   const perfis = usePerfis()
   const criar = useCriar()
-  const navigate = useNavigate()
+  const [abertaId, setAbertaId] = useState<string>()
+  const { colunas: colunasDoQuadro } = useColunasDoQuadro('anuncios', COLUNAS_ANUNCIO)
   const statusDeAnuncio = useStatusDeAnuncio()
   const excluir = useExcluir<CampaignTask>({ tabela: 'campaign_tasks' })
   const toast = useToast()
@@ -43,10 +46,11 @@ export function TarefasDeAnuncio() {
   const perfilPorId = porId(perfis.data)
   const todas = tarefas.data ?? []
   const visiveis = todas.filter((tarefa) => doColaborador(tarefa.responsavel_id, responsaveis))
-  const campanhaDa = (tarefa: CampaignTask) => campanhaPorId.get(tarefa.campaign_id)
+  const aberta = todas.find((tarefa) => tarefa.id === abertaId)
+  const campanhaDa = (tarefa: CampaignTask) => (tarefa.campaign_id ? campanhaPorId.get(tarefa.campaign_id) : undefined)
   const clienteDa = (tarefa: CampaignTask) => {
-    const campanha = campanhaDa(tarefa)
-    return campanha ? clientePorId.get(campanha.client_id) : undefined
+    const id = clienteDaDemanda(tarefa, campanhaPorId)
+    return id ? clientePorId.get(id) : undefined
   }
   const responsavelDa = (tarefa: CampaignTask) =>
     tarefa.responsavel_id ? perfilPorId.get(tarefa.responsavel_id) : undefined
@@ -54,7 +58,7 @@ export function TarefasDeAnuncio() {
   const colunas: ColunaDaTabela<CampaignTask>[] = [
     {
       chave: 'titulo',
-      titulo: 'Tarefa',
+      titulo: 'Demanda',
       render: (t) => <CelulaTitulo>{t.titulo}</CelulaTitulo>,
       ordem: (t) => t.titulo,
     },
@@ -81,8 +85,8 @@ export function TarefasDeAnuncio() {
     },
     {
       chave: 'anuncio',
-      titulo: 'Anúncio',
-      render: (t) => campanhaDa(t)?.nome ?? 'Anúncio removido',
+      titulo: 'Campanha',
+      render: (t) => campanhaDa(t)?.nome ?? 'Sem campanha',
       ordem: (t) => campanhaDa(t)?.nome ?? null,
     },
     {
@@ -103,38 +107,48 @@ export function TarefasDeAnuncio() {
         />
         <Button variante="secundario" onClick={() => criar({ categoria: 'campanha' })}>
           <Icone nome="mais" tamanho={16} />
-          Nova tarefa
+          Nova demanda
         </Button>
       </div>
       {todas.length === 0 ? (
         <EstadoVazio
           ilustracao="quadro"
-          titulo="Nenhuma tarefa de anúncio ainda."
-          texto="Crie pela categoria Tarefa de anúncio, no botão Criar, ou dentro de um anúncio."
+          titulo="Nenhuma demanda de anúncio ainda."
+          texto="Crie pelo botão Criar, escolhendo Anúncio. A campanha é opcional."
         />
       ) : visiveis.length === 0 ? (
-        <EstadoVazio ilustracao="busca" titulo="Nenhuma tarefa com esse filtro." />
+        <EstadoVazio ilustracao="busca" titulo="Nenhuma demanda com esse filtro." />
       ) : (
         <TabelaDeTarefas
-          rotulo="Tarefas de anúncio"
+          rotulo="Demandas de anúncio"
           itens={visiveis}
           colunas={colunas}
           tituloDe={(tarefa) => tarefa.titulo}
           ordemInicial="status"
-          onAbrir={(tarefa) => navigate(`/app/anuncios/${tarefa.campaign_id}`)}
+          onAbrir={(tarefa) => setAbertaId(tarefa.id)}
           acoes={(tarefa) => (
             <MenuAcoes
               nome={tarefa.titulo}
-              // A tarefa de anúncio é editada na página do anúncio dela
-              onEditar={() => navigate(`/app/anuncios/${tarefa.campaign_id}`)}
+              onEditar={() => setAbertaId(tarefa.id)}
               onExcluir={() =>
                 excluir.mutate(tarefa.id, {
-                  onSuccess: () => toast.sucesso('Tarefa de anúncio excluída.'),
-                  onError: () => toast.erro('Não foi possível excluir a tarefa de anúncio.'),
+                  onSuccess: () => toast.sucesso('Demanda de anúncio excluída.'),
+                  onError: () => toast.erro('Não foi possível excluir a demanda de anúncio.'),
                 })
               }
             />
           )}
+        />
+      )}
+      {aberta && (
+        <DemandaDeAnuncioDrawer
+          key={aberta.id}
+          tarefa={aberta}
+          campanhas={campanhas.data ?? []}
+          clientes={clientes.data ?? []}
+          perfis={perfis.data ?? []}
+          colunas={colunasDoQuadro}
+          onFechar={() => setAbertaId(undefined)}
         />
       )}
     </>

@@ -12,7 +12,7 @@ import { FormTarefaDeCampanha } from './FormTarefaDeCampanha'
 const CATEGORIAS: readonly { valor: Categoria; rotulo: string; tom: Tom; destino: string }[] = [
   { valor: 'conteudo', rotulo: 'Conteúdo', tom: 'roxo', destino: 'Vai para o menu Conteúdo.' },
   { valor: 'demanda', rotulo: 'Demanda', tom: 'vermelho', destino: 'Pedido de cliente ou trabalho interno. Vai para o menu Demandas.' },
-  { valor: 'campanha', rotulo: 'Anúncio', tom: 'amarelo', destino: 'Tarefa de um anúncio. Vai para o menu Anúncios.' },
+  { valor: 'campanha', rotulo: 'Anúncio', tom: 'amarelo', destino: 'Demanda de anúncio, com ou sem campanha. Vai para o menu Anúncios.' },
 ]
 
 /** O tipo que a página atual sugere quando a pessoa clica em Criar. */

@@ -21,6 +21,7 @@ export type Tabela =
   | 'card_subtarefas'
   | 'card_options'
   | 'leads'
+  | 'campaign_historico'
   | 'lead_historico'
   | 'receitas_asaas'
 

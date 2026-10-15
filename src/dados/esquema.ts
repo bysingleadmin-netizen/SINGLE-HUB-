@@ -41,6 +41,10 @@ const SONDAS = {
   cnpj: ['clients', 'cnpj'],
   // migration 0008: perfil do lead (segmento, cidade, temperatura...)
   perfilDoLead: ['leads', 'temperatura'],
+  // migration 0008: demanda de anúncio sem campanha, com o cliente nela
+  demandaSemCampanha: ['campaign_tasks', 'client_id'],
+  // migration 0008: plataforma e objetivo da campanha
+  plataformaCampanha: ['campaigns', 'plataforma'],
 } as const satisfies Record<string, readonly [Tabela, string]>
 
 export type ColunaOpcional = keyof typeof SONDAS

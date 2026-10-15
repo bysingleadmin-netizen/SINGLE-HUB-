@@ -11,6 +11,7 @@ import type {
   TaskStatus,
   TaskTipo,
   TipoConteudo,
+  TipoDeOtimizacao,
   TipoEvento,
 } from '@/types/database'
 
@@ -120,6 +121,17 @@ export const STATUS_CAMPANHA: readonly Opcao<CampaignStatus>[] = [
   { valor: 'em_execucao', rotulo: 'Em execução', tom: 'verde' },
   { valor: 'pausada', rotulo: 'Pausada', tom: 'amarelo' },
   { valor: 'finalizada', rotulo: 'Finalizada', tom: 'azul' },
+]
+
+export const PLATAFORMAS = ['Meta Ads', 'Google Ads', 'TikTok Ads', 'LinkedIn Ads', 'Outra'] as const
+
+export const TIPOS_DE_OTIMIZACAO: readonly Opcao<TipoDeOtimizacao>[] = [
+  { valor: 'orcamento', rotulo: 'Orçamento', tom: 'verde' },
+  { valor: 'criativo', rotulo: 'Criativo', tom: 'roxo' },
+  { valor: 'segmentacao', rotulo: 'Segmentação', tom: 'azul' },
+  { valor: 'pausar', rotulo: 'Pausar', tom: 'amarelo' },
+  { valor: 'desativar', rotulo: 'Desativar', tom: 'vermelho' },
+  { valor: 'nota', rotulo: 'Nota', tom: 'cinza' },
 ]
 
 export const FUNCOES_CAMPANHA: readonly { valor: CampaignFuncao; rotulo: string }[] = [

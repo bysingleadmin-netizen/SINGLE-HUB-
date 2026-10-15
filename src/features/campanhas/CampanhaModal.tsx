@@ -10,8 +10,9 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
 import { useSalvar } from '@/dados/base'
+import { useColunasOpcionais } from '@/dados/esquema'
 import type { Erros } from '@/lib/formulario'
-import { STATUS_CAMPANHA } from '@/lib/rotulos'
+import { PLATAFORMAS, STATUS_CAMPANHA } from '@/lib/rotulos'
 import type { Campaign, CampaignStatus, Client } from '@/types/database'
 import { formDaCampanha, formNovaCampanha, validarCampanha } from './campanha'
 import type { FormCampanha } from './campanha'
@@ -31,7 +32,8 @@ export function CampanhaModal({ campanha, clientes, onFechar }: CampanhaModalPro
   const salvar = useSalvar<Campaign>('campaigns')
   const registrarAtividade = useRegistrarAtividade()
   const toast = useToast()
-  const titulo = campanha ? 'Editar anúncio' : 'Novo anúncio'
+  const esquema = useColunasOpcionais()
+  const titulo = campanha ? 'Editar campanha' : 'Nova campanha'
 
   function campo(nome: keyof FormCampanha) {
     return {
@@ -44,7 +46,7 @@ export function CampanhaModal({ campanha, clientes, onFechar }: CampanhaModalPro
 
   function aoEnviar(evento: FormEvent) {
     evento.preventDefault()
-    const resultado = validarCampanha(form)
+    const resultado = validarCampanha(form, { comPlataforma: esquema.plataformaCampanha })
     if ('erros' in resultado) {
       setErros(resultado.erros)
       return
@@ -54,18 +56,18 @@ export function CampanhaModal({ campanha, clientes, onFechar }: CampanhaModalPro
       { id: campanha?.id, valores: resultado.valores },
       {
         onSuccess: (salva) => {
-          toast.sucesso(campanha ? 'Anúncio atualizado.' : 'Anúncio criado.')
+          toast.sucesso(campanha ? 'Campanha atualizada.' : 'Campanha criada.')
           if (!campanha) {
             void registrarAtividade({
               acao: 'campanha_criada',
-              descricao: `criou o anúncio "${salva.nome}"`,
+              descricao: `criou a campanha "${salva.nome}"`,
               entidade: 'campaigns',
               entidadeId: salva.id,
             })
           }
           onFechar()
         },
-        onError: () => toast.erro('Não foi possível salvar o anúncio.'),
+        onError: () => toast.erro('Não foi possível salvar a campanha.'),
       },
     )
   }
@@ -74,7 +76,7 @@ export function CampanhaModal({ campanha, clientes, onFechar }: CampanhaModalPro
     return (
       <Modal aberto titulo={titulo} onFechar={onFechar}>
         <div className={ui.formulario}>
-          <p>Cadastre um cliente antes de criar um anúncio.</p>
+          <p>Cadastre um cliente antes de criar uma campanha.</p>
           <Link to="/app/clientes" className={ui.linkAcao}>
             Ir para Clientes
           </Link>
@@ -103,13 +105,23 @@ export function CampanhaModal({ campanha, clientes, onFechar }: CampanhaModalPro
             }
           />
         </div>
+        {esquema.plataformaCampanha && (
+          <div className={ui.duasColunas}>
+            <Selecao
+              rotulo="Plataforma"
+              opcoes={PLATAFORMAS.map((nome) => ({ valor: nome, rotulo: nome }))}
+              {...campo('plataforma')}
+            />
+            <Campo rotulo="Objetivo" placeholder="Leads, vendas, alcance..." {...campo('objetivo')} />
+          </div>
+        )}
         <div className={ui.duasColunas}>
           <Campo rotulo="Início" type="date" {...campo('data_inicio')} />
           <Campo rotulo="Fim" type="date" {...campo('data_fim')} />
         </div>
         <div className={ui.duasColunas}>
           <Campo
-            rotulo="Orçamento"
+            rotulo="Orçamento atual"
             inputMode="decimal"
             placeholder="3.000,00"
             {...campo('orcamento')}

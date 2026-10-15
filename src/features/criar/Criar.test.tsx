@@ -88,48 +88,74 @@ describe('criação central de tarefas', () => {
     expect(bancoFalso().tabelas.tasks).toHaveLength(1)
   })
 
-  it('categoria Campanha grava a tarefa na campanha e na função escolhidas', async () => {
+  it('categoria Anúncio grava a demanda na campanha e na função escolhidas', async () => {
     popular()
     const modal = await abrir()
     escolher(modal.getByLabelText('Tipo'), 'campanha')
-    expect(modal.getByText('Tarefa de um anúncio. Vai para o menu Anúncios.')).toBeInTheDocument()
+    expect(modal.getByText('Demanda de anúncio, com ou sem campanha. Vai para o menu Anúncios.')).toBeInTheDocument()
 
     await modal.findByRole('option', { name: 'Black Friday' })
-    fireEvent.change(modal.getByLabelText('Anúncio'), { target: { value: 'g1' } })
+    fireEvent.change(modal.getByLabelText('Campanha'), { target: { value: 'g1' } })
+    // Com campanha, o cliente vem dela
+    expect(modal.queryByLabelText('Cliente')).not.toBeInTheDocument()
     fireEvent.change(modal.getByLabelText('Função'), { target: { value: 'criativos' } })
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Três criativos estáticos' } })
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
-    expect(await screen.findByText('Tarefa adicionada ao anúncio.')).toBeInTheDocument()
+    expect(await screen.findByText('Demanda de anúncio criada.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.campaign_tasks[0]).toMatchObject({
       campaign_id: 'g1',
+      client_id: null,
       funcao: 'criativos',
       titulo: 'Três criativos estáticos',
       status: 'pendente',
     })
   })
 
-  it('categoria Campanha exige campanha e título', async () => {
+  it('a campanha é opcional: sem ela, a demanda guarda o cliente', async () => {
+    popular(false)
+    const modal = await abrir()
+    escolher(modal.getByLabelText('Tipo'), 'campanha')
+    fireEvent.change(await modal.findByLabelText('Cliente'), { target: { value: 'c1' } })
+    fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Pausar campanha antiga' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+
+    expect(await screen.findByText('Demanda de anúncio criada.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.campaign_tasks[0]).toMatchObject({
+      campaign_id: null,
+      client_id: 'c1',
+      titulo: 'Pausar campanha antiga',
+    })
+  })
+
+  it('exige o título', async () => {
     popular()
     const modal = await abrir()
     escolher(modal.getByLabelText('Tipo'), 'campanha')
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
-    expect(await modal.findByText('Escolha o anúncio.')).toBeInTheDocument()
-    expect(modal.getByText('Informe o título da tarefa.')).toBeInTheDocument()
+    expect(await modal.findByText('Informe o título da demanda.')).toBeInTheDocument()
+    expect(modal.queryByText('Escolha a campanha.')).not.toBeInTheDocument()
     expect(bancoFalso().tabelas.campaign_tasks).toHaveLength(0)
   })
 
-  it('sem campanhas cadastradas, manda criar uma antes', async () => {
-    popular(false)
+  it('sem a migration 0008 a campanha continua obrigatória', async () => {
+    popular()
+    bancoFalso().colunasAusentes = ['campaign_tasks.client_id']
     const modal = await abrir()
     escolher(modal.getByLabelText('Tipo'), 'campanha')
-    expect(
-      await modal.findByText('Crie um anúncio antes de adicionar tarefas a ele.'),
-    ).toBeInTheDocument()
-    expect(modal.getByRole('link', { name: 'Ir para Anúncios' })).toHaveAttribute(
-      'href',
-      '/app/anuncios',
-    )
+    await waitFor(() => expect(modal.queryByLabelText('Cliente')).not.toBeInTheDocument())
+    fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Algo' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    expect(await modal.findByText('Escolha a campanha.')).toBeInTheDocument()
+  })
+
+  it('sem a migration 0008 e sem campanhas, manda criar uma antes', async () => {
+    popular(false)
+    bancoFalso().colunasAusentes = ['campaign_tasks.client_id']
+    const modal = await abrir()
+    escolher(modal.getByLabelText('Tipo'), 'campanha')
+    expect(await modal.findByText('Crie uma campanha antes de adicionar demandas a ela.')).toBeInTheDocument()
+    expect(modal.getByRole('link', { name: 'Ir para Anúncios' })).toHaveAttribute('href', '/app/anuncios')
     expect(modal.queryByRole('button', { name: 'Salvar' })).not.toBeInTheDocument()
   })
 
@@ -144,20 +170,6 @@ describe('criação central de tarefas', () => {
     const modal = within(screen.getByRole('dialog', { name: 'Nova tarefa' }))
     expect(modal.getByLabelText('Tipo')).toHaveAttribute('data-valor', 'conteudo')
     expect(modal.getByLabelText('Etapa')).toHaveValue('editar')
-  })
-
-  it('sem a coluna de quadro no banco, não oferece Tarefa, que não teria onde ficar', async () => {
-    popular()
-    bancoFalso().colunasAusentes = ['tasks.quadro']
-    const modal = await abrir()
-    fireEvent.click(modal.getByLabelText('Tipo'))
-    await waitFor(() =>
-      expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual([
-        'Conteúdo',
-        'Demanda',
-        'Anúncio',
-      ]),
-    )
   })
 
   it('oferece os três tipos', async () => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Sparkline } from '@/components/graficos/Sparkline'
 import { Skeleton } from './Skeleton'
 import styles from './ui.module.css'
@@ -46,12 +47,15 @@ interface KpiCardProps {
   carregando?: boolean
   /** Como o número estava nas últimas semanas, do mais antigo ao atual: vira uma linha de tendência */
   tendencia?: number[]
+  /** Linhas curtas abaixo do número, como a variação e a base do cálculo */
+  legenda?: ReactNode
 }
 
 function Valor({ valor, formatar }: { valor: number; formatar?: (valor: number) => string }) {
   const atual = useContagem(valor)
-  // Pelo valor final, para o tamanho não mudar enquanto o número conta
-  const longo = (formatar ? formatar(valor) : String(valor)).length > 9
+  // Pelo valor final, para o tamanho não mudar enquanto o número conta. Valor formatado
+  // (dinheiro, porcentagem) diminui junto com o card, para os vizinhos ficarem do mesmo tamanho
+  const longo = Boolean(formatar) || String(valor).length > 6
   return (
     <strong className={styles.kpiValor} data-longo={longo || undefined}>
       {formatar ? formatar(atual) : String(Math.round(atual))}
@@ -59,7 +63,7 @@ function Valor({ valor, formatar }: { valor: number; formatar?: (valor: number) 
   )
 }
 
-export function KpiCard({ rotulo, valor, formatar, carregando = false, tendencia }: KpiCardProps) {
+export function KpiCard({ rotulo, valor, formatar, carregando = false, tendencia, legenda }: KpiCardProps) {
   return (
     <div className={styles.kpi}>
       <span className={styles.kpiRotulo}>{rotulo}</span>
@@ -70,6 +74,7 @@ export function KpiCard({ rotulo, valor, formatar, carregando = false, tendencia
       ) : (
         <Valor valor={valor} formatar={formatar} />
       )}
+      {!carregando && legenda && <div className={styles.kpiLegenda}>{legenda}</div>}
       {!carregando && tendencia && (
         <Sparkline valores={tendencia} periodo={`${rotulo} nas últimas ${tendencia.length} semanas`} />
       )}

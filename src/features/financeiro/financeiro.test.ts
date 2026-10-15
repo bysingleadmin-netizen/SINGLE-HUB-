@@ -10,7 +10,9 @@ import {
   taxaDeConversao,
   totalDasDespesas,
   validarDespesa,
-  validarMeses,
+  datasAte,
+  metaDoPeriodo,
+  validarParcelas,
   validarMetricas,
 } from './financeiro'
 
@@ -197,10 +199,51 @@ describe('despesa recorrente', () => {
     expect(datasDaRecorrencia('2026-01-31', 3)).toEqual(['2026-01-31', '2026-02-28', '2026-03-31'])
   })
 
-  it('aceita de 1 a 36 meses, inteiros', () => {
-    expect(validarMeses('5')).toBe(5)
-    expect(validarMeses('36')).toBe(36)
-    expect(validarMeses('1')).toBe(1)
-    for (const invalido of ['', '0', '37', '2,5', 'abc']) expect(validarMeses(invalido)).toBeNull()
+  it('aceita de 1 a 60 parcelas, inteiras', () => {
+    expect(validarParcelas('5')).toBe(5)
+    expect(validarParcelas('60')).toBe(60)
+    expect(validarParcelas('1')).toBe(1)
+    for (const invalido of ['', '0', '61', '2,5', 'abc']) expect(validarParcelas(invalido)).toBeNull()
+  })
+
+  it('outras frequências: semanal, quinzenal, trimestral e anual', () => {
+    expect(datasDaRecorrencia('2026-10-14', 3, 'semanal')).toEqual(['2026-10-14', '2026-10-21', '2026-10-28'])
+    expect(datasDaRecorrencia('2026-10-14', 3, 'quinzenal')).toEqual(['2026-10-14', '2026-10-28', '2026-11-11'])
+    expect(datasDaRecorrencia('2026-11-30', 3, 'trimestral')).toEqual(['2026-11-30', '2027-02-28', '2027-05-30'])
+    expect(datasDaRecorrencia('2024-02-29', 2, 'anual')).toEqual(['2024-02-29', '2025-02-28'])
+  })
+
+  it('sem fim: todas as datas até o limite, ao menos a primeira', () => {
+    expect(datasAte('2026-10-14', 'mensal', '2027-01-20')).toEqual([
+      '2026-10-14',
+      '2026-11-14',
+      '2026-12-14',
+      '2027-01-14',
+    ])
+    expect(datasAte('2026-10-14', 'anual', '2026-10-20')).toEqual(['2026-10-14'])
+  })
+})
+
+describe('metaDoPeriodo', () => {
+  const metas = [
+    { mes: '2026-10-01', meta: 31000, tipo: 'mensal' as const },
+    { mes: '2026-01-01', meta: 120000, tipo: 'anual' as const },
+  ]
+
+  it('mês com meta mensal usa ela; mês sem, a anual dividida por 12', () => {
+    expect(metaDoPeriodo(metas, { inicio: '2026-10-01', fim: '2026-10-31' })).toBe(31000)
+    expect(metaDoPeriodo(metas, { inicio: '2026-11-01', fim: '2026-11-30' })).toBe(10000)
+  })
+
+  it('período parcial conta só os dias dele', () => {
+    // 7 dos 31 dias de outubro
+    expect(metaDoPeriodo(metas, { inicio: '2026-10-12', fim: '2026-10-18' })).toBe(7000)
+    // Trimestre: outubro (31.000) + novembro e dezembro (10.000 cada)
+    expect(metaDoPeriodo(metas, { inicio: '2026-10-01', fim: '2026-12-31' })).toBe(51000)
+  })
+
+  it('sem meta nenhuma, zero; metas antigas sem tipo contam como mensais', () => {
+    expect(metaDoPeriodo([], { inicio: '2026-10-01', fim: '2026-10-31' })).toBe(0)
+    expect(metaDoPeriodo([{ mes: '2026-10-01', meta: 5000 }], { inicio: '2026-10-01', fim: '2026-10-31' })).toBe(5000)
   })
 })

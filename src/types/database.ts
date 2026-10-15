@@ -189,14 +189,20 @@ export interface Expense {
   /** Migration 0005: parte de um lançamento recorrente, uma linha por mês */
   recorrente?: boolean
   grupo_recorrencia?: string | null
+  /** Migration 0009: de quanto em quanto tempo e se a recorrência tem fim */
+  frequencia?: 'semanal' | 'quinzenal' | 'mensal' | 'trimestral' | 'anual'
+  sem_fim?: boolean
   created_by: string | null
   created_at: string
 }
 
 export interface MonthlyGoal {
   id: string
+  /** Primeiro dia do mês; na meta anual, primeiro dia do ano */
   mes: string
   meta: number
+  /** Migration 0009: 'mensal' ou 'anual'. Antes dela, toda meta é mensal */
+  tipo?: 'mensal' | 'anual'
   created_at: string
 }
 

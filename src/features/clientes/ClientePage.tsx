@@ -388,7 +388,7 @@ export function ClientePage() {
       </Link>
 
       <div className={`${ui.painel} ${styles.cabecalho}`}>
-        <Avatar nome={cliente.nome} url={cliente.logo_url} tamanho={64} />
+        <Avatar nome={cliente.nome} url={cliente.logo_url} tamanho={64} forma="quadrado" />
         <div className={styles.cabecalhoTexto}>
           <h2>{cliente.nome}</h2>
           <Pill tom={status.tom}>{status.rotulo}</Pill>

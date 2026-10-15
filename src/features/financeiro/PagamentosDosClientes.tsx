@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Campo } from '@/components/ui/Campo'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Painel } from '@/components/ui/Painel'
 import { Selecao } from '@/components/ui/Selecao'
@@ -9,12 +8,12 @@ import { useReceitasAsaas } from '@/dados/asaas'
 import { porId } from '@/dados/base'
 import { useClientes } from '@/dados/tabelas'
 import { useTempoReal } from '@/dados/tempoReal'
-import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
 import { plural } from '@/lib/regras'
 import { progressoPorCliente, separarReceitas } from './asaas'
 import type { ProgressoAsaas } from './asaas'
 import { ListaDeReceitas, SemTabelaAsaas, SincronizarAsaas, nomeDaReceita } from './ReceitasAsaas'
+import type { Intervalo } from './periodos'
 import styles from './financeiro.module.css'
 
 const VISOES = [
@@ -58,12 +57,11 @@ function ProgressoDosClientes({ linhas }: { linhas: ProgressoAsaas[] }) {
  * Cobranças dos clientes, como estão no Asaas. Ninguém lança cobrança aqui: o webhook mantém
  * cada uma em dia e "Sincronizar Asaas" traz as que já existiam.
  */
-export function PagamentosDosClientes() {
+export function PagamentosDosClientes({ intervalo }: { intervalo: Intervalo }) {
   const receitas = useReceitasAsaas()
   const clientes = useClientes()
   const [visao, setVisao] = useState<Visao>('abertos')
   const [clienteId, setClienteId] = useState('')
-  const [mes, setMes] = useState(() => hojeISO().slice(0, 7))
   // Um pagamento confirmado no Asaas aparece aqui sem recarregar a página
   useTempoReal(['receitas_asaas'])
 
@@ -84,10 +82,11 @@ export function PagamentosDosClientes() {
   const clientePorId = porId(listaDeClientes)
   const todas = receitas.data ?? []
   const filtradas = todas.filter((r) => clienteId === '' || r.cliente_id === clienteId)
-  const { abertas, historico } = separarReceitas(filtradas)
+  // Em aberto: pendentes que vencem no período e vencidas até o fim dele; histórico: pagas nele
+  const { abertas, historico } = separarReceitas(filtradas, intervalo)
   const lista = visao === 'abertos' ? abertas : historico
   const total = lista.reduce((soma, receita) => soma + Number(receita.valor ?? 0), 0)
-  const progresso = progressoPorCliente(filtradas, mes, (r) => nomeDaReceita(r, clientePorId))
+  const progresso = progressoPorCliente(filtradas, intervalo, (r) => nomeDaReceita(r, clientePorId))
   const semVinculo = todas.filter((r) => !r.vinculado).length
 
   return (
@@ -129,15 +128,7 @@ export function PagamentosDosClientes() {
               value={clienteId}
               onChange={(evento) => setClienteId(evento.target.value)}
             />
-            {visao === 'clientes' ? (
-              <Campo
-                className={styles.mes}
-                rotulo="Mês"
-                type="month"
-                value={mes}
-                onChange={(evento) => setMes(evento.target.value || hojeISO().slice(0, 7))}
-              />
-            ) : (
+            {visao !== 'clientes' && (
               <div className={styles.total}>
                 <span className={ui.mudo}>
                   {visao === 'abertos'
@@ -158,14 +149,14 @@ export function PagamentosDosClientes() {
 
           {visao === 'clientes' ? (
             progresso.length === 0 ? (
-              <EstadoVazio ilustracao="pagamentos" titulo="Nenhuma cobrança neste mês." />
+              <EstadoVazio ilustracao="pagamentos" titulo="Nenhuma cobrança neste período." />
             ) : (
               <ProgressoDosClientes linhas={progresso} />
             )
           ) : lista.length === 0 ? (
             <EstadoVazio
               ilustracao="pagamentos"
-              titulo={visao === 'abertos' ? 'Nenhuma cobrança em aberto.' : 'Nenhum pagamento recebido ainda.'}
+              titulo={visao === 'abertos' ? 'Nenhuma cobrança em aberto no período.' : 'Nenhum pagamento recebido no período.'}
             />
           ) : (
             <ListaDeReceitas receitas={lista} clientes={listaDeClientes} />

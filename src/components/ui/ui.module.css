@@ -514,6 +514,15 @@ a.linhaTitulo:hover {
   white-space: nowrap;
 }
 
+/* Linhas auxiliares do indicador: variação, base do cálculo */
+.kpiLegenda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* Valor longo (dinheiro) diminui com o card em vez de quebrar no meio ("R$ 114.000,/00") */
 .kpiValor[data-longo] {
   font-size: clamp(20px, 11cqi, 32px);

@@ -47,6 +47,10 @@ const SONDAS = {
   plataformaCampanha: ['campaigns', 'plataforma'],
   // migration 0009: vários responsáveis por demanda e conteúdo
   responsaveisMultiplos: ['tasks', 'responsaveis'],
+  // migration 0009: frequência e recorrência sem fim nas despesas
+  recorrenciaDespesa: ['expenses', 'frequencia'],
+  // migration 0009: meta anual ao lado da mensal
+  metaAnual: ['monthly_goals', 'tipo'],
 } as const satisfies Record<string, readonly [Tabela, string]>
 
 export type ColunaOpcional = keyof typeof SONDAS

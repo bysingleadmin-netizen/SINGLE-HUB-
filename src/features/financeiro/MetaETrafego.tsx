@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useReceitasAsaas } from '@/dados/asaas'
 import { juntarConsultas, useSalvar } from '@/dados/base'
+import { useColunasOpcionais } from '@/dados/esquema'
 import { useMetas, useMetricasDeTrafego } from '@/dados/tabelas'
 import { formatarMes, moedaParaCampo } from '@/features/clientes/cliente'
 import { hojeISO } from '@/lib/datas'
@@ -20,26 +21,39 @@ import type { MonthlyGoal, TrafficMetric } from '@/types/database'
 import {
   custoPorLead,
   formatarPercentual,
+  metaAnualDe,
+  metaDoPeriodo,
+  metaMensalDe,
   progressoDaMeta,
   taxaDeConversao,
   totalDeLeads,
   validarMetricas,
 } from './financeiro'
 import type { FormMetricas } from './financeiro'
-import { recebidoNoMes } from './asaas'
+import { recebidoNoPeriodo } from './asaas'
+import type { Intervalo } from './periodos'
 import styles from './financeiro.module.css'
 
 const SEM_DADOS = 'sem dados'
 
-/** Só é montada com as metas já carregadas, para o campo nascer com a meta atual. */
-function MetaDoMes({ mes, meta, recebido }: { mes: string; meta?: MonthlyGoal; recebido: number }) {
+type TipoDeMeta = 'mensal' | 'anual'
+
+interface EditorDeMetaProps {
+  tipo: TipoDeMeta
+  /** 'AAAA-MM' na mensal, 'AAAA' na anual */
+  referencia: string
+  meta?: MonthlyGoal
+  /** Meta anual sugerida: a mensal × 12 */
+  sugestao: number | null
+  comAnual: boolean
+}
+
+/** Campo da meta escolhida no toggle. Recriado ao trocar de tipo, para nascer com o valor dela. */
+function EditorDeMeta({ tipo, referencia, meta, sugestao, comAnual }: EditorDeMetaProps) {
   const [valor, setValor] = useState(meta ? moedaParaCampo(meta.meta) : '')
   const [erro, setErro] = useState<string>()
   const salvar = useSalvar<MonthlyGoal>('monthly_goals')
   const toast = useToast()
-
-  const alvo = Number(meta?.meta ?? 0)
-  const { percentual, falta } = progressoDaMeta(recebido, alvo)
 
   function aoEnviar(evento: FormEvent) {
     evento.preventDefault()
@@ -49,8 +63,12 @@ function MetaDoMes({ mes, meta, recebido }: { mes: string; meta?: MonthlyGoal; r
       return
     }
     setErro(undefined)
+    const valores =
+      tipo === 'anual'
+        ? { mes: `${referencia}-01-01`, meta: novo, tipo: 'anual' as const }
+        : { mes: `${referencia}-01`, meta: novo, ...(comAnual ? { tipo: 'mensal' as const } : {}) }
     salvar.mutate(
-      { id: meta?.id, valores: { mes: `${mes}-01`, meta: novo } },
+      { id: meta?.id, valores },
       {
         onSuccess: () => toast.sucesso('Meta salva.'),
         onError: () => toast.erro('Não foi possível salvar a meta.'),
@@ -59,13 +77,67 @@ function MetaDoMes({ mes, meta, recebido }: { mes: string; meta?: MonthlyGoal; r
   }
 
   return (
-    <Painel titulo={`Meta de ${formatarMes(mes)}`}>
+    <form className={styles.formularioMeta} onSubmit={aoEnviar} noValidate>
+      <Campo
+        rotulo={tipo === 'anual' ? `Meta anual de ${referencia}` : `Meta mensal de ${formatarMes(referencia)}`}
+        inputMode="decimal"
+        placeholder={sugestao != null ? moedaParaCampo(sugestao) : '0,00'}
+        value={valor}
+        erro={erro}
+        onChange={(evento) => setValor(evento.target.value)}
+      />
+      {tipo === 'anual' && !meta && sugestao != null && valor === '' && (
+        <Button variante="secundario" onClick={() => setValor(moedaParaCampo(sugestao))}>
+          Usar sugestão ({formatarMoeda(sugestao)})
+        </Button>
+      )}
+      <Button type="submit" carregando={salvar.isPending}>
+        Salvar meta
+      </Button>
+    </form>
+  )
+}
+
+/**
+ * Meta de faturamento no período do Financeiro. O toggle escolhe qual meta definir (a do mês ou
+ * a do ano em que o período começa); a barra compara o recebido no período com a meta do período.
+ */
+function MetaDoPeriodo({ intervalo, metas, recebido }: { intervalo: Intervalo; metas: MonthlyGoal[]; recebido: number }) {
+  const esquema = useColunasOpcionais()
+  const comAnual = esquema.metaAnual
+  const [tipo, setTipo] = useState<TipoDeMeta>('mensal')
+  const tipoUsado: TipoDeMeta = comAnual ? tipo : 'mensal'
+  const mes = intervalo.inicio.slice(0, 7)
+  const ano = intervalo.inicio.slice(0, 4)
+  const mensal = metaMensalDe(metas, mes)
+  const anual = metaAnualDe(metas, ano)
+  const alvo = metaDoPeriodo(metas, intervalo)
+  const { percentual, falta } = progressoDaMeta(recebido, alvo)
+
+  return (
+    <Painel titulo="Meta de faturamento">
+      {comAnual && (
+        <div className={styles.alternar} role="group" aria-label="Qual meta definir">
+          {(['mensal', 'anual'] as const).map((opcao) => (
+            <button
+              key={opcao}
+              type="button"
+              className={styles.alternarBotao}
+              aria-pressed={tipoUsado === opcao}
+              onClick={() => setTipo(opcao)}
+            >
+              {opcao === 'mensal' ? 'Meta mensal' : 'Meta anual'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {alvo > 0 ? (
         <div className={styles.meta}>
           <div className={styles.metaTopo}>
             <strong className={styles.metaPercentual}>{formatarPercentual(percentual)}</strong>
             <span className={ui.mudo}>
-              {formatarMoeda(recebido)} de {formatarMoeda(alvo)}
+              {formatarMoeda(recebido)} de {formatarMoeda(alvo)} no período
             </span>
           </div>
           <div
@@ -88,23 +160,18 @@ function MetaDoMes({ mes, meta, recebido }: { mes: string; meta?: MonthlyGoal; r
         </div>
       ) : (
         <p className={ui.mudo}>
-          Nenhuma meta definida para este mês. Recebido até agora: {formatarMoeda(recebido)}.
+          Nenhuma meta definida para este período. Recebido até agora: {formatarMoeda(recebido)}.
         </p>
       )}
 
-      <form className={styles.formularioMeta} onSubmit={aoEnviar} noValidate>
-        <Campo
-          rotulo="Meta do mês"
-          inputMode="decimal"
-          placeholder="0,00"
-          value={valor}
-          erro={erro}
-          onChange={(evento) => setValor(evento.target.value)}
-        />
-        <Button type="submit" carregando={salvar.isPending}>
-          Salvar meta
-        </Button>
-      </form>
+      <EditorDeMeta
+        key={tipoUsado}
+        tipo={tipoUsado}
+        referencia={tipoUsado === 'anual' ? ano : mes}
+        meta={tipoUsado === 'anual' ? anual : mensal}
+        sugestao={mensal ? Number(mensal.meta) * 12 : null}
+        comAnual={comAnual}
+      />
     </Painel>
   )
 }
@@ -249,8 +316,8 @@ function MetricasDeTrafego({ mesAtual, metricas }: { mesAtual: string; metricas:
   )
 }
 
-/** Meta de faturamento do mês e as métricas de tráfego digitadas mês a mês. */
-export function MetaETrafego() {
+/** Meta de faturamento do período e as métricas de tráfego digitadas mês a mês. */
+export function MetaETrafego({ intervalo }: { intervalo: Intervalo }) {
   const receitas = useReceitasAsaas()
   const metas = useMetas()
   const metricas = useMetricasDeTrafego()
@@ -263,10 +330,10 @@ export function MetaETrafego() {
 
   return (
     <>
-      <MetaDoMes
-        mes={mes}
-        meta={(metas.data ?? []).find((m) => m.mes.slice(0, 7) === mes)}
-        recebido={recebidoNoMes(receitas.data ?? [], mes)}
+      <MetaDoPeriodo
+        intervalo={intervalo}
+        metas={metas.data ?? []}
+        recebido={recebidoNoPeriodo(receitas.data ?? [], intervalo)}
       />
       <MetricasDeTrafego mesAtual={mes} metricas={metricas.data ?? []} />
     </>

@@ -1,10 +1,15 @@
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Abas } from '@/components/ui/Abas'
+import { Selecao } from '@/components/ui/Selecao'
+import { hojeISO } from '@/lib/datas'
 import { Dre } from './Dre'
-import { Lancamentos } from './Lancamentos'
+import { Lancamentos, useEstenderRecorrencias } from './Lancamentos'
 import { MetaETrafego } from './MetaETrafego'
 import { PagamentosDosClientes } from './PagamentosDosClientes'
 import { Resumo } from './Resumo'
+import { PERIODOS, descreverIntervalo, intervaloDoPeriodo } from './periodos'
+import type { PeriodoId } from './periodos'
 import styles from './financeiro.module.css'
 
 const ABAS = [
@@ -22,23 +27,37 @@ export function FinanceiroPage() {
   const navigate = useNavigate()
   // A aba mora no endereço, para o link de uma aba poder ser guardado; endereço desconhecido cai na primeira
   const aba: Aba = ABAS.find((item) => item.id === params.aba)?.id ?? 'resumo'
+  // O período vale para todas as abas e continua o mesmo ao trocar de aba
+  const [periodo, setPeriodo] = useState<PeriodoId>('mes')
+  const intervalo = intervaloDoPeriodo(periodo, hojeISO())
+  // Despesas sem fim ganham as próximas datas sempre que o Financeiro abre
+  useEstenderRecorrencias()
 
   return (
     <div className={styles.pagina}>
+      <div className={styles.periodo}>
+        <Selecao
+          rotulo="Período"
+          opcoes={PERIODOS}
+          value={periodo}
+          onChange={(evento) => setPeriodo(evento.target.value as PeriodoId)}
+        />
+        <span className={styles.periodoDatas}>{descreverIntervalo(intervalo)}</span>
+      </div>
       <Abas
         rotulo="Seções do financeiro"
         abas={ABAS}
         ativa={aba}
         onMudar={(id) => navigate(id === 'resumo' ? '/app/financeiro' : `/app/financeiro/${id}`)}
       >
-        {aba === 'resumo' && <Resumo />}
-        {aba === 'pagamentos' && <PagamentosDosClientes />}
-        {aba === 'despesas' && <Lancamentos />}
-        {/* Relatórios: o demonstrativo do mês e, abaixo, a meta e as métricas de tráfego */}
+        {aba === 'resumo' && <Resumo periodo={periodo} intervalo={intervalo} />}
+        {aba === 'pagamentos' && <PagamentosDosClientes intervalo={intervalo} />}
+        {aba === 'despesas' && <Lancamentos intervalo={intervalo} />}
+        {/* Relatórios: o demonstrativo do mês e, abaixo, a meta do período e as métricas de tráfego */}
         {aba === 'relatorios' && (
           <>
             <Dre />
-            <MetaETrafego />
+            <MetaETrafego intervalo={intervalo} />
           </>
         )}
       </Abas>

@@ -15,15 +15,18 @@ import { formatarData, formatarMoeda } from '@/lib/formato'
 import { plural } from '@/lib/regras'
 import type { ReceitaAsaas } from '@/types/database'
 import {
-  aReceberNoMes,
+  aReceberNoPeriodo,
   atrasadas,
   emAtraso,
-  mrrDoMes,
+  mrrDoPeriodo,
   proximosVencimentos,
-  recebidoNoMes,
-  recebimentosPorMes,
+  recebidoNoPeriodo,
+  recebimentosDoPeriodo,
+  ticketMedio,
 } from './asaas'
 import type { VencimentoAsaas } from './asaas'
+import { periodoAnterior } from './periodos'
+import type { Intervalo, PeriodoId } from './periodos'
 import { SemTabelaAsaas, nomeDaReceita } from './ReceitasAsaas'
 import styles from './financeiro.module.css'
 
@@ -82,11 +85,18 @@ function Vencimentos({ itens, nomeDe, atrasados = false }: VencimentosProps) {
   )
 }
 
+const diferenca = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  signDisplay: 'exceptZero',
+  maximumFractionDigits: 0,
+})
+
 /**
- * Visão geral do Financeiro, calculada das cobranças do Asaas: quanto vence no mês, quanto já
- * entrou, quanto falta e o que está atrasado.
+ * Visão geral do Financeiro no período escolhido, calculada das cobranças do Asaas: quanto vence,
+ * quanto já entrou, quanto falta, o que está atrasado e o ticket médio.
  */
-export function Resumo() {
+export function Resumo({ periodo, intervalo }: { periodo: PeriodoId; intervalo: Intervalo }) {
   const receitas = useReceitasAsaas()
   const clientes = useClientes()
   useTempoReal(['receitas_asaas'])
@@ -105,29 +115,57 @@ export function Resumo() {
 
   const carregando = receitas.isLoading || clientes.isLoading
   const hoje = hojeISO()
-  const mes = hoje.slice(0, 7)
   const lista = receitas.data ?? []
   const clientePorId = porId(clientes.data)
   const nomeDe = (receita: ReceitaAsaas) => nomeDaReceita(receita, clientePorId)
-  const atrasos = atrasadas(lista, hoje)
-  const proximos = proximosVencimentos(lista, hoje)
-  const devido = emAtraso(lista)
+  // Atrasado é o que venceu até o fim do período: a dívida antiga continua contando
+  const atrasos = atrasadas(lista, hoje, intervalo.fim)
+  const proximos = proximosVencimentos(lista, hoje, intervalo)
+  const devido = emAtraso(lista, intervalo.fim)
+  const ticket = ticketMedio(lista, intervalo)
+  const ticketAntes = ticketMedio(lista, periodoAnterior(periodo, hoje))
+  const variacaoDoTicket = ticket.valor != null && ticketAntes.valor != null ? ticket.valor - ticketAntes.valor : null
 
   return (
     <>
       <div className={`${styles.kpis} stagger`}>
-        <KpiCard rotulo="MRR ativo" valor={mrrDoMes(lista, mes)} formatar={formatarMoeda} carregando={carregando} />
         <KpiCard
-          rotulo="Recebido no mês"
-          valor={recebidoNoMes(lista, mes)}
+          rotulo="MRR ativo"
+          valor={mrrDoPeriodo(lista, intervalo)}
           formatar={formatarMoeda}
           carregando={carregando}
         />
         <KpiCard
-          rotulo="A receber no mês"
-          valor={aReceberNoMes(lista, mes)}
+          rotulo="Recebido no período"
+          valor={recebidoNoPeriodo(lista, intervalo)}
           formatar={formatarMoeda}
           carregando={carregando}
+        />
+        <KpiCard
+          rotulo="A receber no período"
+          valor={aReceberNoPeriodo(lista, intervalo)}
+          formatar={formatarMoeda}
+          carregando={carregando}
+        />
+        <KpiCard
+          rotulo="Ticket médio"
+          valor={ticket.valor}
+          formatar={formatarMoeda}
+          carregando={carregando}
+          legenda={
+            <>
+              {variacaoDoTicket != null && (
+                <span
+                  className={styles.ticketVariacao}
+                  data-sinal={variacaoDoTicket > 0 ? 'positivo' : variacaoDoTicket < 0 ? 'negativo' : undefined}
+                >
+                  {variacaoDoTicket > 0 ? '▲' : variacaoDoTicket < 0 ? '▼' : '='} {diferenca.format(variacaoDoTicket)} vs
+                  período anterior
+                </span>
+              )}
+              <span>Baseado em {plural(ticket.clientes, 'cliente ativo', 'clientes ativos')}</span>
+            </>
+          }
         />
         <div className={styles.inadimplencia} data-alerta={devido.cobrancas > 0 || undefined}>
           <KpiCard rotulo="Em atraso" valor={devido.total} formatar={formatarMoeda} carregando={carregando} />
@@ -141,16 +179,16 @@ export function Resumo() {
         </div>
       </div>
 
-      <Painel titulo="Recebimentos dos últimos 6 meses">
-        {carregando ? <Carregando /> : <GraficoMRR nome="Recebimentos" serie={recebimentosPorMes(lista, hoje)} />}
+      <Painel titulo="Recebimentos por mês">
+        {carregando ? <Carregando /> : <GraficoMRR nome="Recebimentos" serie={recebimentosDoPeriodo(lista, intervalo)} />}
       </Painel>
 
       <div className={styles.paineis}>
-        <Painel titulo="Próximos vencimentos">
+        <Painel titulo="Vencimentos no período">
           {carregando ? (
             <Carregando />
           ) : proximos.length === 0 ? (
-            <EstadoVazio ilustracao="calendario" titulo="Nenhum vencimento nos próximos 30 dias." />
+            <EstadoVazio ilustracao="calendario" titulo="Nenhum vencimento a partir de hoje neste período." />
           ) : (
             <Vencimentos itens={proximos} nomeDe={nomeDe} />
           )}

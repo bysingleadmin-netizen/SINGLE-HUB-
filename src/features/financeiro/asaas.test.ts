@@ -1,15 +1,17 @@
 import {
-  aReceberNoMes,
+  aReceberNoPeriodo,
   atrasadas,
   emAtraso,
   formaDoAsaas,
-  mrrDoMes,
+  mrrDoPeriodo,
   progressoPorCliente,
   proximosVencimentos,
   recebidoNoMes,
-  recebimentosPorMes,
+  recebidoNoPeriodo,
+  recebimentosDoPeriodo,
   separarReceitas,
   situacaoDoAsaas,
+  ticketMedio,
 } from './asaas'
 
 describe('situacaoDoAsaas', () => {
@@ -54,7 +56,6 @@ function receita(parcial: Record<string, unknown>) {
 }
 
 const HOJE = '2026-10-15'
-const MES = '2026-10'
 
 const RECEITAS = [
   receita({ status: 'RECEIVED', valor: 2000, data_vencimento: '2026-10-05', data_pagamento: '2026-10-04' }),
@@ -68,53 +69,96 @@ const RECEITAS = [
   receita({ status: 'DELETED', valor: 999, data_vencimento: '2026-10-09' }),
 ]
 
-describe('contas da Visão Geral', () => {
-  it('recebido no mês soma o pago pela data do pagamento, sem estorno', () => {
-    expect(recebidoNoMes(RECEITAS, MES)).toBe(2500)
+const OUTUBRO = { inicio: '2026-10-01', fim: '2026-10-31' }
+const SETEMBRO = { inicio: '2026-09-01', fim: '2026-09-30' }
+
+describe('contas da Visão Geral no período', () => {
+  it('recebido soma o pago pela data do pagamento, sem estorno', () => {
+    expect(recebidoNoPeriodo(RECEITAS, OUTUBRO)).toBe(2500)
     expect(recebidoNoMes(RECEITAS, '2026-09')).toBe(700)
+    // Uma semana só: o pagamento de 04/10 entra; o de 01/10, não
+    expect(recebidoNoPeriodo(RECEITAS, { inicio: '2026-10-02', fim: '2026-10-08' })).toBe(2000)
   })
 
-  it('a receber no mês soma só as pendentes que vencem nele', () => {
-    expect(aReceberNoMes(RECEITAS, MES)).toBe(1000)
+  it('a receber soma só as pendentes que vencem no período', () => {
+    expect(aReceberNoPeriodo(RECEITAS, OUTUBRO)).toBe(1000)
+    expect(aReceberNoPeriodo(RECEITAS, { inicio: '2026-10-01', fim: '2026-12-31' })).toBe(1300)
   })
 
-  it('MRR do mês soma as cobranças que vencem nele, sem canceladas nem estornadas', () => {
-    expect(mrrDoMes(RECEITAS, MES)).toBe(2000 + 1000 + 800)
+  it('MRR soma as cobranças que vencem no período, sem canceladas nem estornadas', () => {
+    expect(mrrDoPeriodo(RECEITAS, OUTUBRO)).toBe(2000 + 1000 + 800)
   })
 
-  it('em atraso soma as vencidas e conta os clientes', () => {
+  it('em atraso: as vencidas até o fim do período, com os clientes', () => {
     expect(emAtraso(RECEITAS)).toEqual({ total: 1000, cobrancas: 2, clientes: 1 })
+    expect(emAtraso(RECEITAS, SETEMBRO.fim)).toEqual({ total: 200, cobrancas: 1, clientes: 1 })
   })
 
-  it('o gráfico mostra o recebido de cada um dos últimos meses', () => {
-    const serie = recebimentosPorMes(RECEITAS, HOJE, 2)
-    expect(serie.map((ponto) => [ponto.mes, ponto.valor])).toEqual([
+  it('o gráfico mostra seis meses até o período, ou os meses dele quando é maior', () => {
+    const doMes = recebimentosDoPeriodo(RECEITAS, OUTUBRO)
+    expect(doMes).toHaveLength(6)
+    expect(doMes.slice(-2).map((ponto) => [ponto.mes, ponto.valor])).toEqual([
       ['2026-09', 700],
       ['2026-10', 2500],
     ])
+    const doAno = recebimentosDoPeriodo(RECEITAS, { inicio: '2026-01-01', fim: '2026-12-31' })
+    expect(doAno.map((ponto) => ponto.mes)[0]).toBe('2026-01')
+    expect(doAno).toHaveLength(12)
   })
 
-  it('próximos vencimentos: pendentes dos próximos 30 dias, do mais próximo', () => {
-    expect(proximosVencimentos(RECEITAS, HOJE).map((v) => [v.receita.valor, v.dias])).toEqual([
+  it('vencimentos: pendentes do período, de hoje em diante, do mais próximo', () => {
+    const ateNovembro = { inicio: '2026-10-01', fim: '2026-11-30' }
+    expect(proximosVencimentos(RECEITAS, HOJE, ateNovembro).map((v) => [v.receita.valor, v.dias])).toEqual([
       [1000, 5],
       [300, 18],
     ])
-    expect(proximosVencimentos(RECEITAS, HOJE, 7)).toHaveLength(1)
+    expect(proximosVencimentos(RECEITAS, HOJE, OUTUBRO)).toHaveLength(1)
   })
 
-  it('atrasadas: as vencidas, da mais antiga', () => {
+  it('atrasadas: as vencidas até o fim do período, da mais antiga', () => {
     expect(atrasadas(RECEITAS, HOJE).map((v) => [v.receita.valor, v.dias])).toEqual([
       [200, -35],
       [800, -5],
     ])
+    expect(atrasadas(RECEITAS, HOJE, SETEMBRO.fim)).toHaveLength(1)
+  })
+})
+
+describe('ticketMedio', () => {
+  it('faturamento do mês dividido pelos clientes com cobrança no mês', () => {
+    const cobrancas = [
+      receita({ cliente_id: 'c1', valor: 3000, data_vencimento: '2026-10-05', status: 'RECEIVED' }),
+      receita({ cliente_id: 'c2', valor: 1000, data_vencimento: '2026-10-10' }),
+      receita({ cliente_id: 'c3', valor: 2000, data_vencimento: '2026-09-10', status: 'RECEIVED' }),
+      receita({ cliente_id: 'c1', valor: 3000, data_vencimento: '2026-09-05', status: 'RECEIVED' }),
+      receita({ cliente_id: 'c2', valor: 1000, data_vencimento: '2026-09-10', status: 'RECEIVED' }),
+      receita({ cliente_id: 'c4', valor: 9999, data_vencimento: '2026-10-12', status: 'DELETED' }),
+    ]
+    // c3 saiu em outubro: deixa o denominador e o ticket sobe
+    expect(ticketMedio(cobrancas, OUTUBRO)).toEqual({ valor: 2000, clientes: 2 })
+    expect(ticketMedio(cobrancas, SETEMBRO)).toEqual({ valor: 2000, clientes: 3 })
+    // Dois meses: (6000 + 4000) / (3 + 2)
+    expect(ticketMedio(cobrancas, { inicio: '2026-09-01', fim: '2026-10-31' })).toEqual({ valor: 2000, clientes: 3 })
+    // Uma semana usa o mês dela
+    expect(ticketMedio(cobrancas, { inicio: '2026-10-12', fim: '2026-10-18' }).valor).toBe(2000)
+  })
+
+  it('sem cobrança no período, não há ticket', () => {
+    expect(ticketMedio([], OUTUBRO)).toEqual({ valor: null, clientes: 0 })
   })
 })
 
 describe('separarReceitas', () => {
-  it('em aberto são pendentes e vencidas; histórico, as pagas', () => {
+  it('sem período: em aberto são pendentes e vencidas; histórico, as pagas', () => {
     const { abertas, historico } = separarReceitas(RECEITAS)
     expect(abertas.map((r) => r.data_vencimento)).toEqual(['2026-09-10', '2026-10-10', '2026-10-20', '2026-11-02'])
     expect(historico.map((r) => r.data_pagamento)).toEqual(['2026-10-04', '2026-10-01', '2026-09-10'])
+  })
+
+  it('com período: pendentes dele, vencidas até o fim dele e pagas nele', () => {
+    const { abertas, historico } = separarReceitas(RECEITAS, OUTUBRO)
+    expect(abertas.map((r) => r.data_vencimento)).toEqual(['2026-09-10', '2026-10-10', '2026-10-20'])
+    expect(historico.map((r) => r.data_pagamento)).toEqual(['2026-10-04', '2026-10-01'])
   })
 })
 
@@ -127,7 +171,7 @@ describe('progressoPorCliente', () => {
         receita({ asaas_customer_id: 'cus_9', nome_cliente_asaas: 'Avulso', status: 'OVERDUE', valor: 100 }),
         receita({ cliente_id: 'c1', status: 'PENDING', valor: 999, data_vencimento: '2026-11-05' }),
       ],
-      MES,
+      OUTUBRO,
       (r) => (r.cliente_id === 'c1' ? 'Clínica Aurora' : (r.nome_cliente_asaas ?? '')),
     )
     expect(linhas).toEqual([

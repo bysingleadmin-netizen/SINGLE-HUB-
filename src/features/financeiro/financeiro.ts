@@ -1,8 +1,11 @@
 import { proximoMes, vencimentoNoMes } from '@/features/clientes/cartoes'
+import { diffDias, somarDias } from '@/lib/datas'
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
 import { parseMoeda } from '@/lib/regras'
-import type { Expense, TrafficMetric } from '@/types/database'
+import type { Expense, MonthlyGoal, TrafficMetric } from '@/types/database'
+import { intervaloDoMes, mesesDoIntervalo } from './periodos'
+import type { Intervalo } from './periodos'
 
 // Regras do Financeiro. Meses trafegam como 'AAAA-MM'; no banco, `mes` é o primeiro dia ('AAAA-MM-01').
 
@@ -56,6 +59,33 @@ export function progressoDaMeta(recebido: number, meta: number) {
     percentual: meta > 0 ? (recebido / meta) * 100 : 0,
     falta: Math.max(0, meta - recebido),
   }
+}
+
+type Meta = Pick<MonthlyGoal, 'mes' | 'meta' | 'tipo'>
+
+export const metaMensalDe = <T extends Meta>(metas: T[], mes: string) =>
+  metas.find((m) => (m.tipo ?? 'mensal') === 'mensal' && m.mes.slice(0, 7) === mes)
+
+export const metaAnualDe = <T extends Meta>(metas: T[], ano: string) =>
+  metas.find((m) => m.tipo === 'anual' && m.mes.slice(0, 4) === ano)
+
+/**
+ * A meta do período: para cada mês que ele toca, a meta mensal daquele mês (ou, sem ela, a
+ * anual dividida por 12), proporcional aos dias do mês que caem no período. Zero sem meta.
+ */
+export function metaDoPeriodo(metas: Meta[], intervalo: Intervalo): number {
+  let total = 0
+  for (const mes of mesesDoIntervalo(intervalo)) {
+    const doMes = intervaloDoMes(mes)
+    const mensal = metaMensalDe(metas, mes)
+    const anual = metaAnualDe(metas, mes.slice(0, 4))
+    const alvo = mensal ? Number(mensal.meta) : anual ? Number(anual.meta) / 12 : 0
+    const inicio = intervalo.inicio > doMes.inicio ? intervalo.inicio : doMes.inicio
+    const fim = intervalo.fim < doMes.fim ? intervalo.fim : doMes.fim
+    const diasDoMes = diffDias(doMes.inicio, doMes.fim) + 1
+    total += (alvo * (diffDias(inicio, fim) + 1)) / diasDoMes
+  }
+  return Math.round(total * 100) / 100
 }
 
 export interface FiltroDeDespesas {
@@ -115,23 +145,56 @@ export function validarDespesa(form: FormDespesa): Validacao<ValoresDespesa, For
   }
 }
 
-/** Máximo de meses de uma despesa recorrente */
-export const MAXIMO_DE_MESES = 36
+/** De quanto em quanto tempo a despesa recorrente se repete */
+export type Frequencia = 'semanal' | 'quinzenal' | 'mensal' | 'trimestral' | 'anual'
 
-/** Quantos meses repetir a despesa: inteiro de 1 a 36, ou null se não for. */
-export function validarMeses(texto: string): number | null {
+export const FREQUENCIAS: readonly { valor: Frequencia; rotulo: string }[] = [
+  { valor: 'semanal', rotulo: 'Semanal' },
+  { valor: 'quinzenal', rotulo: 'Quinzenal' },
+  { valor: 'mensal', rotulo: 'Mensal' },
+  { valor: 'trimestral', rotulo: 'Trimestral' },
+  { valor: 'anual', rotulo: 'Anual' },
+]
+
+/** Máximo de parcelas de uma despesa recorrente com fim */
+export const MAXIMO_DE_PARCELAS = 60
+
+/** Sem fim, os lançamentos ficam criados até um ano à frente */
+export const HORIZONTE_DIAS = 365
+
+/** Quantas parcelas: inteiro de 1 a 60, ou null se não for. */
+export function validarParcelas(texto: string): number | null {
   if (!/^\d+$/.test(texto.trim())) return null
-  const meses = Number(texto)
-  return meses >= 1 && meses <= MAXIMO_DE_MESES ? meses : null
+  const parcelas = Number(texto)
+  return parcelas >= 1 && parcelas <= MAXIMO_DE_PARCELAS ? parcelas : null
 }
 
-/** A data informada e as dos meses seguintes, no mesmo dia (ou no último dia do mês, se faltar). */
-export function datasDaRecorrencia(data: string, meses: number): string[] {
-  const dia = Number(data.slice(8, 10))
-  const datas: string[] = []
+const MESES_DA_FREQUENCIA: Partial<Record<Frequencia, number>> = { mensal: 1, trimestral: 3, anual: 12 }
+const DIAS_DA_FREQUENCIA: Partial<Record<Frequencia, number>> = { semanal: 7, quinzenal: 14 }
+
+/** A n-ésima data da recorrência (0 é a própria data). Por mês, mantém o dia (ou o último do mês). */
+function enesimaData(data: string, frequencia: Frequencia, n: number): string {
+  const dias = DIAS_DA_FREQUENCIA[frequencia]
+  if (dias) return somarDias(data, dias * n)
+  const passo = MESES_DA_FREQUENCIA[frequencia] ?? 1
   let mes = `${data.slice(0, 7)}-01`
-  for (let i = 0; i < meses; i++, mes = proximoMes(mes)) datas.push(vencimentoNoMes(mes, dia))
-  return datas
+  for (let i = 0; i < passo * n; i++) mes = proximoMes(mes)
+  return vencimentoNoMes(mes, Number(data.slice(8, 10)))
+}
+
+/** A data informada e as `parcelas - 1` seguintes. */
+export function datasDaRecorrencia(data: string, parcelas: number, frequencia: Frequencia = 'mensal'): string[] {
+  return Array.from({ length: parcelas }, (_, i) => enesimaData(data, frequencia, i))
+}
+
+/** As datas da recorrência sem fim, da data informada até `limite` (sempre ao menos a primeira). */
+export function datasAte(data: string, frequencia: Frequencia, limite: string): string[] {
+  const datas = [data]
+  for (let n = 1; ; n++) {
+    const proxima = enesimaData(data, frequencia, n)
+    if (proxima > limite) return datas
+    datas.push(proxima)
+  }
 }
 
 export interface FormMetricas {

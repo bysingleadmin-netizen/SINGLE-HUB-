@@ -63,7 +63,7 @@ export function criarSupabaseFalso() {
   function from(tabela: string) {
     let operacao: 'select' | 'insert' | 'update' | 'delete' = 'select'
     let valores: Linha | Linha[] = {}
-    const filtros: [string, unknown][] = []
+    const filtros: ((linha: Linha) => boolean)[] = []
     let unico = false
     let limite: number | undefined
     let ordem: { coluna: string; crescente: boolean } | undefined
@@ -77,7 +77,7 @@ export function criarSupabaseFalso() {
         return { data: null, error: { code: 'PGRST205', message: `Could not find the table '${tabela}'` } }
       }
       const linhas = (banco.tabelas[tabela] ??= [])
-      const casa = (linha: Linha) => filtros.every(([coluna, valor]) => linha[coluna] === valor)
+      const casa = (linha: Linha) => filtros.every((filtro) => filtro(linha))
       let resultado: Linha[]
 
       if (operacao === 'select') {
@@ -143,7 +143,11 @@ export function criarSupabaseFalso() {
         return consulta
       },
       eq: (coluna: string, valor: unknown) => {
-        filtros.push([coluna, valor])
+        filtros.push((linha) => linha[coluna] === valor)
+        return consulta
+      },
+      gt: (coluna: string, valor: string | number) => {
+        filtros.push((linha) => (linha[coluna] as string | number) > valor)
         return consulta
       },
       order: (coluna: string, opcoes?: { ascending?: boolean }) => {

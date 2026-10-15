@@ -13,6 +13,9 @@ import { FinanceiroPage } from './FinanceiroPage'
 
 const HOJE = hojeISO()
 const MES = HOJE.slice(0, 7)
+const ANO = HOJE.slice(0, 4)
+/** Um dia do mês passado */
+const MES_PASSADO = somarDias(`${MES}-01`, -10)
 
 // O formatador põe um espaço não separável depois de "R$"; a busca por texto enxerga um espaço comum
 const moeda = (valor: number) => formatarMoeda(valor).replace(/\s/g, ' ')
@@ -118,10 +121,13 @@ describe('Visão Geral', () => {
       ],
     })
     const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
-    await waitFor(() => expect(valorDe('Recebido no mês')).toHaveTextContent(moeda(750)))
+    await waitFor(() => expect(valorDe('Recebido no período')).toHaveTextContent(moeda(750)))
     // Vencem no mês: a paga, a atrasada e a pendente; a excluída fica de fora
     expect(valorDe('MRR ativo')).toHaveTextContent(moeda(3550))
-    expect(valorDe('A receber no mês')).toHaveTextContent(moeda(800))
+    expect(valorDe('A receber no período')).toHaveTextContent(moeda(800))
+    // Ticket médio: 3.550 do mês divididos pelos 2 clientes com cobrança (c1 e o sem cadastro)
+    expect(valorDe('Ticket médio')).toHaveTextContent(moeda(1775))
+    expect(screen.getByText('Baseado em 2 clientes ativos')).toBeInTheDocument()
     expect(valorDe('Em atraso')).toHaveTextContent(moeda(2000))
     expect(screen.getByText('1 cobrança vencida de 1 cliente')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /^Recebimentos dos últimos 6 meses/ })).toBeInTheDocument()
@@ -143,24 +149,41 @@ describe('Visão Geral', () => {
     expect(atrasados.queryByRole('link', { name: 'Sem Vínculo' })).not.toBeInTheDocument()
   })
 
-  it('próximos vencimentos: as pendentes dos próximos 30 dias', async () => {
+  it('vencimentos no período: as pendentes de hoje em diante, dentro dele', async () => {
     abrir('', {
       clients: CLIENTES,
       receitas_asaas: [
-        receita({ nome_cliente_asaas: 'Padaria', data_vencimento: somarDias(HOJE, 3) }),
-        receita({ nome_cliente_asaas: 'Distante', data_vencimento: somarDias(HOJE, 40) }),
-        receita({ nome_cliente_asaas: 'Já paga', status: 'RECEIVED', data_vencimento: somarDias(HOJE, 5) }),
+        receita({ nome_cliente_asaas: 'Padaria', data_vencimento: HOJE }),
+        receita({ nome_cliente_asaas: 'Distante', data_vencimento: '2099-01-10' }),
+        receita({ nome_cliente_asaas: 'Já paga', status: 'RECEIVED', data_vencimento: HOJE }),
       ],
     })
-    const proximos = await painelPronto('Próximos vencimentos')
+    const proximos = await painelPronto('Vencimentos no período')
     expect(await proximos.findByText('Padaria')).toBeInTheDocument()
     expect(proximos.getAllByRole('listitem')).toHaveLength(1)
-    expect(proximos.getByText('Vence em 3 dias')).toBeInTheDocument()
+    expect(proximos.getByText('Vence hoje')).toBeInTheDocument()
+  })
+
+  it('trocar o período muda os números; o ticket compara com o período anterior', async () => {
+    abrir('', {
+      clients: CLIENTES,
+      receitas_asaas: [
+        receita({ ...vinculada, status: 'RECEIVED', valor: 3000, data_vencimento: `${MES}-01`, data_pagamento: `${MES}-01` }),
+        receita({ ...vinculada, status: 'RECEIVED', valor: 2000, data_vencimento: MES_PASSADO, data_pagamento: MES_PASSADO }),
+      ],
+    })
+    const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
+    await waitFor(() => expect(valorDe('Recebido no período')).toHaveTextContent(moeda(3000)))
+    expect(screen.getByText(/▲ \+R\$\s?1\.000 vs período anterior/)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'mes_anterior' } })
+    expect(valorDe('Recebido no período')).toHaveTextContent(moeda(2000))
+    expect(valorDe('Ticket médio')).toHaveTextContent(moeda(2000))
   })
 
   it('sem nada vencido nem a vencer, diz isso', async () => {
     abrir()
-    expect(await screen.findByText('Nenhum vencimento nos próximos 30 dias.')).toBeInTheDocument()
+    expect(await screen.findByText('Nenhum vencimento a partir de hoje neste período.')).toBeInTheDocument()
     expect(screen.getByText('Nenhuma cobrança vencida')).toBeInTheDocument()
   })
 
@@ -177,10 +200,11 @@ describe('Visão Geral', () => {
 
 describe('Pagamentos', () => {
   const RECEITAS = [
-    receita({ cliente_id: 'c1', asaas_customer_id: 'cus_1', nome_cliente_asaas: 'Aurora Clínica ME', valor: 2000, data_vencimento: '2026-10-10', data_pagamento: '2026-10-09', status: 'RECEIVED', vinculado: true }),
-    receita({ asaas_customer_id: 'cus_2', nome_cliente_asaas: 'Sol Panificadora', valor: 800, data_vencimento: '2026-10-20', status: 'PENDING', forma_pagamento: 'BOLETO', tipo: 'SUBSCRIPTION' }),
-    receita({ asaas_customer_id: 'cus_2', nome_cliente_asaas: 'Sol Panificadora', descricao: 'Setembro', valor: 800, data_vencimento: '2026-09-20', status: 'OVERDUE', forma_pagamento: 'BOLETO' }),
-    receita({ asaas_customer_id: 'cus_3', nome_cliente_asaas: 'Outro', valor: 50, data_vencimento: '2026-09-01', status: 'DELETED' }),
+    receita({ cliente_id: 'c1', asaas_customer_id: 'cus_1', nome_cliente_asaas: 'Aurora Clínica ME', valor: 2000, data_vencimento: `${MES}-01`, data_pagamento: `${MES}-01`, status: 'RECEIVED', vinculado: true }),
+    receita({ asaas_customer_id: 'cus_2', nome_cliente_asaas: 'Sol Panificadora', valor: 800, data_vencimento: `${MES}-28`, status: 'PENDING', forma_pagamento: 'BOLETO', tipo: 'SUBSCRIPTION' }),
+    // Vencida no mês passado: continua em aberto no período atual
+    receita({ asaas_customer_id: 'cus_2', nome_cliente_asaas: 'Sol Panificadora', descricao: 'Mês passado', valor: 800, data_vencimento: MES_PASSADO, status: 'OVERDUE', forma_pagamento: 'BOLETO' }),
+    receita({ asaas_customer_id: 'cus_3', nome_cliente_asaas: 'Outro', valor: 50, data_vencimento: MES_PASSADO, status: 'DELETED' }),
   ]
   const linhasDe = (lista: ReturnType<typeof within>, nome: string) =>
     lista
@@ -219,14 +243,13 @@ describe('Pagamentos', () => {
     abrir('pagamentos', { clients: CLIENTES, receitas_asaas: RECEITAS })
     const lista = await painelPronto('Pagamentos')
     fireEvent.change(lista.getByLabelText('Cliente'), { target: { value: 'c1' } })
-    expect(lista.getByText('Nenhuma cobrança em aberto.')).toBeInTheDocument()
+    expect(lista.getByText('Nenhuma cobrança em aberto no período.')).toBeInTheDocument()
   })
 
-  it('por cliente mostra quanto foi pago das cobranças do mês', async () => {
+  it('por cliente mostra quanto foi pago das cobranças do período', async () => {
     abrir('pagamentos', { clients: CLIENTES, receitas_asaas: RECEITAS })
     const lista = await painelPronto('Pagamentos')
     fireEvent.click(lista.getByRole('button', { name: 'Por cliente' }))
-    fireEvent.change(lista.getByLabelText('Mês'), { target: { value: '2026-10' } })
     expect(lista.getByRole('progressbar', { name: 'Clínica Aurora' })).toHaveAttribute('aria-valuenow', '100')
     expect(lista.getByRole('progressbar', { name: 'Sol Panificadora' })).toHaveAttribute('aria-valuenow', '0')
   })
@@ -300,7 +323,7 @@ describe('Despesas', () => {
     { id: 'd1', descricao: 'Adobe', categoria: 'Ferramentas', valor: 300, data: HOJE, forma_pagamento: 'Cartão' },
     { id: 'd2', descricao: 'Freelancer', categoria: 'Equipe', valor: 1200, data: HOJE, forma_pagamento: 'Pix' },
     // Fora do mês atual: não entra no período inicial
-    { id: 'd3', descricao: 'Antiga', categoria: 'Outros', valor: 50, data: '2020-01-10', forma_pagamento: 'Pix' },
+    { id: 'd3', descricao: 'Antiga', categoria: 'Outros', valor: 50, data: MES_PASSADO, forma_pagamento: 'Pix' },
   ]
 
   it('lista as despesas do mês atual com o total do período', async () => {
@@ -323,9 +346,11 @@ describe('Despesas', () => {
     expect(lista.getByText('1 despesa')).toBeInTheDocument()
 
     fireEvent.change(lista.getByLabelText('Categoria do filtro'), { target: { value: '' } })
-    fireEvent.change(lista.getByLabelText('De'), { target: { value: '2020-01-01' } })
+    // O período do topo do Financeiro vale para as despesas
+    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'mes_anterior' } })
     expect(lista.getByText('Antiga')).toBeInTheDocument()
-    expect(lista.getByText(moeda(1550))).toBeInTheDocument()
+    expect(lista.queryByText('Adobe')).not.toBeInTheDocument()
+    expect(lista.getByText('Total do período').parentElement).toHaveTextContent(moeda(50))
   })
 
   it('lança uma despesa em nome de quem está logado', async () => {
@@ -393,7 +418,7 @@ describe('Despesas', () => {
     fireEvent.change(form.getByLabelText('Valor'), { target: { value: '200' } })
     fireEvent.change(form.getByLabelText('Data'), { target: { value: '2026-10-14' } })
     fireEvent.click(form.getByLabelText('Despesa recorrente'))
-    fireEvent.change(form.getByLabelText('Repetir por (meses)'), { target: { value: '5' } })
+    fireEvent.change(form.getByLabelText('Parcelas'), { target: { value: '5' } })
     fireEvent.click(form.getByRole('button', { name: 'Lançar despesa' }))
 
     expect(await screen.findByText('5 despesas lançadas com sucesso.')).toBeInTheDocument()
@@ -404,16 +429,16 @@ describe('Despesas', () => {
     expect(lancadas[0].grupo_recorrencia).toEqual(expect.any(String))
   })
 
-  it('não lança recorrência fora de 1 a 36 meses', async () => {
+  it('não lança recorrência fora de 1 a 60 parcelas', async () => {
     abrir('despesas')
     const form = painel('Nova despesa')
     fireEvent.change(form.getByLabelText('Descrição'), { target: { value: 'Assinatura' } })
     fireEvent.change(form.getByLabelText('Valor'), { target: { value: '200' } })
     fireEvent.click(form.getByLabelText('Despesa recorrente'))
-    fireEvent.change(form.getByLabelText('Repetir por (meses)'), { target: { value: '40' } })
+    fireEvent.change(form.getByLabelText('Parcelas'), { target: { value: '61' } })
     fireEvent.click(form.getByRole('button', { name: 'Lançar despesa' }))
 
-    expect(await form.findByText('Repita de 1 a 36 meses.')).toBeInTheDocument()
+    expect(await form.findByText('Informe de 1 a 60 parcelas.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.expenses).toHaveLength(0)
   })
 
@@ -425,7 +450,7 @@ describe('Despesas', () => {
     fireEvent.change(form.getByLabelText('Valor'), { target: { value: '200' } })
     fireEvent.change(form.getByLabelText('Data'), { target: { value: '2026-10-14' } })
     fireEvent.click(form.getByLabelText('Despesa recorrente'))
-    fireEvent.change(form.getByLabelText('Repetir por (meses)'), { target: { value: '3' } })
+    fireEvent.change(form.getByLabelText('Parcelas'), { target: { value: '3' } })
     fireEvent.click(form.getByRole('button', { name: 'Lançar despesa' }))
 
     expect(await screen.findByText('3 despesas lançadas com sucesso.')).toBeInTheDocument()
@@ -449,6 +474,55 @@ describe('Despesas', () => {
     expect(bancoFalso().tabelas.expenses[0]).toMatchObject({ id: 'd1', descricao: 'Adobe', valor: 350 })
     expect(bancoFalso().tabelas.expenses).toHaveLength(3)
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('recorrência semanal e sem fim: lança um ano à frente, com a regra gravada', async () => {
+    abrir('despesas')
+    const form = painel('Nova despesa')
+    fireEvent.change(form.getByLabelText('Descrição'), { target: { value: 'Faxina' } })
+    fireEvent.change(form.getByLabelText('Valor'), { target: { value: '150' } })
+    fireEvent.change(form.getByLabelText('Data'), { target: { value: HOJE } })
+    fireEvent.click(form.getByLabelText('Despesa recorrente'))
+    fireEvent.change(await form.findByLabelText('Recorrência'), { target: { value: 'semanal' } })
+    fireEvent.click(form.getByLabelText('Sem fim'))
+    expect(form.queryByLabelText('Parcelas')).not.toBeInTheDocument()
+    fireEvent.click(form.getByRole('button', { name: 'Lançar despesa' }))
+
+    expect(await screen.findByText(/despesas lançadas com sucesso/)).toBeInTheDocument()
+    const lancadas = bancoFalso().tabelas.expenses
+    // Uma por semana, de hoje até um ano à frente: 53 datas
+    expect(lancadas).toHaveLength(53)
+    expect(lancadas[1].data).toBe(somarDias(HOJE, 7))
+    expect(lancadas.every((d) => d.frequencia === 'semanal' && d.sem_fim === true)).toBe(true)
+  })
+
+  it('editar uma recorrente: esta e as próximas trocam valor e quantidade', async () => {
+    const grupo = 'grupo-1'
+    const linha = (id: string, data: string) => ({
+      id, descricao: 'Software', categoria: 'Ferramentas', valor: 100, data, forma_pagamento: 'Cartão',
+      recorrente: true, grupo_recorrencia: grupo, frequencia: 'mensal', sem_fim: false,
+    })
+    abrir('despesas', {
+      expenses: [linha('e1', MES_PASSADO), linha('e2', HOJE), linha('e3', somarDias(HOJE, 31)), linha('e4', somarDias(HOJE, 62))],
+    })
+    fireEvent.click(await painel('Despesas').findByRole('button', { name: 'Ações de Software' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Editar despesa' }))
+    fireEvent.change(modal.getByLabelText('Aplicar a'), { target: { value: 'proximas' } })
+    // Três parcelas a partir desta (ela e as duas seguintes)
+    expect(modal.getByLabelText('Parcelas')).toHaveValue(3)
+    fireEvent.change(modal.getByLabelText('Valor'), { target: { value: '120' } })
+    fireEvent.change(modal.getByLabelText('Parcelas'), { target: { value: '2' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar alterações' }))
+
+    expect(await screen.findByText('Despesa e as próximas atualizadas.')).toBeInTheDocument()
+    const doGrupo = bancoFalso().tabelas.expenses.filter((d) => d.grupo_recorrencia === grupo)
+    // A do mês passado fica como era; esta e uma seguinte, com o valor novo
+    expect(doGrupo.map((d) => [d.data, d.valor])).toEqual([
+      [MES_PASSADO, 100],
+      [HOJE, 120],
+      [expect.any(String), 120],
+    ])
   })
 
   it('período sem despesas mostra estado vazio', async () => {
@@ -497,14 +571,14 @@ describe('Meta e Tráfego', () => {
 
   it('sem meta definida, explica e deixa definir', async () => {
     abrir('relatorios', { receitas_asaas: [recebido] })
-    const meta = await painelPronto(`Meta de ${formatarMes(MES)}`)
-    expect(await meta.findByText(/Nenhuma meta definida para este mês/)).toBeInTheDocument()
+    const meta = await painelPronto('Meta de faturamento')
+    expect(await meta.findByText(/Nenhuma meta definida para este período/)).toBeInTheDocument()
 
-    fireEvent.change(meta.getByLabelText('Meta do mês'), { target: { value: '10.000,00' } })
+    fireEvent.change(meta.getByLabelText(`Meta mensal de ${formatarMes(MES)}`), { target: { value: '10.000,00' } })
     fireEvent.click(meta.getByRole('button', { name: 'Salvar meta' }))
     expect(await screen.findByText('Meta salva.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.monthly_goals).toEqual([
-      expect.objectContaining({ mes: `${MES}-01`, meta: 10000 }),
+      expect.objectContaining({ mes: `${MES}-01`, meta: 10000, tipo: 'mensal' }),
     ])
     expect(await meta.findByText('25%')).toBeInTheDocument()
     expect(meta.getByText(`Faltam ${moeda(7500)} para a meta.`)).toBeInTheDocument()
@@ -516,11 +590,12 @@ describe('Meta e Tráfego', () => {
       receitas_asaas: [recebido],
       monthly_goals: [{ id: 'g1', mes: `${MES}-01`, meta: 2000 }],
     })
-    const meta = await painelPronto(`Meta de ${formatarMes(MES)}`)
+    const meta = await painelPronto('Meta de faturamento')
     expect(await meta.findByText('Meta batida.')).toBeInTheDocument()
-    expect(meta.getByLabelText('Meta do mês')).toHaveValue('2000,00')
+    const campo = meta.getByLabelText(`Meta mensal de ${formatarMes(MES)}`)
+    expect(campo).toHaveValue('2000,00')
 
-    fireEvent.change(meta.getByLabelText('Meta do mês'), { target: { value: '5000' } })
+    fireEvent.change(campo, { target: { value: '5000' } })
     fireEvent.click(meta.getByRole('button', { name: 'Salvar meta' }))
     expect(await screen.findByText('Meta salva.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.monthly_goals).toEqual([
@@ -530,11 +605,41 @@ describe('Meta e Tráfego', () => {
 
   it('não salva meta com valor inválido', async () => {
     abrir('relatorios')
-    const meta = await painelPronto(`Meta de ${formatarMes(MES)}`)
-    fireEvent.change(await meta.findByLabelText('Meta do mês'), { target: { value: 'dez mil' } })
+    const meta = await painelPronto('Meta de faturamento')
+    fireEvent.change(await meta.findByLabelText(`Meta mensal de ${formatarMes(MES)}`), { target: { value: 'dez mil' } })
     fireEvent.click(meta.getByRole('button', { name: 'Salvar meta' }))
     expect(await meta.findByText('Informe um valor como 1.500,00.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.monthly_goals).toHaveLength(0)
+  })
+
+  it('meta anual: sugere a mensal × 12 e grava separada da mensal', async () => {
+    abrir('relatorios', {
+      receitas_asaas: [recebido],
+      monthly_goals: [{ id: 'g1', mes: `${MES}-01`, meta: 2000, tipo: 'mensal' }],
+    })
+    const meta = await painelPronto('Meta de faturamento')
+    fireEvent.click(await meta.findByRole('button', { name: 'Meta anual' }))
+    fireEvent.click(meta.getByRole('button', { name: /Usar sugestão/ }))
+    expect(meta.getByLabelText(`Meta anual de ${ANO}`)).toHaveValue('24000,00')
+    fireEvent.change(meta.getByLabelText(`Meta anual de ${ANO}`), { target: { value: '30.000,00' } })
+    fireEvent.click(meta.getByRole('button', { name: 'Salvar meta' }))
+
+    expect(await screen.findByText('Meta salva.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.monthly_goals).toEqual([
+      expect.objectContaining({ id: 'g1', meta: 2000, tipo: 'mensal' }),
+      expect.objectContaining({ mes: `${ANO}-01-01`, meta: 30000, tipo: 'anual' }),
+    ])
+  })
+
+  it('a barra da meta segue o período escolhido no topo', async () => {
+    abrir('relatorios', {
+      receitas_asaas: [recebido],
+      monthly_goals: [{ id: 'g1', mes: `${MES}-01`, meta: 2500, tipo: 'mensal' }],
+    })
+    const meta = await painelPronto('Meta de faturamento')
+    expect(await meta.findByText('Meta batida.')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'mes_anterior' } })
+    expect(await meta.findByText(/Nenhuma meta definida para este período/)).toBeInTheDocument()
   })
 
   it('salva as métricas do mês e mostra CPL e conversão no histórico', async () => {

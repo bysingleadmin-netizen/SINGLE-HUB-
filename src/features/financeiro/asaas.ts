@@ -3,10 +3,12 @@ import type { Tom } from '@/lib/rotulos'
 import { ultimosMeses } from '@/lib/regras'
 import type { PontoDeMRR } from '@/lib/regras'
 import type { ReceitaAsaas } from '@/types/database'
+import { dentro, intervaloDoMes, mesesDoIntervalo } from './periodos'
+import type { Intervalo } from './periodos'
 
 // Receitas dos clientes, como o Asaas manda (tabela receitas_asaas). O Asaas é a fonte: o que
 // está lá aparece aqui, e as contas do Financeiro saem destas linhas.
-// Meses trafegam como 'AAAA-MM'.
+// Datas trafegam como 'AAAA-MM-DD' e os períodos, como intervalos (periodos.ts).
 
 const RECEBIDO = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'])
 const CANCELADO = new Set(['DELETED', 'CANCELLED'])
@@ -50,7 +52,7 @@ export const estaEmAberto = (receita: Pick<ReceitaAsaas, 'status'>) =>
 const valorDe = (receita: Pick<ReceitaAsaas, 'valor'>) => Number(receita.valor ?? 0)
 const somar = (receitas: Pick<ReceitaAsaas, 'valor'>[]) =>
   receitas.reduce((soma, receita) => soma + valorDe(receita), 0)
-const doMes = (data: string | null, mes: string) => data?.slice(0, 7) === mes
+const valida = (receita: Pick<ReceitaAsaas, 'status'>) => !FORA.has(receita.status ?? '')
 
 /**
  * Quem é o cliente da cobrança, para agrupar: o cliente daqui quando vinculada; senão o
@@ -60,27 +62,37 @@ export function chaveDoCliente(receita: Receita): string {
   return receita.cliente_id ?? receita.asaas_customer_id ?? receita.nome_cliente_asaas ?? ''
 }
 
-/** O que entrou no mês, pela data do pagamento. */
-export function recebidoNoMes(receitas: Receita[], mes: string): number {
-  return somar(receitas.filter((r) => foiPaga(r) && doMes(r.data_pagamento, mes)))
+/** O que entrou no período, pela data do pagamento. */
+export function recebidoNoPeriodo(receitas: Receita[], intervalo: Intervalo): number {
+  return somar(receitas.filter((r) => foiPaga(r) && dentro(r.data_pagamento, intervalo)))
 }
 
-/** O que vence no mês e ainda não venceu nem foi pago. */
-export function aReceberNoMes(receitas: Receita[], mes: string): number {
-  return somar(receitas.filter((r) => r.status === 'PENDING' && doMes(r.data_vencimento, mes)))
+/** O que entrou no mês 'AAAA-MM' (DRE e meta) */
+export function recebidoNoMes(receitas: Receita[], mes: string): number {
+  return recebidoNoPeriodo(receitas, intervaloDoMes(mes))
+}
+
+/** O que vence no período e ainda não venceu nem foi pago. */
+export function aReceberNoPeriodo(receitas: Receita[], intervalo: Intervalo): number {
+  return somar(receitas.filter((r) => r.status === 'PENDING' && dentro(r.data_vencimento, intervalo)))
 }
 
 /**
- * Faturamento esperado do mês: todas as cobranças que vencem nele (pagas, pendentes ou
+ * Faturamento esperado do período: todas as cobranças que vencem nele (pagas, pendentes ou
  * atrasadas), sem as canceladas e as estornadas.
  */
-export function mrrDoMes(receitas: Receita[], mes: string): number {
-  return somar(receitas.filter((r) => !FORA.has(r.status ?? '') && doMes(r.data_vencimento, mes)))
+export function mrrDoPeriodo(receitas: Receita[], intervalo: Intervalo): number {
+  return somar(receitas.filter((r) => valida(r) && dentro(r.data_vencimento, intervalo)))
 }
 
-/** Quanto está vencido, em quantas cobranças e de quantos clientes. */
-export function emAtraso(receitas: Receita[]) {
-  const atrasadas = receitas.filter((r) => r.status === 'OVERDUE')
+/**
+ * Quanto está vencido, em quantas cobranças e de quantos clientes. Com `ate`, só o que venceu
+ * até aquele dia (o fim do período escolhido): dívida antiga continua contando.
+ */
+export function emAtraso(receitas: Receita[], ate?: string) {
+  const atrasadas = receitas.filter(
+    (r) => r.status === 'OVERDUE' && (!ate || (r.data_vencimento ?? '') <= ate),
+  )
   return {
     total: somar(atrasadas),
     cobrancas: atrasadas.length,
@@ -88,9 +100,40 @@ export function emAtraso(receitas: Receita[]) {
   }
 }
 
-/** Recebimentos mês a mês, do mais antigo ao atual, prontos para o gráfico. */
-export function recebimentosPorMes(receitas: Receita[], hoje: string, meses = 6): PontoDeMRR[] {
-  return ultimosMeses(hoje, meses).map((ponto) => ({ ...ponto, valor: recebidoNoMes(receitas, ponto.mes) }))
+export interface TicketMedio {
+  /** Null quando não há cliente com cobrança no período */
+  valor: number | null
+  /** Clientes com cobrança no período */
+  clientes: number
+}
+
+/**
+ * Ticket médio: o faturamento do mês dividido pelos clientes com cobrança naquele mês, somados
+ * os meses que o período toca. Cliente que saiu deixa de ter cobrança e sai do denominador no
+ * mesmo mês; não há média histórica fixa. Período menor que um mês usa o mês dele.
+ */
+export function ticketMedio(receitas: Receita[], intervalo: Intervalo): TicketMedio {
+  let faturamento = 0
+  let clientesPorMes = 0
+  const todos = new Set<string>()
+  for (const mes of mesesDoIntervalo(intervalo)) {
+    const doMes = receitas.filter((r) => valida(r) && dentro(r.data_vencimento, intervaloDoMes(mes)))
+    const clientes = new Set(doMes.map(chaveDoCliente))
+    faturamento += somar(doMes)
+    clientesPorMes += clientes.size
+    for (const cliente of clientes) todos.add(cliente)
+  }
+  return { valor: clientesPorMes > 0 ? faturamento / clientesPorMes : null, clientes: todos.size }
+}
+
+/**
+ * Recebimentos mês a mês para o gráfico: os meses do período quando ele passa de um mês; senão,
+ * os seis últimos até o mês dele.
+ */
+export function recebimentosDoPeriodo(receitas: Receita[], intervalo: Intervalo): PontoDeMRR[] {
+  const doPeriodo = mesesDoIntervalo(intervalo).length
+  const meses = doPeriodo > 1 ? doPeriodo : 6
+  return ultimosMeses(intervalo.fim, meses).map((ponto) => ({ ...ponto, valor: recebidoNoMes(receitas, ponto.mes) }))
 }
 
 export interface VencimentoAsaas<T> {
@@ -99,35 +142,44 @@ export interface VencimentoAsaas<T> {
   dias: number
 }
 
-/** Pendentes que vencem de hoje até daqui a `dias` dias, da mais próxima para a mais distante. */
+/** Pendentes que vencem dentro do período, de hoje em diante, da mais próxima para a mais distante. */
 export function proximosVencimentos<T extends Receita>(
   receitas: T[],
   hoje: string,
-  dias = 30,
+  intervalo: Intervalo,
 ): VencimentoAsaas<T>[] {
+  const desde = hoje > intervalo.inicio ? hoje : intervalo.inicio
   return receitas
-    .filter((r) => r.status === 'PENDING' && r.data_vencimento)
+    .filter((r) => r.status === 'PENDING' && dentro(r.data_vencimento, { inicio: desde, fim: intervalo.fim }))
     .map((receita) => ({ receita, dias: diffDias(hoje, receita.data_vencimento!) }))
-    .filter((v) => v.dias >= 0 && v.dias <= dias)
     .sort((a, b) => a.dias - b.dias)
 }
 
-/** Vencidas, da mais antiga para a mais recente. */
-export function atrasadas<T extends Receita>(receitas: T[], hoje: string): VencimentoAsaas<T>[] {
+/** Vencidas até `ate` (o fim do período), da mais antiga para a mais recente. */
+export function atrasadas<T extends Receita>(receitas: T[], hoje: string, ate?: string): VencimentoAsaas<T>[] {
   return receitas
-    .filter((r) => r.status === 'OVERDUE')
+    .filter((r) => r.status === 'OVERDUE' && (!ate || (r.data_vencimento ?? '') <= ate))
     .map((receita) => ({ receita, dias: receita.data_vencimento ? diffDias(hoje, receita.data_vencimento) : 0 }))
     .sort((a, b) => a.dias - b.dias)
 }
 
-/** Em aberto pela data de vencimento; o histórico, do pagamento mais recente ao mais antigo. */
-export function separarReceitas<T extends Receita>(receitas: T[]): { abertas: T[]; historico: T[] } {
+/**
+ * Em aberto pela data de vencimento; o histórico, do pagamento mais recente ao mais antigo.
+ * Com um período: pendentes que vencem nele, vencidas até o fim dele e pagas dentro dele.
+ */
+export function separarReceitas<T extends Receita>(
+  receitas: T[],
+  intervalo?: Intervalo,
+): { abertas: T[]; historico: T[] } {
+  const abertaNoPeriodo = (r: T) =>
+    !intervalo ||
+    (r.status === 'OVERDUE' ? (r.data_vencimento ?? '') <= intervalo.fim : dentro(r.data_vencimento, intervalo))
   return {
     abertas: receitas
-      .filter(estaEmAberto)
+      .filter((r) => estaEmAberto(r) && abertaNoPeriodo(r))
       .sort((a, b) => (a.data_vencimento ?? '').localeCompare(b.data_vencimento ?? '')),
     historico: receitas
-      .filter(foiPaga)
+      .filter((r) => foiPaga(r) && (!intervalo || dentro(r.data_pagamento, intervalo)))
       .sort((a, b) => (b.data_pagamento ?? '').localeCompare(a.data_pagamento ?? '')),
   }
 }
@@ -141,15 +193,15 @@ export interface ProgressoAsaas {
   percentual: number
 }
 
-/** Quanto cada cliente pagou das cobranças que vencem no mês, sem as canceladas. Por nome. */
+/** Quanto cada cliente pagou das cobranças que vencem no período, sem as canceladas. Por nome. */
 export function progressoPorCliente<T extends Receita>(
   receitas: T[],
-  mes: string,
+  intervalo: Intervalo,
   nomeDe: (receita: T) => string,
 ): ProgressoAsaas[] {
   const grupos = new Map<string, T[]>()
   for (const receita of receitas) {
-    if (FORA.has(receita.status ?? '') || !doMes(receita.data_vencimento, mes)) continue
+    if (!valida(receita) || !dentro(receita.data_vencimento, intervalo)) continue
     const chave = chaveDoCliente(receita)
     grupos.set(chave, [...(grupos.get(chave) ?? []), receita])
   }

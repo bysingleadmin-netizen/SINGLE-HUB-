@@ -10,7 +10,7 @@ import ui from '@/components/ui/ui.module.css'
 import { useAtividadeRecente } from '@/dados/atividade'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useEventos } from '@/dados/eventos'
-import { useOpcoes } from '@/dados/opcoes'
+import { useColunasDoQuadro } from '@/dados/colunas'
 import { useRegistrarOtimizacao } from '@/dados/otimizacao'
 import {
   useCampanhas,
@@ -29,7 +29,7 @@ import { rotaDaTarefa } from '@/features/demandas/tarefa'
 import { hojeISO } from '@/lib/datas'
 import { formatarData, formatarMoeda } from '@/lib/formato'
 import { isLideranca } from '@/lib/permissoes'
-import { SITUACOES } from '@/lib/rotulos'
+import { COLUNAS_CONTEUDO, COLUNAS_TAREFA } from '@/lib/rotulos'
 import {
   calcularMetricas,
   cargaPorPessoa,
@@ -43,7 +43,7 @@ import {
 import { AtividadeRecente } from './AtividadeRecente'
 import { Carga } from './Carga'
 import { GraficoStatus } from './GraficoStatus'
-import { contarStatus } from './statusDosCards'
+import { cardsAtrasados, contarPorColuna } from './statusDosCards'
 import styles from './dashboard.module.css'
 
 function Carregando() {
@@ -66,18 +66,15 @@ export function DashboardPage() {
   const atividade = useAtividadeRecente(100)
   const eventos = useEventos()
   const { registrar, registrando } = useRegistrarOtimizacao()
-  const situacoes = useOpcoes('situacao', SITUACOES)
+  const colunasDeDemandas = useColunasDoQuadro('demandas', COLUNAS_TAREFA)
+  const colunasDeConteudo = useColunasDoQuadro('conteudo', COLUNAS_CONTEUDO)
   const { perfil } = useAuth()
   const lideranca = isLideranca(perfil?.cargo)
   // Leads são só da liderança: para os demais a consulta nem é feita
   const leads = useLeads({ ativo: lideranca })
-  // A rosca de status acompanha o que a equipe muda nos quadros, sem recarregar a página;
+  // As roscas acompanham o que a equipe move nos quadros, sem recarregar a página;
   // para a liderança, os indicadores comerciais também
-  useTempoReal(
-    lideranca
-      ? ['tasks', 'content_cards', 'card_options', 'clients', 'leads']
-      : ['tasks', 'content_cards', 'card_options'],
-  )
+  useTempoReal(lideranca ? ['tasks', 'content_cards', 'clients', 'leads'] : ['tasks', 'content_cards'])
 
   const hoje = hojeISO()
   const clientePorId = porId(clientes.data)
@@ -99,8 +96,18 @@ export function DashboardPage() {
     cards.data ?? [],
     tarefasDeAnuncio.data ?? [],
   )
-  const status = contarStatus(tarefas.data ?? [], cards.data ?? [], situacoes.opcoes)
-  const travados = status.find((fatia) => fatia.valor === 'travado')
+  // O status de um card é a coluna em que ele está. Demandas só do quadro de Demandas: as
+  // tarefas internas têm quadro próprio
+  const porColunaDeDemandas = contarPorColuna(
+    (tarefas.data ?? []).filter((tarefa) => (tarefa.quadro ?? 'demandas') === 'demandas'),
+    colunasDeDemandas.colunas,
+    (tarefa) => tarefa.status,
+  )
+  const porColunaDeConteudo = contarPorColuna(cards.data ?? [], colunasDeConteudo.colunas, (card) => card.etapa)
+  const roscas = [
+    { titulo: 'Demandas', fatias: porColunaDeDemandas },
+    { titulo: 'Conteúdo', fatias: porColunaDeConteudo },
+  ]
   const entregas = proximasEntregas(tarefas.data ?? [], hoje)
   const otimizacoes = proximasOtimizacoes(campanhas.data ?? [], hoje)
   const registros = atividade.data ?? []
@@ -133,11 +140,8 @@ export function DashboardPage() {
             carregando={kpis.carregando}
           />
           <KpiCard
-            // A equipe pode renomear o status; o número continua sendo o dos cards travados
-            rotulo={
-              !travados || travados.rotulo === 'Travado' ? 'Cards travados' : `Cards em ${travados.rotulo}`
-            }
-            valor={travados?.total ?? 0}
+            rotulo="Cards atrasados"
+            valor={cardsAtrasados(tarefas.data ?? [], cards.data ?? [], hoje)}
             carregando={kpis.carregando}
           />
         </div>
@@ -194,14 +198,21 @@ export function DashboardPage() {
             <EstadoErro onTentar={todas.tentar} />
           ) : painelStatus.carregando ? (
             <Carregando />
-          ) : status.every((fatia) => fatia.total === 0) ? (
+          ) : roscas.every(({ fatias }) => fatias.every((fatia) => fatia.total === 0)) ? (
             <EstadoVazio
               ilustracao="quadro"
               titulo="Nenhum card nos quadros."
-              texto="Demandas e conteúdos em andamento aparecem aqui, separados por status."
+              texto="Demandas e conteúdos aparecem aqui, separados pela coluna em que estão."
             />
           ) : (
-            <GraficoStatus fatias={status} />
+            <div className={styles.roscas}>
+              {roscas.map(({ titulo, fatias }) => (
+                <section key={titulo} aria-label={titulo}>
+                  <h3 className={styles.roscaTitulo}>{titulo}</h3>
+                  <GraficoStatus titulo={`${titulo} por coluna`} fatias={fatias} />
+                </section>
+              ))}
+            </div>
           )}
         </Painel>
       </div>

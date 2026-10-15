@@ -1,11 +1,12 @@
 import { venceuOPrazoVisivel } from '@/components/quadro/ciclo'
-import type { OpcaoDeCampo } from '@/dados/opcoes'
+import type { ColunaDoQuadro } from '@/dados/colunas'
 import { COR_DO_TOM } from '@/lib/rotulos'
+import { cardAberto, tarefaAtrasada } from '@/lib/regras'
 import type { ContentCard, Task } from '@/types/database'
 
-// Distribuição dos status dos cards de Demandas e Conteúdo para o gráfico de rosca do Dashboard.
-// Conta o que está nos quadros: arquivados e concluídos há mais de 7 dias ficam de fora,
-// como ficam fora das colunas.
+// Cards de cada quadro por coluna, para as roscas do Dashboard. O status de um card é a coluna
+// em que ele está (tasks.status, content_cards.etapa). Conta o que está nos quadros:
+// arquivados e concluídos há mais de 7 dias ficam de fora, como ficam fora das colunas.
 
 export interface FatiaDeStatus {
   valor: string
@@ -14,62 +15,56 @@ export interface FatiaDeStatus {
   total: number
 }
 
-// Status criados pela equipe não têm cor própria; cada um recebe uma destas, em ordem
-const CORES_PERSONALIZADAS = ['#4a9eff', '#a855f7', '#f08a3c', '#2dd4bf', '#f472b6', '#facc15']
+// Uma cor por coluna, na ordem do quadro; a coluna de entregue fica verde
+const CORES = ['#4a9eff', '#f08a3c', '#a855f7', '#facc15', '#2dd4bf', '#f472b6']
+const ENTREGUE = new Set(['concluido', 'publicado'])
 
-export const SEM_STATUS = 'sem_status'
+type NoQuadro = Pick<Task, 'concluded_at' | 'archived_at'>
 
-function noQuadro(card: Pick<Task, 'concluded_at' | 'archived_at'>, coluna: string, agora: Date) {
+function noQuadro(card: NoQuadro, coluna: string, agora: Date) {
   return coluna !== 'arquivado' && !card.archived_at && !venceuOPrazoVisivel(card, agora)
 }
 
-export function contarStatus(
-  tarefas: readonly Task[],
-  cards: readonly ContentCard[],
-  opcoes: readonly OpcaoDeCampo[],
+/** Quantos cards há em cada coluna, na ordem do quadro e com os nomes que a equipe deu. */
+export function contarPorColuna<T extends NoQuadro>(
+  itens: readonly T[],
+  colunas: readonly ColunaDoQuadro[],
+  colunaDe: (item: T) => string,
   agora: Date = new Date(),
 ): FatiaDeStatus[] {
   const contagem = new Map<string, number>()
-  const somar = (situacao: string | null | undefined) => {
-    const chave = situacao || SEM_STATUS
-    contagem.set(chave, (contagem.get(chave) ?? 0) + 1)
+  for (const item of itens) {
+    const coluna = colunaDe(item)
+    if (noQuadro(item, coluna, agora)) contagem.set(coluna, (contagem.get(coluna) ?? 0) + 1)
   }
-  for (const tarefa of tarefas) if (noQuadro(tarefa, tarefa.status, agora)) somar(tarefa.situacao)
-  for (const card of cards) if (noQuadro(card, card.etapa, agora)) somar(card.situacao)
 
-  let personalizadas = 0
-  const fatias: FatiaDeStatus[] = opcoes.map((opcao) => ({
-    valor: opcao.valor,
-    rotulo: opcao.rotulo,
-    // A cor escolhida na engrenagem vale; sem ela, os status criados pela equipe ganham uma cor
-    // da paleta em ordem, para não ficarem todos cinza
-    cor:
-      opcao.cor ??
-      (opcao.personalizada || opcao.tom === 'cinza'
-        ? CORES_PERSONALIZADAS[personalizadas++ % CORES_PERSONALIZADAS.length]
-        : COR_DO_TOM[opcao.tom]),
-    total: contagem.get(opcao.valor) ?? 0,
+  let cor = 0
+  const proximaCor = () => CORES[cor++ % CORES.length]
+  const fatias: FatiaDeStatus[] = colunas.map((coluna) => ({
+    valor: coluna.id,
+    rotulo: coluna.titulo,
+    cor: ENTREGUE.has(coluna.id) ? COR_DO_TOM.verde : proximaCor(),
+    total: contagem.get(coluna.id) ?? 0,
   }))
 
-  // Status que saiu da lista mas ainda está gravado em algum card
-  const conhecidos = new Set([...opcoes.map((opcao) => opcao.valor), SEM_STATUS])
+  // Card numa coluna que saiu do quadro: continua contado, com a chave como nome
+  const conhecidas = new Set(colunas.map((coluna) => coluna.id))
   for (const [valor, total] of contagem) {
-    if (conhecidos.has(valor)) continue
-    fatias.push({
-      valor,
-      rotulo: valor,
-      cor: CORES_PERSONALIZADAS[personalizadas++ % CORES_PERSONALIZADAS.length],
-      total,
-    })
+    if (!conhecidas.has(valor)) fatias.push({ valor, rotulo: valor, cor: COR_DO_TOM.cinza, total })
   }
-
-  fatias.push({
-    valor: SEM_STATUS,
-    rotulo: 'Sem status',
-    cor: COR_DO_TOM.cinza,
-    total: contagem.get(SEM_STATUS) ?? 0,
-  })
   return fatias
+}
+
+/** Demandas, tarefas e conteúdos em aberto com o prazo de entrega vencido. */
+export function cardsAtrasados(
+  tarefas: readonly Pick<Task, 'status' | 'data_entrega'>[],
+  cards: readonly Pick<ContentCard, 'etapa' | 'data_entrega'>[],
+  hoje: string,
+): number {
+  return (
+    tarefas.filter((tarefa) => tarefaAtrasada(tarefa, hoje)).length +
+    cards.filter((card) => cardAberto(card) && card.data_entrega != null && card.data_entrega < hoje).length
+  )
 }
 
 export interface ArcoDaRosca extends FatiaDeStatus {

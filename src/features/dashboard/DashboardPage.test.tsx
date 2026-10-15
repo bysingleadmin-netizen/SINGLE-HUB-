@@ -147,7 +147,8 @@ describe('DashboardPage', () => {
     // 3 demandas, 2 conteúdos em produção e 1 tarefa de anúncio
     expect(valorDe('Tarefas abertas')).toHaveTextContent('6')
     expect(valorDe('Conteúdos aguardando aprovação')).toHaveTextContent('1')
-    expect(valorDe('Cards travados')).toHaveTextContent('0')
+    // t1 está aberta com a entrega vencida
+    expect(valorDe('Cards atrasados')).toHaveTextContent('1')
   })
 
   it('lista as próximas entregas, com atraso em destaque e nomes de reserva', async () => {
@@ -258,29 +259,30 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(screen.getByText('Conversão em 30 dias').parentElement).toHaveTextContent('—'))
   })
 
-  it('desenha a rosca com o status dos cards, incluindo os criados pela equipe', async () => {
+  it('desenha uma rosca por quadro, com os cards contados pela coluna', async () => {
     popular()
     const tabelas = bancoFalso().tabelas
+    // O status antigo gravado no card não conta mais
     tabelas.tasks[0].situacao = 'travado'
-    tabelas.tasks[1].situacao = 'personalizada_rev'
-    tabelas.content_cards[0].situacao = 'em_andamento'
-    tabelas.card_options = [
-      { id: 'o1', campo: 'situacao', chave: 'travado', titulo: 'Travado', posicao: 1 },
-      { id: 'o2', campo: 'situacao', chave: 'em_andamento', titulo: 'Em andamento', posicao: 2 },
-      { id: 'o3', campo: 'situacao', chave: 'feito', titulo: 'Feito', posicao: 3 },
-      { id: 'o4', campo: 'situacao', chave: 'personalizada_rev', titulo: 'Em revisão', posicao: 4 },
+    tabelas.board_columns = [
+      { id: 'b1', quadro: 'demandas', chave: 'a_fazer', titulo: 'Fila', posicao: 1 },
+      { id: 'b2', quadro: 'demandas', chave: 'em_andamento', titulo: 'Em Andamento', posicao: 2 },
+      { id: 'b3', quadro: 'demandas', chave: 'aguardando_aprovacao', titulo: 'Aguardando Aprovação', posicao: 3 },
+      { id: 'b4', quadro: 'demandas', chave: 'concluido', titulo: 'Concluído', posicao: 4 },
     ]
     renderizar(<DashboardPage />)
 
     const status = painel('Status dos cards')
-    const rosca = await status.findByRole('img', { name: /^Status dos cards/ })
-    // t1 travado, t2 em revisão, k1 em andamento; t3 e t4 sem status, k2 sem status
-    expect(rosca).toHaveAccessibleName(
-      'Status dos cards: Travado 1, Em andamento 1, Feito 0, Em revisão 1, Sem status 3',
+    const demandas = await status.findByRole('img', { name: /^Demandas por coluna/ })
+    expect(demandas).toHaveAccessibleName(
+      'Demandas por coluna: Fila 1, Em Andamento 1, Aguardando Aprovação 1, Concluído 1',
     )
-    expect(status.getByText('Em revisão')).toBeInTheDocument()
-    expect(rosca.querySelectorAll('circle')).toHaveLength(5) // trilho e quatro fatias com card
-    expect(await screen.findByText('Cards travados')).toBeInTheDocument()
+    expect(status.getByRole('img', { name: /^Conteúdo por coluna/ })).toHaveAccessibleName(
+      'Conteúdo por coluna: Captar Material 0, Editar 1, Aguardando Aprovação 1, Publicado 0',
+    )
+    expect(status.getByRole('heading', { name: 'Demandas' })).toBeInTheDocument()
+    expect(status.getByRole('heading', { name: 'Conteúdo' })).toBeInTheDocument()
+    expect(screen.queryByText('Cards travados')).not.toBeInTheDocument()
   })
 
   it('sem cards nos quadros, a rosca dá lugar ao estado vazio', async () => {

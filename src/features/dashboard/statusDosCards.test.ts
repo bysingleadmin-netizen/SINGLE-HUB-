@@ -1,54 +1,93 @@
-import { SITUACOES } from '@/lib/rotulos'
+import { COLUNAS_CONTEUDO, COLUNAS_TAREFA } from '@/lib/rotulos'
 import type { ContentCard, Task } from '@/types/database'
-import { arcosDaRosca, contarStatus } from './statusDosCards'
+import { arcosDaRosca, cardsAtrasados, contarPorColuna } from './statusDosCards'
 
 const AGORA = new Date('2026-10-14T12:00:00Z')
 const tarefa = (campos: Partial<Task>) => ({ status: 'a_fazer', ...campos }) as Task
 const card = (campos: Partial<ContentCard>) => ({ etapa: 'editar', ...campos }) as ContentCard
+const pelaColuna = (t: Task) => t.status
 
-describe('contarStatus', () => {
-  it('soma demandas e conteúdos por status, com uma fatia para os sem status', () => {
-    const fatias = contarStatus(
-      [tarefa({ situacao: 'travado' }), tarefa({ situacao: 'feito' }), tarefa({})],
-      [card({ situacao: 'travado' }), card({ situacao: null })],
-      SITUACOES,
+describe('contarPorColuna', () => {
+  it('conta os cards pela coluna em que estão, na ordem do quadro', () => {
+    const fatias = contarPorColuna(
+      [tarefa({}), tarefa({}), tarefa({ status: 'concluido' }), tarefa({ status: 'em_andamento' })],
+      COLUNAS_TAREFA,
+      pelaColuna,
       AGORA,
     )
     expect(fatias.map((f) => [f.rotulo, f.total])).toEqual([
-      ['Travado', 2],
-      ['Em andamento', 0],
-      ['Feito', 1],
-      ['Sem status', 2],
+      ['A Fazer', 2],
+      ['Em Andamento', 1],
+      ['Aguardando Aprovação', 0],
+      ['Concluído', 1],
+    ])
+  })
+
+  it('ignora o status antigo (Travado, Em andamento, Feito) gravado no card', () => {
+    const fatias = contarPorColuna(
+      [tarefa({ situacao: 'travado' }), tarefa({ status: 'em_andamento', situacao: 'feito' })],
+      COLUNAS_TAREFA,
+      pelaColuna,
+      AGORA,
+    )
+    expect(fatias.map((f) => f.total)).toEqual([1, 1, 0, 0])
+  })
+
+  it('usa os nomes que a equipe deu e conta coluna criada por ela', () => {
+    const colunas = [{ id: 'editar', titulo: 'Edição' }, { id: 'personalizada_rev', titulo: 'Revisão', personalizada: true }]
+    const fatias = contarPorColuna(
+      [card({}), card({ etapa: 'personalizada_rev' as ContentCard['etapa'] })],
+      colunas,
+      (c) => c.etapa,
+      AGORA,
+    )
+    expect(fatias.map((f) => [f.rotulo, f.total])).toEqual([
+      ['Edição', 1],
+      ['Revisão', 1],
     ])
   })
 
   it('deixa de fora o que saiu dos quadros: arquivados e concluídos há mais de 7 dias', () => {
-    const fatias = contarStatus(
+    const fatias = contarPorColuna(
       [
-        tarefa({ status: 'arquivado', situacao: 'feito' }),
-        tarefa({ status: 'concluido', situacao: 'feito', concluded_at: '2026-10-01T00:00:00Z' }),
-        tarefa({ status: 'concluido', situacao: 'feito', concluded_at: '2026-10-13T00:00:00Z' }),
+        tarefa({ status: 'arquivado' }),
+        tarefa({ status: 'concluido', concluded_at: '2026-10-01T00:00:00Z' }),
+        tarefa({ status: 'concluido', concluded_at: '2026-10-13T00:00:00Z' }),
+        tarefa({ archived_at: '2026-10-10T00:00:00Z' }),
       ],
-      [card({ etapa: 'publicado', situacao: 'feito', archived_at: '2026-10-10T00:00:00Z' })],
-      SITUACOES,
+      COLUNAS_TAREFA,
+      pelaColuna,
       AGORA,
     )
-    expect(fatias.find((f) => f.valor === 'feito')?.total).toBe(1)
+    expect(fatias.find((f) => f.valor === 'concluido')?.total).toBe(1)
+    expect(fatias.find((f) => f.valor === 'a_fazer')?.total).toBe(0)
+    expect(fatias.some((f) => f.valor === 'arquivado')).toBe(false)
   })
 
-  it('status criado pela equipe ganha cor própria, e status removido da lista continua contado', () => {
-    const opcoes = [...SITUACOES, { valor: 'personalizada_a', rotulo: 'Em revisão', tom: 'cinza' as const, personalizada: true }]
-    const fatias = contarStatus(
-      [tarefa({ situacao: 'personalizada_a' }), tarefa({ situacao: 'personalizada_velha' })],
-      [],
-      opcoes,
-      AGORA,
-    )
-    const revisao = fatias.find((f) => f.valor === 'personalizada_a')
-    expect(revisao).toMatchObject({ rotulo: 'Em revisão', total: 1 })
-    expect(revisao?.cor).not.toBe(fatias.find((f) => f.valor === 'sem_status')?.cor)
-    expect(fatias.find((f) => f.valor === 'personalizada_velha')?.total).toBe(1)
-    expect(fatias[fatias.length - 1].valor).toBe('sem_status')
+  it('card numa coluna que saiu do quadro continua contado; a de entregue fica verde', () => {
+    const fatias = contarPorColuna([card({ etapa: 'coluna_removida' as ContentCard['etapa'] })], COLUNAS_CONTEUDO, (c) => c.etapa, AGORA)
+    expect(fatias[fatias.length - 1]).toMatchObject({ valor: 'coluna_removida', total: 1 })
+    const cores = fatias.slice(0, 4).map((f) => f.cor)
+    expect(new Set(cores.slice(0, 3)).size).toBe(3)
+    expect(fatias.find((f) => f.valor === 'publicado')?.cor).not.toBe(cores[0])
+  })
+})
+
+describe('cardsAtrasados', () => {
+  it('soma demandas e conteúdos em aberto com o prazo vencido', () => {
+    const hoje = '2026-10-14'
+    expect(
+      cardsAtrasados(
+        [
+          tarefa({ data_entrega: '2026-10-13' }),
+          tarefa({ status: 'concluido', data_entrega: '2026-10-01' }),
+          tarefa({ data_entrega: '2026-10-14' }),
+          tarefa({ data_entrega: null }),
+        ],
+        [card({ data_entrega: '2026-10-10' }), card({ etapa: 'publicado', data_entrega: '2026-10-10' })],
+        hoje,
+      ),
+    ).toBe(2)
   })
 })
 

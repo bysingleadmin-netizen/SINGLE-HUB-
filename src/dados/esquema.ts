@@ -26,9 +26,6 @@ const SONDAS = {
   prioridadeTarefa: ['tasks', 'prioridade'],
   // migration 0003
   prioridadeConteudo: ['content_cards', 'prioridade'],
-  // migration 0003: Travado, Em andamento e Feito no card
-  situacaoTarefa: ['tasks', 'situacao'],
-  situacaoConteudo: ['content_cards', 'situacao'],
   // migration 0003: concluded_at e archived_at (arquivo automático)
   cicloTarefa: ['tasks', 'concluded_at'],
   cicloConteudo: ['content_cards', 'concluded_at'],

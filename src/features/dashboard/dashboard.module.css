@@ -376,6 +376,26 @@
   }
 }
 /* Rosca de status dos cards: o desenho à esquerda e a legenda ao lado; no celular, um embaixo do outro */
+/* Uma rosca por quadro (Demandas e Conteúdo), uma abaixo da outra */
+.roscas {
+  display: grid;
+  gap: 22px;
+}
+
+.roscaTitulo {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.roscas .roscaDesenho {
+  width: 150px;
+  height: 150px;
+}
+
 .rosca {
   display: flex;
   align-items: center;

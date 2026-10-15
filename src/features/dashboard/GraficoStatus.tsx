@@ -11,10 +11,10 @@ const RAIO = 100 / (2 * Math.PI)
 const VAO = 0.6
 
 /**
- * Rosca com a distribuição de status dos cards. Passar o mouse numa fatia ou na legenda
- * mostra no centro a contagem daquele status; fora disso, o centro mostra o total.
+ * Rosca com os cards de um quadro por coluna. Passar o mouse numa fatia ou na legenda
+ * mostra no centro a contagem daquela coluna; fora disso, o centro mostra o total.
  */
-export function GraficoStatus({ fatias }: { fatias: FatiaDeStatus[] }) {
+export function GraficoStatus({ titulo, fatias }: { titulo: string; fatias: FatiaDeStatus[] }) {
   const [ativo, setAtivo] = useState<string | null>(null)
   const arcos = arcosDaRosca(fatias)
   const total = fatias.reduce((soma, fatia) => soma + fatia.total, 0)
@@ -25,7 +25,7 @@ export function GraficoStatus({ fatias }: { fatias: FatiaDeStatus[] }) {
   return (
     <div className={styles.rosca}>
       <div className={styles.roscaDesenho}>
-        <svg viewBox="0 0 40 40" role="img" aria-label={`Status dos cards: ${descricao}`}>
+        <svg viewBox="0 0 40 40" role="img" aria-label={`${titulo}: ${descricao}`}>
           <circle className={styles.roscaTrilho} cx="20" cy="20" r={RAIO} />
           {arcos.map((arco, i) => (
             <circle

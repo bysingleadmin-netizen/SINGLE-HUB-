@@ -38,6 +38,8 @@ const SONDAS = {
   pagamentoParcial: ['client_payments', 'valor_pago'],
   // migration 0004: cor de cada opção configurável
   corDasOpcoes: ['card_options', 'cor'],
+  // migration 0004: quadro de Tarefas internas na tabela tasks
+  quadroTarefas: ['tasks', 'quadro'],
 } as const satisfies Record<string, readonly [Tabela, string]>
 
 export type ColunaOpcional = keyof typeof SONDAS

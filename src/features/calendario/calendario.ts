@@ -1,6 +1,7 @@
 import { hojeISO, somarDias } from '@/lib/datas'
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
+import { rotaDaTarefa } from '@/features/demandas/tarefa'
 import { TIPOS_EVENTO, opcao } from '@/lib/rotulos'
 import type { Tom } from '@/lib/rotulos'
 import type { CalendarEvent, ContentCard, Task, TipoEvento } from '@/types/database'
@@ -160,7 +161,7 @@ export function montarAgenda(
 
   const entrega = (
     origem: 'demanda' | 'conteudo',
-    item: { id: string; titulo: string; client_id: string | null; data_entrega: string | null },
+    item: Pick<Task, 'id' | 'titulo' | 'client_id' | 'data_entrega' | 'quadro'>,
     concluido: boolean,
   ): ItemDeAgenda => ({
     chave: `${origem}-${item.id}`,
@@ -171,7 +172,7 @@ export function montarAgenda(
     dias: [item.data_entrega as string],
     horario: 'Entrega',
     concluido,
-    rota: origem === 'demanda' ? `/app/demandas?abrir=${item.id}` : `/app/conteudo?abrir=${item.id}`,
+    rota: origem === 'demanda' ? rotaDaTarefa(item) : `/app/conteudo?abrir=${item.id}`,
     clientId: item.client_id,
     evento: null,
     ordem: '1',

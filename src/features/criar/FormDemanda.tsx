@@ -15,28 +15,31 @@ import { useOpcoes } from '@/dados/opcoes'
 import { useNotificar } from '@/dados/notificacoes'
 import { useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
-import { formNovaTarefa, validarTarefa } from '@/features/demandas/tarefa'
+import { formNovaTarefa, rotaDaTarefa, validarTarefa } from '@/features/demandas/tarefa'
 import type { FormTarefa } from '@/features/demandas/tarefa'
 import type { Erros } from '@/lib/formulario'
 import { opcoesDePessoas } from '@/lib/pessoas'
 import { COLUNAS_TAREFA, PRIORIDADES, TIPOS_TAREFA } from '@/lib/rotulos'
-import type { Task, TaskStatus, TaskTipo } from '@/types/database'
+import type { QuadroDeTarefa, Task, TaskStatus, TaskTipo } from '@/types/database'
 
 interface FormDemandaProps {
+  /** Demanda de cliente ou tarefa interna: a mesma tabela, quadros diferentes */
+  quadro: QuadroDeTarefa
   /** Coluna em que a demanda nasce */
   statusInicial: TaskStatus
   onFechar: () => void
 }
 
-/** Campos e gravação de uma demanda nova. Para editar, o quadro abre o TarefaDrawer. */
-export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
+/** Campos e gravação de uma demanda ou tarefa nova. Para editar, o quadro abre o TarefaDrawer. */
+export function FormDemanda({ quadro, statusInicial, onFechar }: FormDemandaProps) {
+  const item = quadro === 'tarefas' ? 'tarefa' : 'demanda'
   const { perfil } = useAuth()
   const tarefas = useTarefas()
   const clientes = useClientes()
   const perfis = usePerfis()
   const esquema = useColunasOpcionais()
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
-  const { colunas } = useColunasDoQuadro('demandas', COLUNAS_TAREFA)
+  const { colunas } = useColunasDoQuadro(quadro, COLUNAS_TAREFA)
   const [form, setForm] = useState<FormTarefa>(() => formNovaTarefa(statusInicial))
   const [erros, setErros] = useState<Erros<FormTarefa>>({})
   const salvar = useSalvar<Task>('tasks')
@@ -57,13 +60,20 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
     }
     setErros({})
     const { valores } = resultado
-    // A demanda nova entra no fim da coluna
-    const posicao = proximaPosicao((tarefas.data ?? []).filter((t) => t.status === valores.status))
+    // A demanda nova entra no fim da coluna do seu quadro
+    const posicao = proximaPosicao(
+      (tarefas.data ?? []).filter(
+        (t) => (t.quadro ?? 'demandas') === quadro && t.status === valores.status,
+      ),
+    )
 
     salvar.mutate(
       {
         valores: {
           ...valores,
+          // Tarefa interna não tem área
+          ...(quadro === 'tarefas' ? { tipo: null } : {}),
+          ...(esquema.quadroTarefas ? { quadro } : {}),
           posicao,
           created_by: perfil?.id ?? null,
           // A média é o padrão do banco; só vai junto quando a pessoa escolhe outra
@@ -74,22 +84,22 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
       },
       {
         onSuccess: (salva) => {
-          toast.sucesso('Demanda criada.')
+          toast.sucesso(quadro === 'tarefas' ? 'Tarefa criada.' : 'Demanda criada.')
           void registrarAtividade({
             acao: 'demanda_criada',
-            descricao: `criou a demanda "${salva.titulo}"`,
+            descricao: `criou a ${item} "${salva.titulo}"`,
             entidade: 'tasks',
             entidadeId: salva.id,
           })
           void notificar([salva.responsavel_id], {
             tipo: 'tarefa',
-            titulo: 'Nova demanda para você',
-            mensagem: `${perfil?.nome ?? 'Alguém'} atribuiu a demanda "${salva.titulo}" a você.`,
-            link: `/app/demandas?abrir=${salva.id}`,
+            titulo: `Nova ${item} para você`,
+            mensagem: `${perfil?.nome ?? 'Alguém'} atribuiu a ${item} "${salva.titulo}" a você.`,
+            link: rotaDaTarefa(salva),
           })
           onFechar()
         },
-        onError: () => toast.erro('Não foi possível salvar a demanda.'),
+        onError: () => toast.erro(`Não foi possível salvar a ${item}.`),
       },
     )
   }
@@ -126,12 +136,14 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
         />
       </div>
       <div className={ui.duasColunas}>
-        <Selecao
-          rotulo="Tipo"
-          opcoes={TIPOS_TAREFA}
-          value={form.tipo}
-          onChange={(evento) => mudar('tipo', evento.target.value as TaskTipo)}
-        />
+        {quadro === 'demandas' && (
+          <Selecao
+            rotulo="Área"
+            opcoes={TIPOS_TAREFA}
+            value={form.tipo}
+            onChange={(evento) => mudar('tipo', evento.target.value as TaskTipo)}
+          />
+        )}
         <Selecao
           rotulo="Status"
           opcoes={colunas.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))}

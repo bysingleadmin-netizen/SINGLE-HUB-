@@ -22,6 +22,7 @@ import {
 } from '@/dados/tabelas'
 import { useTempoReal } from '@/dados/tempoReal'
 import { agendaPorDia, montarAgenda } from '@/features/calendario/calendario'
+import { rotaDaTarefa } from '@/features/demandas/tarefa'
 import { hojeISO } from '@/lib/datas'
 import { formatarData } from '@/lib/formato'
 import { SITUACOES } from '@/lib/rotulos'
@@ -200,7 +201,7 @@ export function DashboardPage() {
                   <li key={tarefa.id} className={`${ui.linha} ${ui.linhaClicavel}`}>
                     <Avatar nome={responsavel?.nome ?? null} url={responsavel?.avatar_url} tamanho={32} />
                     <div className={ui.linhaTexto}>
-                      <Link to={`/app/demandas?abrir=${tarefa.id}`} className={ui.linhaTitulo}>
+                      <Link to={rotaDaTarefa(tarefa)} className={ui.linhaTitulo}>
                         {tarefa.titulo}
                       </Link>
                       <span className={ui.mudo}>

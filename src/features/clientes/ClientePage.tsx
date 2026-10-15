@@ -30,6 +30,7 @@ import {
   opcao,
 } from '@/lib/rotulos'
 import type { Client, ClientStatus } from '@/types/database'
+import { rotaDaTarefa } from '@/features/demandas/tarefa'
 import { ClienteModal } from './ClienteModal'
 import { Pagamentos } from './Pagamentos'
 import { fidelidadeDoCliente, linkInstagram } from './cliente'
@@ -279,7 +280,7 @@ export function ClientePage() {
     .map((t) => ({
       id: t.id,
       titulo: t.titulo,
-      rota: `/app/demandas?abrir=${t.id}`,
+      rota: rotaDaTarefa(t),
       detalhe: (
         <>
           {t.data_entrega && <span className={ui.mudo}>{formatarData(t.data_entrega)}</span>}

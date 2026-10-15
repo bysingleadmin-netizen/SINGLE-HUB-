@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Modal } from '@/components/ui/Modal'
 import { Selecao } from '@/components/ui/Selecao'
 import ui from '@/components/ui/ui.module.css'
@@ -8,14 +9,19 @@ import { FormDemanda } from './FormDemanda'
 import { FormTarefaDeCampanha } from './FormTarefaDeCampanha'
 
 const CATEGORIAS: readonly { valor: Categoria; rotulo: string; destino: string }[] = [
-  { valor: 'demanda', rotulo: 'Demanda', destino: 'Vai para o menu Demandas.' },
+  { valor: 'tarefa', rotulo: 'Tarefa', destino: 'Trabalho interno da agência. Vai para o menu Tarefas.' },
   { valor: 'conteudo', rotulo: 'Conteúdo', destino: 'Vai para o menu Conteúdo.' },
-  {
-    valor: 'campanha',
-    rotulo: 'Tarefa de anúncio',
-    destino: 'Vai para o anúncio escolhido, no menu Anúncios.',
-  },
+  { valor: 'demanda', rotulo: 'Demanda', destino: 'Pedido de cliente. Vai para o menu Demandas.' },
+  { valor: 'campanha', rotulo: 'Anúncio', destino: 'Tarefa de um anúncio. Vai para o menu Anúncios.' },
 ]
+
+/** O tipo que a página atual sugere quando a pessoa clica em Criar. */
+export function categoriaDaRota(pathname: string): Categoria {
+  if (pathname.startsWith('/app/tarefas')) return 'tarefa'
+  if (pathname.startsWith('/app/conteudo')) return 'conteudo'
+  if (pathname.startsWith('/app/anuncios')) return 'campanha'
+  return 'demanda'
+}
 
 interface CriarModalProps {
   pedido: PedidoDeCriacao
@@ -27,22 +33,30 @@ interface CriarModalProps {
  * a pessoa cria uma vez só e não precisa estar na tela de destino.
  */
 export function CriarModal({ pedido, onFechar }: CriarModalProps) {
-  const [categoria, setCategoria] = useState<Categoria>(pedido.categoria ?? 'demanda')
+  const { pathname } = useLocation()
+  const [categoria, setCategoria] = useState<Categoria>(
+    () => pedido.categoria ?? categoriaDaRota(pathname),
+  )
   const atual = CATEGORIAS.find((item) => item.valor === categoria) ?? CATEGORIAS[0]
 
   return (
     <Modal aberto titulo="Nova tarefa" onFechar={onFechar}>
       <div className={ui.formulario}>
         <Selecao
-          rotulo="Categoria"
+          rotulo="Tipo"
           opcoes={CATEGORIAS}
           value={categoria}
           onChange={(evento) => setCategoria(evento.target.value as Categoria)}
         />
         <p className={ui.mudo}>{atual.destino}</p>
 
-        {categoria === 'demanda' && (
-          <FormDemanda statusInicial={pedido.status ?? 'a_fazer'} onFechar={onFechar} />
+        {(categoria === 'demanda' || categoria === 'tarefa') && (
+          <FormDemanda
+            key={categoria}
+            quadro={categoria === 'tarefa' ? 'tarefas' : 'demandas'}
+            statusInicial={pedido.status ?? 'a_fazer'}
+            onFechar={onFechar}
+          />
         )}
         {categoria === 'conteudo' && (
           <FormConteudo etapaInicial={pedido.etapa ?? 'captar_material'} onFechar={onFechar} />
@@ -51,6 +65,7 @@ export function CriarModal({ pedido, onFechar }: CriarModalProps) {
           <FormTarefaDeCampanha
             campanhaInicial={pedido.campanhaId ?? ''}
             funcaoInicial={pedido.funcao ?? 'copy'}
+            statusInicial={pedido.statusDeAnuncio ?? 'pendente'}
             onFechar={onFechar}
           />
         )}

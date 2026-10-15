@@ -88,7 +88,10 @@ export interface Task {
   descricao: string | null
   client_id: string | null
   responsavel_id: string | null
-  tipo: TaskTipo
+  /** Área da demanda; tarefa interna não tem */
+  tipo: TaskTipo | null
+  /** Migration 0004; sem ela, tudo é demanda */
+  quadro?: QuadroDeTarefa
   status: TaskStatus
   data_entrega: string | null
   /** Sem valor conta como 'media' */
@@ -225,7 +228,9 @@ export interface TaskComment {
   created_at: string
 }
 
-export type QuadroId = 'demandas' | 'conteudo'
+export type QuadroId = 'demandas' | 'conteudo' | 'tarefas' | 'anuncios'
+/** Quadros guardados na tabela tasks: pedidos de clientes ou trabalho interno */
+export type QuadroDeTarefa = 'demandas' | 'tarefas'
 
 /** Link ou imagem anexados a um card de Demandas ou de Conteúdo (migration 0003). */
 export interface CardAttachment {

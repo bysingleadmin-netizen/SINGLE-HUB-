@@ -16,11 +16,12 @@ export interface ItemNav {
 export const ITENS_NAV: readonly ItemNav[] = [
   { rota: '/app/dashboard', rotulo: 'Dashboard', icone: 'dashboard' },
   { rota: '/app/clientes', rotulo: 'Clientes', icone: 'clientes' },
-  // Demandas e Conteúdo são os dois quadros de produção: ficam sob um cabeçalho só.
+  // Os quatro quadros de produção ficam sob um cabeçalho só; cada um tem colunas próprias.
   // As rotas continuam as mesmas, então links e notificações antigos seguem valendo.
+  { rota: '/app/tarefas', rotulo: 'Tarefas', icone: 'confirmar', grupo: 'Produção' },
   { rota: '/app/demandas', rotulo: 'Demandas', icone: 'demandas', grupo: 'Produção' },
   { rota: '/app/conteudo', rotulo: 'Conteúdo', icone: 'conteudo', grupo: 'Produção' },
-  { rota: '/app/anuncios', rotulo: 'Anúncios', icone: 'campanhas' },
+  { rota: '/app/anuncios', rotulo: 'Anúncios', icone: 'campanhas', grupo: 'Produção' },
   { rota: '/app/calendario', rotulo: 'Calendário', icone: 'calendario' },
   { rota: '/app/financeiro', rotulo: 'Financeiro', icone: 'financeiro', apenasLideranca: true },
   { rota: '/app/configuracoes', rotulo: 'Configurações', icone: 'configuracoes' },
@@ -34,15 +35,24 @@ export function itensVisiveis(cargo: Cargo | null | undefined): ItemNav[] {
 /** Por rota: quantas pendências e como lê-las, por exemplo "3 demandas atrasadas". */
 export type AvisosDoMenu = Record<string, { total: number; descricao: string }>
 
-/** Demandas com prazo vencido e campanhas com otimização vencida. Rota sem pendência não entra. */
+/** Demandas e tarefas com prazo vencido, cada uma no seu quadro, e campanhas com otimização vencida. Rota sem pendência não entra. */
 export function avisosDoMenu(
-  tarefas: Pick<Task, 'status' | 'data_entrega'>[],
+  tarefas: Pick<Task, 'status' | 'data_entrega' | 'quadro'>[],
   campanhas: Pick<Campaign, 'status' | 'proxima_otimizacao'>[],
   hoje: string,
 ): AvisosDoMenu {
-  const atrasadas = tarefas.filter((t) => tarefaAtrasada(t, hoje)).length
+  const atrasadasNo = (quadro: string) =>
+    tarefas.filter((t) => (t.quadro ?? 'demandas') === quadro && tarefaAtrasada(t, hoje)).length
+  const atrasadas = atrasadasNo('demandas')
+  const internas = atrasadasNo('tarefas')
   const pendentes = campanhas.filter((c) => otimizacaoPendente(c, hoje)).length
   const avisos: AvisosDoMenu = {}
+  if (internas > 0) {
+    avisos['/app/tarefas'] = {
+      total: internas,
+      descricao: plural(internas, 'tarefa atrasada', 'tarefas atrasadas'),
+    }
+  }
   if (atrasadas > 0) {
     avisos['/app/demandas'] = {
       total: atrasadas,

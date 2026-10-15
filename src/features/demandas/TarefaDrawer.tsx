@@ -38,6 +38,8 @@ interface TarefaDrawerProps {
   perfis: Profile[]
   /** Colunas do quadro, com os nomes que a equipe deu */
   colunas: readonly ColunaDoQuadro[]
+  /** A área (conteúdo, tráfego...) só existe nas demandas; tarefa interna não tem */
+  comArea?: boolean
   /** undefined quando o banco ainda não tem a tabela de anexos */
   anexos?: CardAttachment[]
   /** undefined quando o banco ainda não tem a tabela de subtarefas */
@@ -55,6 +57,7 @@ export function TarefaDrawer({
   clientes,
   perfis,
   colunas,
+  comArea = true,
   anexos,
   subtarefas,
   onSituacao,
@@ -80,7 +83,7 @@ export function TarefaDrawer({
 
   const hoje = hojeISO()
   const entregue = !tarefaAberta(tarefa)
-  const tipo = opcao(TIPOS_TAREFA, tarefa.tipo)
+  const tipo = tarefa.tipo ? opcao(TIPOS_TAREFA, tarefa.tipo) : undefined
   const prioridade = prioridades.opcao(tarefa.prioridade ?? 'media')
   const criador = perfis.find((p) => p.id === tarefa.created_by)
 
@@ -104,7 +107,7 @@ export function TarefaDrawer({
     <Drawer aberto titulo={tarefa.titulo} onFechar={onFechar}>
       <div className={styles.detalhe}>
         <div className={styles.resumo}>
-          <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>
+          {tipo && <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>}
           {esquema.prioridadeTarefa && prioridade && (
             <Pill tom={prioridade.tom} cor={prioridade.cor}>Prioridade {prioridade.rotulo}</Pill>
           )}
@@ -147,12 +150,14 @@ export function TarefaDrawer({
                 <ConfigurarOpcoes campo="status" opcoes={situacoes.opcoes} edicao={situacoes.edicao} />
               </div>
             )}
-            <Selecao
-              rotulo="Tipo"
-              opcoes={TIPOS_TAREFA}
-              value={tarefa.tipo}
-              onChange={(evento) => salvar({ tipo: evento.target.value as TaskTipo })}
-            />
+            {comArea && (
+              <Selecao
+                rotulo="Área"
+                opcoes={TIPOS_TAREFA}
+                value={tarefa.tipo ?? ''}
+                onChange={(evento) => salvar({ tipo: evento.target.value as TaskTipo })}
+              />
+            )}
             <Selecao
               rotulo="Cliente"
               vazio="Sem cliente"

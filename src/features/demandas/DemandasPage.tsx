@@ -12,7 +12,7 @@ import type { ColunaDaTabela } from '@/components/quadro/TabelaDeTarefas'
 import { CelulaCliente, CelulaPessoa, CelulaPrazo, CelulaTitulo } from '@/components/quadro/celulas'
 import { datasDoCiclo, venceuOPrazoVisivel } from '@/components/quadro/ciclo'
 import { progressoNoQuadro } from '@/components/quadro/colunas'
-import quadro from '@/components/quadro/pagina.module.css'
+import pagina from '@/components/quadro/pagina.module.css'
 import { useMover } from '@/components/quadro/useMover'
 import { useSituacao } from '@/components/quadro/useSituacao'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
@@ -31,19 +31,26 @@ import { useCriar } from '@/features/criar/CriacaoContext'
 import { hojeISO } from '@/lib/datas'
 import { situacaoDoPrazo, tarefaAberta, tarefaAtrasada } from '@/lib/regras'
 import { COLUNAS_TAREFA, PRIORIDADES, SITUACOES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
-import type { Task, TaskStatus, TaskTipo } from '@/types/database'
+import type { QuadroDeTarefa, Task, TaskStatus, TaskTipo } from '@/types/database'
 import { TarefaDrawer } from './TarefaDrawer'
 import { filtrarTarefas } from './tarefa'
 
-export function DemandasPage() {
+const TEXTOS: Record<QuadroDeTarefa, { item: string; itens: string; Item: string }> = {
+  demandas: { item: 'demanda', itens: 'demandas', Item: 'Demanda' },
+  tarefas: { item: 'tarefa', itens: 'tarefas', Item: 'Tarefa' },
+}
+
+/** Quadro de Demandas (pedidos dos clientes) ou de Tarefas (trabalho interno): mesma tela, outra parte da tabela. */
+export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa }) {
+  const texto = TEXTOS[quadro]
   const tarefas = useTarefas()
   const clientes = useClientes()
   const perfis = usePerfis()
   const criar = useCriar()
   const esquema = useColunasOpcionais()
   const comentarios = useComentarios()
-  const anexos = useAnexos('demandas')
-  const subtarefas = useSubtarefas('demandas')
+  const anexos = useAnexos(quadro)
+  const subtarefas = useSubtarefas(quadro)
   const situacoes = useOpcoes('situacao', SITUACOES)
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
   const [verArquivados, setVerArquivados] = useState(false)
@@ -52,8 +59,8 @@ export function DemandasPage() {
     titulo: tituloDoStatus,
     edicao,
     carregando: carregandoColunas,
-  } = useColunasDoQuadro('demandas', COLUNAS_TAREFA)
-  const [visao, setVisao] = useVisao('demandas')
+  } = useColunasDoQuadro(quadro, COLUNAS_TAREFA)
+  const [visao, setVisao] = useVisao(quadro)
   const [tipo, setTipo] = useState<TaskTipo | ''>('')
   const [responsaveis, setResponsaveis] = useState<string[]>([])
   // A demanda aberta fica no endereço, para a busca e as notificações levarem direto a ela
@@ -65,9 +72,9 @@ export function DemandasPage() {
     campo: 'status',
     sucesso: (_tarefa, destino) =>
       destino === 'arquivado'
-        ? 'Demanda arquivada.'
-        : `Demanda movida para ${tituloDoStatus(destino)}.`,
-    erro: 'Não foi possível mover a demanda.',
+        ? `${texto.Item} arquivada.`
+        : `${texto.Item} movida para ${tituloDoStatus(destino)}.`,
+    erro: `Não foi possível mover a ${texto.item}.`,
     // Chegar à última coluna conclui a demanda; sair dela reabre
     extras: (_tarefa, destino) =>
       esquema.cicloTarefa ? datasDoCiclo(destino, colunas[colunas.length - 1]?.id) : undefined,
@@ -78,8 +85,8 @@ export function DemandasPage() {
             acao: destino === 'concluido' ? 'demanda_concluida' : 'demanda_movida',
             descricao:
               destino === 'concluido'
-                ? `concluiu a demanda "${tarefa.titulo}"`
-                : `moveu a demanda "${tarefa.titulo}" para ${tituloDoStatus(destino)}`,
+                ? `concluiu a ${texto.item} "${tarefa.titulo}"`
+                : `moveu a ${texto.item} "${tarefa.titulo}" para ${tituloDoStatus(destino)}`,
             entidade: 'tasks',
             entidadeId: tarefa.id,
           },
@@ -94,7 +101,7 @@ export function DemandasPage() {
   })
 
   const consultas = juntarConsultas(tarefas, clientes, perfis)
-  const todas = tarefas.data ?? []
+  const todas = (tarefas.data ?? []).filter((t) => (t.quadro ?? 'demandas') === quadro)
   // Fora do quadro: o que foi arquivado e o que está concluído há mais de 7 dias
   const arquivada = (tarefa: Task) => tarefa.status === 'arquivado' || venceuOPrazoVisivel(tarefa)
   const arquivadas = todas.filter(arquivada)
@@ -114,7 +121,7 @@ export function DemandasPage() {
   const colunasDaLista: ColunaDaTabela<Task>[] = [
     {
       chave: 'titulo',
-      titulo: 'Demanda',
+      titulo: texto.Item,
       render: (t) => <CelulaTitulo>{t.titulo}</CelulaTitulo>,
       ordem: (t) => t.titulo,
     },
@@ -159,27 +166,40 @@ export function DemandasPage() {
     },
   ]
 
+  // Sem a coluna `quadro` no banco, uma tarefa interna não teria onde ser gravada
+  if (quadro === 'tarefas' && esquema.pronto && !esquema.quadroTarefas) {
+    return (
+      <EstadoVazio
+        ilustracao="quadro"
+        titulo="O quadro de Tarefas liga depois da migration 0004."
+        texto="Peça a quem administra o Supabase para rodar supabase/migrations/0004_etapa8.sql."
+      />
+    )
+  }
+
   return (
-    <div className={quadro.pagina}>
-      <div className={quadro.barra}>
-        <div className={quadro.filtros}>
-          <Selecao
-            rotulo="Tipo"
-            vazio="Todos os tipos"
-            opcoes={TIPOS_TAREFA}
-            value={tipo}
-            onChange={(evento) => setTipo(evento.target.value as TaskTipo | '')}
-          />
+    <div className={pagina.pagina}>
+      <div className={pagina.barra}>
+        <div className={pagina.filtros}>
+          {quadro === 'demandas' && (
+            <Selecao
+              rotulo="Área"
+              vazio="Todas as áreas"
+              opcoes={TIPOS_TAREFA}
+              value={tipo}
+              onChange={(evento) => setTipo(evento.target.value as TaskTipo | '')}
+            />
+          )}
           <FiltroDeColaboradores
             perfis={perfis.data ?? []}
             selecionados={responsaveis}
             onMudar={setResponsaveis}
           />
         </div>
-        <div className={quadro.acoes}>
+        <div className={pagina.acoes}>
           <button
             type="button"
-            className={quadro.arquivados}
+            className={pagina.arquivados}
             aria-pressed={verArquivados}
             onClick={() => setVerArquivados((atual) => !atual)}
           >
@@ -195,7 +215,7 @@ export function DemandasPage() {
       {consultas.erro ? (
         <EstadoErro onTentar={consultas.tentar} />
       ) : consultas.carregando ? (
-        <div className={quadro.carregando} aria-busy="true">
+        <div className={pagina.carregando} aria-busy="true">
           {COLUNAS_TAREFA.map((coluna) => (
             <Skeleton key={coluna.id} altura="220px" raio="var(--radius)" />
           ))}
@@ -205,18 +225,18 @@ export function DemandasPage() {
           {noQuadro.length === 0 ? (
             <EstadoVazio
               ilustracao="quadro"
-              titulo="Nenhuma demanda ainda."
+              titulo={`Nenhuma ${texto.item} ainda.`}
               texto="Use o botão Criar, no topo, ou o + de uma coluna para criar a primeira."
             />
           ) : (
             visiveis.length === 0 && (
-              <EstadoVazio ilustracao="busca" titulo="Nenhuma demanda com esses filtros." />
+              <EstadoVazio ilustracao="busca" titulo={`Nenhuma ${texto.item} com esses filtros.`} />
             )
           )}
           {visao === 'lista' ? (
             visiveis.length > 0 && (
               <TabelaDeTarefas
-                rotulo="Lista de demandas"
+                rotulo={`Lista de ${texto.itens}`}
                 itens={visiveis}
                 colunas={colunasDaLista}
                 tituloDe={(tarefa) => tarefa.titulo}
@@ -233,11 +253,13 @@ export function DemandasPage() {
               tituloDe={(tarefa) => tarefa.titulo}
               atrasado={(tarefa) => tarefaAtrasada(tarefa, hoje)}
               renderCard={(tarefa) => {
-                const tipoDaTarefa = opcao(TIPOS_TAREFA, tarefa.tipo)
+                const tipoDaTarefa = tarefa.tipo ? opcao(TIPOS_TAREFA, tarefa.tipo) : undefined
                 return (
                   <CardInfo
                     titulo={tarefa.titulo}
-                    etiqueta={<Pill tom={tipoDaTarefa.tom}>{tipoDaTarefa.rotulo}</Pill>}
+                    etiqueta={
+                      tipoDaTarefa && <Pill tom={tipoDaTarefa.tom}>{tipoDaTarefa.rotulo}</Pill>
+                    }
                     cliente={clienteDa(tarefa)}
                     responsavel={responsavelDa(tarefa)}
                     dataEntrega={tarefa.data_entrega}
@@ -259,7 +281,7 @@ export function DemandasPage() {
               }}
               renderRodape={(tarefa) => (
                 <RodapeDoCard
-                  quadro="demandas"
+                  quadro={quadro}
                   cardId={tarefa.id}
                   titulo={tarefa.titulo}
                   situacao={tarefa.situacao}
@@ -271,7 +293,9 @@ export function DemandasPage() {
               )}
               onMover={(tarefa, destino) => mover(tarefa, destino, todas)}
               onArquivar={(tarefa) => mover(tarefa, 'arquivado', todas)}
-              onCriar={(status) => criar({ categoria: 'demanda', status: status as TaskStatus })}
+              onCriar={(status) =>
+                criar({ categoria: quadro === 'tarefas' ? 'tarefa' : 'demanda', status: status as TaskStatus })
+              }
               onAbrir={abrir}
             />
           )}
@@ -308,6 +332,7 @@ export function DemandasPage() {
           clientes={clientes.data ?? []}
           perfis={perfis.data ?? []}
           colunas={colunas}
+          comArea={quadro === 'demandas'}
           anexos={anexos.disponivel ? (anexos.porCard.get(aberta.id) ?? []) : undefined}
           subtarefas={subtarefas.disponivel ? (subtarefas.porCard.get(aberta.id) ?? []) : undefined}
           onSituacao={(situacao) => mudarSituacao(aberta, situacao, todas)}

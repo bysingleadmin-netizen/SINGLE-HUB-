@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
-import type { CampaignFuncao, ContentEtapa, TaskStatus } from '@/types/database'
+import type { CampaignFuncao, CampaignTaskStatus, ContentEtapa, TaskStatus } from '@/types/database'
 
-export type Categoria = 'demanda' | 'conteudo' | 'campanha'
+export type Categoria = 'tarefa' | 'demanda' | 'conteudo' | 'campanha'
 
 /** O que a tela que pediu a criação já sabe; o resto a pessoa escolhe no formulário. */
 export interface PedidoDeCriacao {
@@ -12,6 +12,8 @@ export interface PedidoDeCriacao {
   etapa?: ContentEtapa
   campanhaId?: string
   funcao?: CampaignFuncao
+  /** Coluna do quadro de Anúncios em que a tarefa nasce */
+  statusDeAnuncio?: CampaignTaskStatus
 }
 
 export type AbrirCriacao = (pedido?: PedidoDeCriacao) => void

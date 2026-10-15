@@ -1,5 +1,5 @@
 import type { Task } from '@/types/database'
-import { filtrarTarefas, formNovaTarefa, validarTarefa } from './tarefa'
+import { filtrarTarefas, formNovaTarefa, rotaDaTarefa, validarTarefa } from './tarefa'
 
 describe('validarTarefa', () => {
   it('exige o título', () => {
@@ -53,5 +53,13 @@ describe('filtrarTarefas', () => {
     expect(
       filtrarTarefas(tarefas, { tipo: '', responsaveis: ['u1', 'u2'] }).map((t) => t.id),
     ).toEqual(['a', 'b'])
+  })
+})
+
+describe('rotaDaTarefa', () => {
+  it('abre no quadro de cada uma', () => {
+    expect(rotaDaTarefa({ id: 't1', quadro: 'tarefas' })).toBe('/app/tarefas?abrir=t1')
+    expect(rotaDaTarefa({ id: 't2', quadro: 'demandas' })).toBe('/app/demandas?abrir=t2')
+    expect(rotaDaTarefa({ id: 't3' })).toBe('/app/demandas?abrir=t3')
   })
 })

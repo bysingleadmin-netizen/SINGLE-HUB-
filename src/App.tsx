@@ -40,7 +40,9 @@ export default function App() {
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="clientes" element={<ClientesPage />} />
                   <Route path="clientes/:id" element={<ClientePage />} />
-                  <Route path="demandas" element={<DemandasPage />} />
+                  {/* O key zera o estado da página ao trocar de quadro */}
+                  <Route path="tarefas" element={<DemandasPage key="tarefas" quadro="tarefas" />} />
+                  <Route path="demandas" element={<DemandasPage key="demandas" />} />
                   <Route path="conteudo" element={<ConteudoPage />} />
                   {/* O menu se chama Anúncios. No código e no banco a entidade continua
                       "campanha" (tabelas campaigns e campaign_tasks): renomear tabela quebraria

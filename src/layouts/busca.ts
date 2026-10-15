@@ -1,3 +1,4 @@
+import { rotaDaTarefa } from '@/features/demandas/tarefa'
 import { semAcentos } from '@/lib/texto'
 import type { Campaign, Client, ContentCard, Task } from '@/types/database'
 
@@ -36,7 +37,7 @@ export function buscar(termo: string, acervo: Acervo): Resultado[] {
         tipo: 'demanda',
         id: t.id,
         nome: t.titulo,
-        rota: `/app/demandas?abrir=${t.id}`,
+        rota: rotaDaTarefa(t),
       })),
     ...acervo.cards
       .filter((c) => c.etapa !== 'arquivado' && casa(c.titulo))

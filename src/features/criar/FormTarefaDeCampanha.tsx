@@ -13,11 +13,13 @@ import { useCampanhas, useClientes, usePerfis } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
 import { opcoesDePessoas } from '@/lib/pessoas'
 import { FUNCOES_CAMPANHA } from '@/lib/rotulos'
-import type { CampaignFuncao, CampaignTask } from '@/types/database'
+import type { CampaignFuncao, CampaignTask, CampaignTaskStatus } from '@/types/database'
 
 interface FormTarefaDeCampanhaProps {
   campanhaInicial: string
   funcaoInicial: CampaignFuncao
+  /** Coluna do quadro de Anúncios em que a tarefa nasce */
+  statusInicial: CampaignTaskStatus
   onFechar: () => void
 }
 
@@ -25,6 +27,7 @@ interface FormTarefaDeCampanhaProps {
 export function FormTarefaDeCampanha({
   campanhaInicial,
   funcaoInicial,
+  statusInicial,
   onFechar,
 }: FormTarefaDeCampanhaProps) {
   const { perfil } = useAuth()
@@ -58,7 +61,7 @@ export function FormTarefaDeCampanha({
           campaign_id: campanhaId,
           funcao,
           titulo: limpo,
-          status: 'pendente',
+          status: statusInicial,
           responsavel_id: responsavelId || null,
         },
       },

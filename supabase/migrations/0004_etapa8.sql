@@ -46,4 +46,36 @@ alter table public.card_options drop constraint if exists card_options_cor_check
 alter table public.card_options
   add constraint card_options_cor_check check (cor is null or cor ~ '^#[0-9a-fA-F]{6}$');
 
+-- Tarefas internas usam a mesma tabela das demandas, marcadas pelo quadro. Tarefa interna
+-- não tem área (conteúdo, tráfego...), então `tipo` deixa de ser obrigatório.
+alter table public.tasks add column if not exists quadro text not null default 'demandas';
+alter table public.tasks drop constraint if exists tasks_quadro_check;
+alter table public.tasks add constraint tasks_quadro_check check (quadro in ('demandas', 'tarefas'));
+alter table public.tasks alter column tipo drop not null;
+create index if not exists tasks_quadro_idx on public.tasks (quadro);
+
+-- Colunas, anexos e subtarefas passam a aceitar os quadros novos
+do $$
+declare
+  restricao record;
+begin
+  for restricao in
+    select conrelid::regclass as tabela, conname
+    from pg_constraint
+    where contype = 'c'
+      and conrelid in ('public.board_columns'::regclass, 'public.card_attachments'::regclass,
+                       'public.card_subtarefas'::regclass)
+      and pg_get_constraintdef(oid) ilike '%quadro%'
+  loop
+    execute format('alter table %s drop constraint %I', restricao.tabela, restricao.conname);
+  end loop;
+end $$;
+
+alter table public.board_columns add constraint board_columns_quadro_check
+  check (quadro in ('demandas', 'conteudo', 'tarefas', 'anuncios'));
+alter table public.card_attachments add constraint card_attachments_quadro_check
+  check (quadro in ('demandas', 'conteudo', 'tarefas', 'anuncios'));
+alter table public.card_subtarefas add constraint card_subtarefas_quadro_check
+  check (quadro in ('demandas', 'conteudo', 'tarefas', 'anuncios'));
+
 commit;

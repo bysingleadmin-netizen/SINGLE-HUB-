@@ -102,7 +102,7 @@ describe('DemandasPage', () => {
     expect(modal.getByLabelText('Status')).toHaveValue('em_andamento')
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Relatório mensal' } })
     fireEvent.change(modal.getByLabelText('Cliente'), { target: { value: 'c1' } })
-    fireEvent.change(modal.getByLabelText('Tipo'), { target: { value: 'estrategia' } })
+    fireEvent.change(modal.getByLabelText('Área'), { target: { value: 'estrategia' } })
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
     expect(await screen.findByText('Demanda criada.')).toBeInTheDocument()
@@ -179,7 +179,7 @@ describe('DemandasPage', () => {
     renderizar(<DemandasPage />)
     await screen.findByText('Roteiro de reels')
 
-    fireEvent.change(screen.getByLabelText('Tipo'), { target: { value: 'trafego' } })
+    fireEvent.change(screen.getByLabelText('Área'), { target: { value: 'trafego' } })
     expect(screen.queryByText('Roteiro de reels')).not.toBeInTheDocument()
     expect(screen.getByText('Subir campanha')).toBeInTheDocument()
 
@@ -340,7 +340,7 @@ describe('DemandasPage', () => {
 
   it('seleções e data salvam na hora', async () => {
     const painel = await abrirCard()
-    fireEvent.change(painel.getByLabelText('Tipo'), { target: { value: 'audiovisual' } })
+    fireEvent.change(painel.getByLabelText('Área'), { target: { value: 'audiovisual' } })
     await waitFor(() => expect(bancoFalso().tabelas.tasks[0].tipo).toBe('audiovisual'))
     fireEvent.change(painel.getByLabelText('Responsável'), { target: { value: '' } })
     await waitFor(() => expect(bancoFalso().tabelas.tasks[0].responsavel_id).toBeNull())
@@ -365,9 +365,9 @@ describe('DemandasPage', () => {
   it('desfaz e avisa quando o banco recusa uma edição', async () => {
     const painel = await abrirCard()
     bancoFalso().erroEscrita = { message: 'negado' }
-    fireEvent.change(painel.getByLabelText('Tipo'), { target: { value: 'audiovisual' } })
+    fireEvent.change(painel.getByLabelText('Área'), { target: { value: 'audiovisual' } })
     expect(await screen.findByText('Não foi possível salvar a demanda.')).toBeInTheDocument()
-    await waitFor(() => expect(painel.getByLabelText('Tipo')).toHaveValue('conteudo'))
+    await waitFor(() => expect(painel.getByLabelText('Área')).toHaveValue('conteudo'))
   })
 
   it('abre direto a demanda pedida pelo endereço', async () => {
@@ -402,6 +402,50 @@ describe('DemandasPage', () => {
     bancoFalso().erroLeitura = null
     fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
     expect(await screen.findByText('Nenhuma demanda ainda.')).toBeInTheDocument()
+  })
+})
+
+describe('quadro de Tarefas', () => {
+  function popularQuadros() {
+    bancoFalso().reiniciar({
+      profiles: [perfilDeTeste()],
+      clients: [],
+      tasks: [
+        { id: 't1', titulo: 'Demanda do cliente', status: 'a_fazer', tipo: 'conteudo', quadro: 'demandas', posicao: 1, created_at: '2026-01-01' },
+        { id: 't2', titulo: 'Organizar o drive', status: 'a_fazer', tipo: null, quadro: 'tarefas', posicao: 1, created_at: '2026-01-02' },
+      ],
+    })
+  }
+
+  it('Tarefas mostra só as tarefas internas, sem o filtro de área', async () => {
+    popularQuadros()
+    renderizar(<DemandasPage quadro="tarefas" />)
+    expect(await screen.findByRole('button', { name: 'Abrir Organizar o drive' })).toBeInTheDocument()
+    expect(screen.queryByText('Demanda do cliente')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Área')).not.toBeInTheDocument()
+  })
+
+  it('Demandas não mostra as tarefas internas', async () => {
+    popularQuadros()
+    renderizar(<DemandasPage />)
+    expect(await screen.findByRole('button', { name: 'Abrir Demanda do cliente' })).toBeInTheDocument()
+    expect(screen.queryByText('Organizar o drive')).not.toBeInTheDocument()
+  })
+
+  it('o painel de uma tarefa interna não tem área', async () => {
+    popularQuadros()
+    renderizar(<DemandasPage quadro="tarefas" />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir Organizar o drive' }))
+    const painel = within(await screen.findByRole('dialog', { name: 'Organizar o drive' }))
+    expect(painel.getByLabelText('Título')).toHaveValue('Organizar o drive')
+    expect(painel.queryByLabelText('Área')).not.toBeInTheDocument()
+  })
+
+  it('sem a coluna quadro no banco, Tarefas avisa que falta a migration', async () => {
+    popularQuadros()
+    bancoFalso().colunasAusentes = ['tasks.quadro']
+    renderizar(<DemandasPage quadro="tarefas" />)
+    expect(await screen.findByText('O quadro de Tarefas liga depois da migration 0004.')).toBeInTheDocument()
   })
 })
 

@@ -50,3 +50,19 @@ begin
   exception when check_violation then null;
   end;
 end $$;
+
+-- 3b. Quadro de Tarefas
+do $$
+begin
+  insert into public.tasks (titulo, quadro) values ('Tarefa interna sem tipo', 'tarefas');
+  insert into public.board_columns (quadro, chave, titulo) values ('tarefas', 'a_fazer', 'A Fazer');
+  insert into public.board_columns (quadro, chave, titulo) values ('anuncios', 'pendente', 'Pendente');
+  if (select quadro from public.tasks where titulo = 'Demanda antiga') is distinct from 'demandas' then
+    raise exception 'demanda antiga não ficou no quadro demandas';
+  end if;
+  begin
+    insert into public.tasks (titulo, quadro, tipo) values ('x', 'outro', 'conteudo');
+    raise exception 'quadro aceitou valor inválido';
+  exception when check_violation then null;
+  end;
+end $$;

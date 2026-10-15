@@ -5,6 +5,7 @@ describe('itensVisiveis', () => {
     expect(itensVisiveis('Designer').map((i) => i.rotulo)).toEqual([
       'Dashboard',
       'Clientes',
+      'Tarefas',
       'Demandas',
       'Conteúdo',
       'Anúncios',
@@ -17,6 +18,7 @@ describe('itensVisiveis', () => {
     expect(itensVisiveis('CEO').map((i) => i.rotulo)).toEqual([
       'Dashboard',
       'Clientes',
+      'Tarefas',
       'Demandas',
       'Conteúdo',
       'Anúncios',
@@ -51,6 +53,22 @@ describe('avisosDoMenu', () => {
     expect(avisos).toEqual({
       '/app/demandas': { total: 2, descricao: '2 demandas atrasadas' },
       '/app/anuncios': { total: 1, descricao: '1 otimização pendente' },
+    })
+  })
+
+  it('tarefa interna atrasada avisa em Tarefas, não em Demandas', () => {
+    const avisos = avisosDoMenu(
+      [
+        { status: 'a_fazer', data_entrega: '2026-10-08', quadro: 'tarefas' },
+        { status: 'a_fazer', data_entrega: '2026-10-07', quadro: 'tarefas' },
+        { status: 'a_fazer', data_entrega: '2026-10-08', quadro: 'demandas' },
+      ],
+      [],
+      HOJE,
+    )
+    expect(avisos).toEqual({
+      '/app/tarefas': { total: 2, descricao: '2 tarefas atrasadas' },
+      '/app/demandas': { total: 1, descricao: '1 demanda atrasada' },
     })
   })
 

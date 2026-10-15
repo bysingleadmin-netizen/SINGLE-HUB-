@@ -7,6 +7,7 @@ import { tarefaAberta } from '@/lib/regras'
 import { supabase } from '@/lib/supabase'
 import type { Notificacao, TipoNotificacao, Task } from '@/types/database'
 import { useTarefas } from './tabelas'
+import { rotaDaTarefa } from '@/features/demandas/tarefa'
 
 const LIMITE = 20
 
@@ -87,8 +88,8 @@ export function tarefasComPrazoAmanha(tarefas: Task[], userId: string, hoje: str
 }
 
 /** A data faz parte do link: é ela que impede avisar duas vezes sobre o mesmo prazo. */
-export function linkDoPrazo(tarefa: Pick<Task, 'id' | 'data_entrega'>): string {
-  return `/app/demandas?abrir=${tarefa.id}&prazo=${tarefa.data_entrega}`
+export function linkDoPrazo(tarefa: Pick<Task, 'id' | 'data_entrega' | 'quadro'>): string {
+  return `${rotaDaTarefa(tarefa)}&prazo=${tarefa.data_entrega}`
 }
 
 /**

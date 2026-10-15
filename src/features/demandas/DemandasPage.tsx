@@ -332,7 +332,7 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
           clientes={clientes.data ?? []}
           perfis={perfis.data ?? []}
           colunas={colunas}
-          comArea={quadro === 'demandas'}
+          quadro={quadro}
           anexos={anexos.disponivel ? (anexos.porCard.get(aberta.id) ?? []) : undefined}
           subtarefas={subtarefas.disponivel ? (subtarefas.porCard.get(aberta.id) ?? []) : undefined}
           onSituacao={(situacao) => mudarSituacao(aberta, situacao, todas)}

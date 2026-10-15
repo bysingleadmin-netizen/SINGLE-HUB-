@@ -441,6 +441,26 @@ describe('quadro de Tarefas', () => {
     expect(painel.queryByLabelText('Área')).not.toBeInTheDocument()
   })
 
+  it('subtarefa e anexo criados no painel de uma tarefa interna ficam no quadro de Tarefas', async () => {
+    popularQuadros()
+    bancoFalso().tabelas.card_subtarefas = []
+    bancoFalso().tabelas.card_attachments = []
+    renderizar(<DemandasPage quadro="tarefas" />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir Organizar o drive' }))
+    const painel = within(await screen.findByRole('dialog', { name: 'Organizar o drive' }))
+
+    fireEvent.change(await painel.findByLabelText('Nova subtarefa'), { target: { value: 'Separar pastas' } })
+    fireEvent.click(painel.getByRole('button', { name: 'Adicionar' }))
+    expect(await painel.findByText('Separar pastas')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.card_subtarefas[0]).toMatchObject({ quadro: 'tarefas', card_id: 't2' })
+
+    fireEvent.change(painel.getByLabelText('Link'), { target: { value: 'drive.google.com/pasta' } })
+    fireEvent.click(painel.getByRole('button', { name: 'Anexar link' }))
+    await waitFor(() =>
+      expect(bancoFalso().tabelas.card_attachments[0]).toMatchObject({ quadro: 'tarefas', card_id: 't2' }),
+    )
+  })
+
   it('sem a coluna quadro no banco, Tarefas avisa que falta a migration', async () => {
     popularQuadros()
     bancoFalso().colunasAusentes = ['tasks.quadro']

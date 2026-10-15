@@ -25,6 +25,7 @@ import type {
   CardSubtarefa,
   Client,
   Profile,
+  QuadroDeTarefa,
   SituacaoDoCard,
   Task,
   TaskStatus,
@@ -38,8 +39,9 @@ interface TarefaDrawerProps {
   perfis: Profile[]
   /** Colunas do quadro, com os nomes que a equipe deu */
   colunas: readonly ColunaDoQuadro[]
-  /** A área (conteúdo, tráfego...) só existe nas demandas; tarefa interna não tem */
-  comArea?: boolean
+  /** Quadro do card: subtarefas e anexos são gravados nele. A área (conteúdo, tráfego...)
+   * só existe nas demandas; tarefa interna não tem */
+  quadro?: QuadroDeTarefa
   /** undefined quando o banco ainda não tem a tabela de anexos */
   anexos?: CardAttachment[]
   /** undefined quando o banco ainda não tem a tabela de subtarefas */
@@ -57,7 +59,7 @@ export function TarefaDrawer({
   clientes,
   perfis,
   colunas,
-  comArea = true,
+  quadro = 'demandas',
   anexos,
   subtarefas,
   onSituacao,
@@ -150,7 +152,7 @@ export function TarefaDrawer({
                 <ConfigurarOpcoes campo="status" opcoes={situacoes.opcoes} edicao={situacoes.edicao} />
               </div>
             )}
-            {comArea && (
+            {quadro === 'demandas' && (
               <Selecao
                 rotulo="Área"
                 opcoes={TIPOS_TAREFA}
@@ -209,14 +211,14 @@ export function TarefaDrawer({
         {subtarefas && (
           <section className={styles.bloco} aria-label="Subtarefas">
             <h3 className={styles.blocoTitulo}>Subtarefas</h3>
-            <Subtarefas quadro="demandas" cardId={tarefa.id} subtarefas={subtarefas} />
+            <Subtarefas quadro={quadro} cardId={tarefa.id} subtarefas={subtarefas} />
           </section>
         )}
 
         {anexos && (
           <section className={styles.bloco} aria-label="Anexos">
             <h3 className={styles.blocoTitulo}>Anexos</h3>
-            <Anexos quadro="demandas" cardId={tarefa.id} anexos={anexos} />
+            <Anexos quadro={quadro} cardId={tarefa.id} anexos={anexos} />
           </section>
         )}
 

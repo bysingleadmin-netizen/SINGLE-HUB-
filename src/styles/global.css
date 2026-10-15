@@ -242,6 +242,25 @@ option {
   color: var(--text);
 }
 
+/* Celular: campo com menos de 16px faz o iOS dar zoom ao focar */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='color']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Telas estreitas: título longo (nome de cliente, de campanha) quebra em vez de vazar */
+@media (max-width: 420px) {
+  h1,
+  h2,
+  h3 {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -103,7 +103,7 @@ export function CrmPage() {
             />
           </Painel>
           <Painel titulo="Segmentos">
-            <GraficoStatus titulo="Leads por segmento" fatias={segmentos} />
+            <GraficoStatus titulo="Leads por segmento" fatias={segmentos} unidade={['lead', 'leads']} />
           </Painel>
         </div>
       )}
@@ -118,9 +118,11 @@ export function CrmPage() {
             {lead.empresa && <span className={styles.empresa}>{lead.empresa}</span>}
             {lead.origem && <span className={styles.origem}>{lead.origem}</span>}
             {esquema.perfilDoLead && lead.temperatura && lead.temperatura !== 'frio' && (
-              <Pill tom={TEMPERATURAS.find((t) => t.valor === lead.temperatura)?.tom ?? 'cinza'}>
-                {TEMPERATURAS.find((t) => t.valor === lead.temperatura)?.rotulo}
-              </Pill>
+              <span className={styles.temperatura}>
+                <Pill tom={TEMPERATURAS.find((t) => t.valor === lead.temperatura)?.tom ?? 'cinza'}>
+                  {TEMPERATURAS.find((t) => t.valor === lead.temperatura)?.rotulo}
+                </Pill>
+              </span>
             )}
             <span className={styles.tempo}>{tempoNaEtapa(lead.etapa_desde)}</span>
           </div>

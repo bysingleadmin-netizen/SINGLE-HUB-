@@ -50,8 +50,10 @@ interface KpiCardProps {
 
 function Valor({ valor, formatar }: { valor: number; formatar?: (valor: number) => string }) {
   const atual = useContagem(valor)
+  // Pelo valor final, para o tamanho não mudar enquanto o número conta
+  const longo = (formatar ? formatar(valor) : String(valor)).length > 9
   return (
-    <strong className={styles.kpiValor}>
+    <strong className={styles.kpiValor} data-longo={longo || undefined}>
       {formatar ? formatar(atual) : String(Math.round(atual))}
     </strong>
   )

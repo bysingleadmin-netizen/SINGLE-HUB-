@@ -14,7 +14,16 @@ const VAO = 0.6
  * Rosca com os cards de um quadro por coluna. Passar o mouse numa fatia ou na legenda
  * mostra no centro a contagem daquela coluna; fora disso, o centro mostra o total.
  */
-export function GraficoStatus({ titulo, fatias }: { titulo: string; fatias: FatiaDeStatus[] }) {
+export function GraficoStatus({
+  titulo,
+  fatias,
+  unidade = ['card', 'cards'],
+}: {
+  titulo: string
+  fatias: FatiaDeStatus[]
+  /** O que o total do centro conta, no singular e no plural */
+  unidade?: [string, string]
+}) {
   const [ativo, setAtivo] = useState<string | null>(null)
   const arcos = arcosDaRosca(fatias)
   const total = fatias.reduce((soma, fatia) => soma + fatia.total, 0)
@@ -46,7 +55,7 @@ export function GraficoStatus({ titulo, fatias }: { titulo: string; fatias: Fati
         </svg>
         <div className={styles.roscaCentro} aria-hidden="true">
           <strong>{destacado ? destacado.total : total}</strong>
-          <span>{destacado ? destacado.rotulo : total === 1 ? 'card' : 'cards'}</span>
+          <span>{destacado ? destacado.rotulo : total === 1 ? unidade[0] : unidade[1]}</span>
         </div>
       </div>
 

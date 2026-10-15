@@ -485,6 +485,8 @@ a.linhaTitulo:hover {
 
 /* KPI */
 .kpi {
+  /* O tamanho do número acompanha a largura do card (.kpiValor usa cqi) */
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -509,7 +511,12 @@ a.linhaTitulo:hover {
   letter-spacing: -0.02em;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+}
+
+/* Valor longo (dinheiro) diminui com o card em vez de quebrar no meio ("R$ 114.000,/00") */
+.kpiValor[data-longo] {
+  font-size: clamp(20px, 11cqi, 32px);
 }
 
 /* Estados de erro e de lista vazia */

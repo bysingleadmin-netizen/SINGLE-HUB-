@@ -52,7 +52,10 @@ function Vencimentos({ itens, nomeDe, atrasados = false }: VencimentosProps) {
   return (
     <ul className={`${ui.lista} stagger`}>
       {itens.map(({ receita, dias }) => (
-        <li key={receita.id} className={`${ui.linha} ${receita.cliente_id ? ui.linhaClicavel : ''}`}>
+        <li
+          key={receita.id}
+          className={`${ui.linha} ${styles.vencimento} ${receita.cliente_id ? ui.linhaClicavel : ''}`}
+        >
           <div className={ui.linhaTexto}>
             {receita.cliente_id ? (
               <Link to={`/app/clientes/${receita.cliente_id}`} className={ui.linhaTitulo}>

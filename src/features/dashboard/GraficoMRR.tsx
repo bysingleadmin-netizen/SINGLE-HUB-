@@ -70,6 +70,10 @@ export function GraficoMRR({
   const descricao = serie.map((p) => `${p.rotulo} ${formatar(p.valor)}`).join(', ')
   const mudanca = variacao(serie)
   const destacado = ativo != null ? pontos[ativo] : undefined
+  // Pontos muito juntos (sete dias no celular): o rótulo do eixo aparece em um sim, outro não
+  const juntos = pontos.length > 2 && pontos[1].x - pontos[0].x < 52
+  // Contado a partir do último, que sempre tem rótulo (é o de hoje)
+  const comRotulo = (i: number) => !juntos || (pontos.length - 1 - i) % 2 === 0
 
   function aoMover(evento: MouseEvent<HTMLDivElement>) {
     const { left } = evento.currentTarget.getBoundingClientRect()
@@ -136,14 +140,16 @@ export function GraficoMRR({
               >
                 {compacto.format(ponto.valor)}
               </text>
-              <text
-                className={styles.graficoRotulo}
-                x={ponto.x}
-                y={altura - 6}
-                textAnchor={ancora(i, pontos.length)}
-              >
-                {ponto.rotulo}
-              </text>
+              {comRotulo(i) && (
+                <text
+                  className={styles.graficoRotulo}
+                  x={ponto.x}
+                  y={altura - 6}
+                  textAnchor={ancora(i, pontos.length)}
+                >
+                  {ponto.rotulo}
+                </text>
+              )}
             </g>
           ))}
         </svg>

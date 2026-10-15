@@ -403,8 +403,15 @@
 }
 
 @media (max-width: 767px) {
+  /* Celular: as colunas ficam lado a lado e o quadro rola na horizontal, parando em cada uma */
   .quadro {
     grid-auto-columns: minmax(240px, 82vw);
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+  }
+
+  .coluna {
+    scroll-snap-align: start;
   }
 
   /* Alvo de toque: no dedo, 30px é pouco */

@@ -400,3 +400,14 @@ li:hover > .acoesDaLinha,
     opacity: 1;
   }
 }
+
+/* Celular: o texto do vencimento ocupa a linha toda e o valor e o selo descem para baixo dele */
+@media (max-width: 520px) {
+  .vencimento {
+    flex-wrap: wrap;
+  }
+
+  .vencimento > :first-child {
+    flex-basis: 100%;
+  }
+}

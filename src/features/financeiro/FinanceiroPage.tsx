@@ -1,6 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { Abas } from '@/components/ui/Abas'
-import { CobrancasAsaas } from './CobrancasAsaas'
 import { Dre } from './Dre'
 import { Lancamentos } from './Lancamentos'
 import { MetaETrafego } from './MetaETrafego'
@@ -12,7 +11,6 @@ const ABAS = [
   { id: 'resumo', rotulo: 'Visão Geral' },
   { id: 'pagamentos', rotulo: 'Pagamentos' },
   { id: 'despesas', rotulo: 'Despesas' },
-  { id: 'asaas', rotulo: 'Cobranças Asaas' },
   { id: 'relatorios', rotulo: 'Relatórios' },
 ] as const
 
@@ -36,7 +34,6 @@ export function FinanceiroPage() {
         {aba === 'resumo' && <Resumo />}
         {aba === 'pagamentos' && <PagamentosDosClientes />}
         {aba === 'despesas' && <Lancamentos />}
-        {aba === 'asaas' && <CobrancasAsaas />}
         {/* Relatórios: o demonstrativo do mês e, abaixo, a meta e as métricas de tráfego */}
         {aba === 'relatorios' && (
           <>

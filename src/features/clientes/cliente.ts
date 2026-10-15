@@ -15,6 +15,8 @@ export interface FormCliente {
   dia_vencimento: string
   /** '3', '6', '12', '15' ou vazio */
   contrato_meses: string
+  /** CNPJ ou CPF, como digitado */
+  cnpj: string
   instagram: string
   link_conta_anuncios: string
   contato_nome: string
@@ -33,6 +35,7 @@ export function formVazio(): FormCliente {
     data_inicio_contrato: '',
     dia_vencimento: '',
     contrato_meses: '',
+    cnpj: '',
     instagram: '',
     link_conta_anuncios: '',
     contato_nome: '',
@@ -54,6 +57,7 @@ export function formDoCliente(cliente: Client): FormCliente {
     data_inicio_contrato: cliente.data_inicio_contrato ?? '',
     dia_vencimento: cliente.dia_vencimento ? String(cliente.dia_vencimento) : '',
     contrato_meses: cliente.contrato_meses ? String(cliente.contrato_meses) : '',
+    cnpj: cliente.cnpj ?? '',
     instagram: cliente.instagram ?? '',
     link_conta_anuncios: cliente.link_conta_anuncios ?? '',
     contato_nome: cliente.contato_nome ?? '',
@@ -64,13 +68,17 @@ export function formDoCliente(cliente: Client): FormCliente {
 }
 
 /**
- * `comVencimento` diz se o banco já tem a coluna `dia_vencimento` (migration 0002), e
- * `comContrato`, a `contrato_meses` (migration 0004).
+ * `comVencimento` diz se o banco já tem a coluna `dia_vencimento` (migration 0002);
+ * `comContrato`, a `contrato_meses` (migration 0004); e `comCnpj`, a `cnpj` (migration 0007).
  * Sem ela, o campo nem entra nos valores, para o cadastro continuar salvando.
  */
 export function validarCliente(
   form: FormCliente,
-  { comVencimento = false, comContrato = false }: { comVencimento?: boolean; comContrato?: boolean } = {},
+  {
+    comVencimento = false,
+    comContrato = false,
+    comCnpj = false,
+  }: { comVencimento?: boolean; comContrato?: boolean; comCnpj?: boolean } = {},
 ): Validacao<ValoresCliente, FormCliente> {
   const erros: Erros<FormCliente> = {}
   const nome = form.nome.trim()
@@ -87,6 +95,11 @@ export function validarCliente(
   if (comVencimento && dia != null && !(Number.isInteger(dia) && dia >= 1 && dia <= 31)) {
     erros.dia_vencimento = 'Informe um dia entre 1 e 31.'
   }
+  const cnpj = textoOuNull(form.cnpj)
+  const digitos = (cnpj ?? '').replace(/\D/g, '')
+  if (comCnpj && cnpj && digitos.length !== 14 && digitos.length !== 11) {
+    erros.cnpj = 'Informe um CNPJ com 14 dígitos ou um CPF com 11.'
+  }
   if (Object.keys(erros).length > 0 || mrr == null || link === undefined) return { erros }
 
   return {
@@ -99,6 +112,7 @@ export function validarCliente(
       ...(comContrato
         ? { contrato_meses: form.contrato_meses === '' ? null : Number(form.contrato_meses) }
         : {}),
+      ...(comCnpj ? { cnpj } : {}),
       instagram: textoOuNull(form.instagram),
       link_conta_anuncios: link,
       contato_nome: textoOuNull(form.contato_nome),

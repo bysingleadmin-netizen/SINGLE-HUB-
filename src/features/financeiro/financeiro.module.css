@@ -91,6 +91,26 @@
   color: var(--text);
 }
 
+/* Ações no topo do painel de Pagamentos: as visões e o botão de sincronizar */
+.acoesDoPainel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Nome do cliente da cobrança do Asaas, com o ícone de vínculo ao lado */
+.nomeAsaas {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vinculado {
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
 /* Formulários em linha: os campos dividem a largura e o botão fica alinhado à base */
 .campos {
   display: grid;

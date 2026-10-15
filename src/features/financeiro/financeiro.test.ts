@@ -1,41 +1,18 @@
-import type { Client, ClientPayment, Expense } from '@/types/database'
+import type { Expense } from '@/types/database'
 import {
   custoPorLead,
   datasDaRecorrencia,
   despesaDoMes,
   dreDoMes,
-  faturamentoPorMes,
   filtrarDespesas,
   formatarPercentual,
-  inadimplencia,
-  pagamentosEmAtraso,
-  pendenteNoMes,
   progressoDaMeta,
-  progressoPorCliente,
-  proximosVencimentos,
-  receitaDoMes,
   taxaDeConversao,
   totalDasDespesas,
   validarDespesa,
   validarMeses,
   validarMetricas,
 } from './financeiro'
-
-const HOJE = '2026-10-09'
-
-function pagamento(parcial: Partial<ClientPayment>): ClientPayment {
-  return {
-    id: 'p',
-    client_id: 'c1',
-    mes_referencia: '2026-10-01',
-    valor: 1000,
-    data_vencimento: '2026-10-05',
-    data_pagamento: '2026-10-05',
-    status: 'pago',
-    created_at: '2026-10-01T00:00:00Z',
-    ...parcial,
-  }
-}
 
 function despesa(parcial: Partial<Expense>): Expense {
   return {
@@ -51,125 +28,28 @@ function despesa(parcial: Partial<Expense>): Expense {
   }
 }
 
-function cliente(parcial: Partial<Client>): Client {
-  return {
-    id: 'c1',
-    nome: 'Clínica Aurora',
-    logo_url: null,
-    status: 'ativo',
-    mrr: 1500,
-    data_inicio_contrato: '2026-08-05',
-    instagram: null,
-    link_conta_anuncios: null,
-    contato_nome: null,
-    contato_email: null,
-    contato_telefone: null,
-    observacoes: null,
-    created_at: '2026-08-05T00:00:00Z',
-    ...parcial,
-  }
-}
-
-describe('receita, despesa e DRE do mês', () => {
-  const pagamentos = [
-    pagamento({ valor: 1000, data_pagamento: '2026-10-01' }),
-    pagamento({ valor: 500.5, data_pagamento: '2026-10-31' }),
-    // Referente a outubro, mas recebido em novembro: conta em novembro
-    pagamento({ valor: 300, data_pagamento: '2026-11-02' }),
-    pagamento({ valor: 900, status: 'pendente', data_pagamento: null }),
-  ]
+describe('despesa e DRE do mês', () => {
   const despesas = [
     despesa({ valor: 200, data: '2026-10-01' }),
     despesa({ valor: 50.25, data: '2026-10-31' }),
     despesa({ valor: 999, data: '2026-09-30' }),
   ]
 
-  it('soma só o que foi pago, pela data do pagamento', () => {
-    expect(receitaDoMes(pagamentos, '2026-10')).toBe(1500.5)
-    expect(receitaDoMes(pagamentos, '2026-11')).toBe(300)
-    expect(receitaDoMes(pagamentos, '2026-12')).toBe(0)
-  })
-
   it('soma as despesas pela data', () => {
     expect(despesaDoMes(despesas, '2026-10')).toBe(250.25)
   })
 
   it('o resultado é a receita menos as despesas, e pode ser negativo', () => {
-    expect(dreDoMes(pagamentos, despesas, '2026-10')).toEqual({
+    expect(dreDoMes(1500.5, despesas, '2026-10')).toEqual({
       mes: '2026-10',
       receita: 1500.5,
       despesas: 250.25,
       resultado: 1250.25,
     })
-    expect(dreDoMes(pagamentos, despesas, '2026-09').resultado).toBe(-999)
-  })
-
-  it('aceita valores que o banco devolve como texto', () => {
-    const comoTexto = [pagamento({ valor: '1000.50' as unknown as number })]
-    expect(receitaDoMes(comoTexto, '2026-10')).toBe(1000.5)
-  })
-
-  it('monta a série dos últimos seis meses', () => {
-    const serie = faturamentoPorMes(pagamentos, HOJE)
-    expect(serie.map((p) => p.mes)).toEqual([
-      '2026-05',
-      '2026-06',
-      '2026-07',
-      '2026-08',
-      '2026-09',
-      '2026-10',
-    ])
-    expect(serie.map((p) => p.valor)).toEqual([0, 0, 0, 0, 0, 1500.5])
+    expect(dreDoMes(0, despesas, '2026-09').resultado).toBe(-999)
   })
 })
 
-describe('cobranças em aberto', () => {
-  const clientes = [cliente({}), cliente({ id: 'c2', nome: 'Padaria Sol' })]
-  const cobranca = (parcial: Partial<ClientPayment>) =>
-    pagamento({ status: 'pendente', data_pagamento: null, ...parcial })
-  const pagamentos = [
-    cobranca({ id: 'a', mes_referencia: '2026-09-01', data_vencimento: '2026-09-05', valor: 1500 }),
-    cobranca({ id: 'b', mes_referencia: '2026-10-01', data_vencimento: '2026-10-08', valor: 1500 }),
-    cobranca({ id: 'c', client_id: 'c2', mes_referencia: '2026-10-01', data_vencimento: '2026-10-09', valor: 800 }),
-    cobranca({ id: 'd', client_id: 'c2', mes_referencia: '2026-11-01', data_vencimento: '2026-10-16', valor: 800 }),
-    cobranca({ id: 'e', client_id: 'c2', mes_referencia: '2026-12-01', data_vencimento: '2026-10-17', valor: 800 }),
-    pagamento({ id: 'f', mes_referencia: '2026-08-01', data_vencimento: '2026-08-05' }),
-    cobranca({ id: 'g', mes_referencia: '2026-07-01', data_vencimento: '2026-07-05', status: 'cancelado' }),
-  ]
-
-  it('lista o que venceu e não foi pago, do mais atrasado para o menos', () => {
-    expect(pagamentosEmAtraso(clientes, pagamentos, HOJE)).toEqual([
-      { cliente: { id: 'c1', nome: 'Clínica Aurora' }, mes: '2026-09-01', valor: 1500, vencimento: '2026-09-05', dias: -34 },
-      { cliente: { id: 'c1', nome: 'Clínica Aurora' }, mes: '2026-10-01', valor: 1500, vencimento: '2026-10-08', dias: -1 },
-    ])
-  })
-
-  it('resume a inadimplência em valor, cobranças e clientes', () => {
-    expect(inadimplencia(pagamentosEmAtraso(clientes, pagamentos, HOJE))).toEqual({
-      total: 3000,
-      cobrancas: 2,
-      clientes: 1,
-    })
-  })
-
-  it('próximos vencimentos vão de hoje até daqui a sete dias', () => {
-    const proximos = proximosVencimentos(clientes, pagamentos, HOJE)
-    expect(proximos.map((v) => [v.vencimento, v.dias])).toEqual([
-      ['2026-10-09', 0],
-      ['2026-10-16', 7],
-    ])
-    expect(proximos[0].cliente.nome).toBe('Padaria Sol')
-  })
-
-  it('pendente no mês soma as cobranças em aberto daquele mês de referência', () => {
-    expect(pendenteNoMes(pagamentos, '2026-10')).toBe(2300)
-    expect(pendenteNoMes(pagamentos, '2026-08')).toBe(0)
-  })
-
-  it('cliente apagado ainda aparece, com nome de reserva', () => {
-    expect(pagamentosEmAtraso([], pagamentos, HOJE)[0].cliente.nome).toBe('Cliente removido')
-  })
-})
 describe('métricas de tráfego', () => {
   const metrica = { investimento: 1500, leads_instagram: 20, leads_whatsapp: 10, convertidos: 6 }
 
@@ -299,46 +179,6 @@ describe('validarMetricas', () => {
     expect(validarMetricas({ ...form, convertidos: '31' })).toEqual({
       erros: { convertidos: 'Os convertidos não podem passar do total de leads.' },
     })
-  })
-})
-
-describe('pagamentos parciais nas contas', () => {
-  const cobranca = (campos: Record<string, unknown>) =>
-    ({
-      client_id: 'c1', mes_referencia: '2026-10-01', valor: 2870, data_vencimento: '2026-10-10',
-      status: 'pendente', data_pagamento: null, valor_pago: 0, pago_em: null, ...campos,
-    }) as never
-
-  it('recebido no mês conta só o que entrou, pela data do recebimento', () => {
-    const pagamentos = [
-      cobranca({ valor_pago: 2000, pago_em: '2026-10-05' }),
-      cobranca({ client_id: 'c2', valor: 1000, status: 'pago', valor_pago: 1000, pago_em: '2026-10-03', data_pagamento: '2026-10-03' }),
-      cobranca({ client_id: 'c3', valor: 500, status: 'cancelado', valor_pago: 100, pago_em: '2026-10-02' }),
-    ]
-    expect(receitaDoMes(pagamentos, '2026-10')).toBe(3000)
-  })
-
-  it('a receber soma só o restante das cobranças em aberto', () => {
-    expect(pendenteNoMes([cobranca({ valor_pago: 2000 })], '2026-10')).toBe(870)
-  })
-
-  it('o atraso cobra só o restante', () => {
-    const [atraso] = pagamentosEmAtraso([{ id: 'c1', nome: 'Scofield' }], [cobranca({ valor_pago: 2000 })], '2026-10-14')
-    expect(atraso.valor).toBe(870)
-  })
-
-  it('progresso por cliente no mês', () => {
-    const clientes = [{ id: 'c1', nome: 'Scofield' }, { id: 'c2', nome: 'Alfa' }]
-    const pagamentos = [
-      cobranca({ valor_pago: 2000 }),
-      cobranca({ client_id: 'c2', valor: 1000, valor_pago: 0 }),
-      cobranca({ client_id: 'c2', valor: 999, mes_referencia: '2026-11-01' }),
-      cobranca({ client_id: 'c1', valor: 300, status: 'cancelado' }),
-    ]
-    expect(progressoPorCliente(clientes, pagamentos, '2026-10')).toEqual([
-      { cliente: { id: 'c2', nome: 'Alfa' }, pago: 0, total: 1000, percentual: 0 },
-      { cliente: { id: 'c1', nome: 'Scofield' }, pago: 2000, total: 2870, percentual: 70 },
-    ])
   })
 })
 

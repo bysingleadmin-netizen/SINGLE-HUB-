@@ -116,23 +116,50 @@ Ninguém cadastra pagamento à mão. Para cada cliente ativo com valor mensal e 
 
 Quem gera e ajusta as cobranças é o próprio app, no navegador de alguém da liderança (só a liderança pode gravar pagamentos). Basta uma pessoa da liderança abrir o sistema para o mês novo ganhar suas cobranças. Não há tarefa agendada no servidor.
 
-## Asaas (cobranças pelo webhook)
+## Asaas (fonte das receitas dos clientes)
 
-O Asaas avisa o sistema a cada cobrança criada, paga, vencida, estornada ou excluída. A Edge
-Function `asaas-webhook` grava cada uma em `receitas_asaas` e tenta achar o cliente: primeiro
-pelo id do cliente do Asaas já ligado; senão, pelas duas primeiras palavras do nome, só quando um
-único cliente casar. O que não for achado aparece em Financeiro > Cobranças Asaas com o botão
-"Vincular cliente".
+O Asaas é a fonte das receitas dos clientes. O sistema não lança nem confirma cobrança de
+cliente: o que está no Asaas aparece em Financeiro (Visão Geral, Pagamentos e Relatórios) e na
+aba Pagamentos de cada cliente. Despesas continuam lançadas à mão.
 
-- [ ] Rodar `supabase/migrations/0006_asaas.sql` no SQL Editor (depois da 0005)
-- [ ] Em Edge Functions > Secrets, cadastrar `ASAAS_WEBHOOK_TOKEN` com o token de autenticação do webhook (o mesmo que vai no Asaas). `ASAAS_API_KEY` ainda não é usada: fica para a sincronização manual.
-- [ ] Publicar a função, sem verificação de JWT (o Asaas não tem login no Supabase; quem protege a função é o token):
-  `supabase functions deploy asaas-webhook --no-verify-jwt --project-ref <ref do projeto>`
+Duas Edge Functions gravam as cobranças em `receitas_asaas`, sempre pelo id do Asaas (nada se
+repete):
+
+- `asaas-sync`: traz todas as cobranças que já existem. Roda pelo botão **Sincronizar Asaas** em
+  Financeiro > Pagamentos, só para a liderança. Pode ser usada de novo a qualquer momento.
+- `asaas-webhook`: recebe cada cobrança criada, paga, vencida, estornada ou excluída dali em
+  diante.
+
+As duas ligam a cobrança a um cliente daqui nesta ordem: pelo id do cliente do Asaas já gravado
+no cliente; pelo CNPJ/CPF (só os dígitos); pelas duas primeiras palavras do nome, sem acento. No
+CNPJ e no nome, só quando um único cliente casar. O que não for ligado aparece em Pagamentos com
+o botão "Vincular cliente", e o vínculo vale também para as próximas cobranças daquele cliente
+do Asaas.
+
+Passo a passo:
+
+- [x] Rodar `supabase/migrations/0006_asaas.sql` no SQL Editor
+- [ ] Rodar `supabase/migrations/0007_asaas_fonte.sql` no SQL Editor (CNPJ no cadastro do cliente)
+- [ ] Em Edge Functions > Secrets, cadastrar:
+  - `ASAAS_API_KEY`: a chave da API do Asaas (Integrações > Chaves de API). Usada pela
+    sincronização e pelo webhook, que busca no Asaas o nome e o CNPJ do cliente (o evento só traz
+    o id dele)
+  - `ASAAS_WEBHOOK_TOKEN`: o token de autenticação do webhook (o mesmo que vai no Asaas)
+  - `ASAAS_API_URL` (opcional): só para testar no sandbox, `https://api-sandbox.asaas.com/v3`
+- [ ] Publicar as duas funções (da pasta do projeto, com a CLI do Supabase logada na conta do
+  SINGLE). A pasta `supabase/functions/_shared` vai junto sozinha:
+  ```
+  supabase functions deploy asaas-sync --project-ref natiqbpgprmcppcqmlvq
+  supabase functions deploy asaas-webhook --no-verify-jwt --project-ref natiqbpgprmcppcqmlvq
+  ```
+  O webhook vai sem verificação de JWT porque o Asaas não tem login no Supabase; quem o protege
+  é o token. A sincronização exige o login de alguém da liderança.
 - [ ] No Asaas, em Integrações > Webhooks, criar um webhook com a URL
-  `https://<ref do projeto>.supabase.co/functions/v1/asaas-webhook`, o mesmo token em "Token de
-  autenticação" e os eventos de cobrança marcados
+  `https://natiqbpgprmcppcqmlvq.supabase.co/functions/v1/asaas-webhook`, o mesmo token em
+  "Token de autenticação" e os eventos de cobrança marcados
+- [ ] Cadastrar o CNPJ dos clientes (Clientes > Editar) e clicar em **Sincronizar Asaas**
 
-Como a função responde:
+Como o webhook responde:
 
 | Situação | Resposta |
 |---|---|
@@ -142,11 +169,21 @@ Como a função responde:
 | Falha ao gravar | vai para o log da função (Edge Functions > asaas-webhook > Logs) e responde 200 |
 
 A resposta é 200 mesmo quando a gravação falha porque o Asaas pausa a fila de eventos depois de
-várias respostas de erro seguidas. Se algo der errado, a cobrança aparece no log e pode ser
-reenviada pelo painel do Asaas.
+várias respostas de erro seguidas. Se algo der errado, a cobrança aparece no log, e
+"Sincronizar Asaas" traz de novo tudo o que estiver no Asaas.
 
-As cobranças do Asaas aparecem na aba própria e ainda não entram no Recebido, no DRE nem nas
-cobranças geradas pelo sistema em `client_payments`.
+Como os números do Financeiro são calculados:
+
+| Número | Conta |
+|---|---|
+| MRR ativo | cobranças que vencem no mês (pagas, pendentes ou atrasadas), sem canceladas e estornadas |
+| Recebido no mês | cobranças pagas (`RECEIVED`, `CONFIRMED`, `RECEIVED_IN_CASH`) pela data do pagamento |
+| A receber no mês | cobranças `PENDING` que vencem no mês |
+| Em atraso | cobranças `OVERDUE` |
+| Receita do DRE e da meta | o mesmo Recebido no mês |
+
+As cobranças lançadas à mão antes do Asaas (`client_payments`) não são apagadas: aparecem só
+para consulta na aba Pagamentos do cliente e não entram em nenhuma conta.
 
 ## GitHub (código)
 

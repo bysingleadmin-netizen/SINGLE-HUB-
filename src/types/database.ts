@@ -46,6 +46,8 @@ export interface Client {
   nome: string
   /** Migration 0006: cliente do Asaas ligado a este */
   asaas_customer_id?: string | null
+  /** Migration 0007: CNPJ ou CPF, como digitado */
+  cnpj?: string | null
   logo_url: string | null
   status: ClientStatus
   mrr: number

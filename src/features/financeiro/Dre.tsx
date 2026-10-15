@@ -4,12 +4,14 @@ import { Painel } from '@/components/ui/Painel'
 import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
 import ui from '@/components/ui/ui.module.css'
+import { useReceitasAsaas } from '@/dados/asaas'
 import { juntarConsultas } from '@/dados/base'
-import { useDespesas, usePagamentos } from '@/dados/tabelas'
+import { useDespesas } from '@/dados/tabelas'
 import { formatarMes } from '@/features/clientes/cliente'
 import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
 import { ultimosMeses } from '@/lib/regras'
+import { recebidoNoMes } from './asaas'
 import { dreDoMes } from './financeiro'
 import styles from './financeiro.module.css'
 
@@ -17,9 +19,9 @@ const sinal = (valor: number) => (valor < 0 ? 'negativo' : valor > 0 ? 'positivo
 
 /** Demonstrativo do mês (receita, despesas e resultado) e a comparação dos últimos 6 meses. */
 export function Dre() {
-  const pagamentos = usePagamentos()
+  const receitas = useReceitasAsaas()
   const despesas = useDespesas()
-  const estado = juntarConsultas(pagamentos, despesas)
+  const estado = juntarConsultas(receitas, despesas)
   const hoje = hojeISO()
   const [mes, setMes] = useState(hoje.slice(0, 7))
 
@@ -28,7 +30,8 @@ export function Dre() {
   const opcoes = ultimosMeses(hoje, 12)
     .reverse()
     .map((ponto) => ({ valor: ponto.mes, rotulo: formatarMes(ponto.mes) }))
-  const linha = (qual: string) => dreDoMes(pagamentos.data ?? [], despesas.data ?? [], qual)
+  const linha = (qual: string) =>
+    dreDoMes(recebidoNoMes(receitas.data ?? [], qual), despesas.data ?? [], qual)
   const doMes = linha(mes)
   const comparacao = ultimosMeses(hoje, 6)
     .reverse()
@@ -63,7 +66,7 @@ export function Dre() {
           </dl>
         )}
         <p className={ui.mudo}>
-          A receita soma os pagamentos confirmados no mês, pela data em que foram recebidos.
+          A receita soma as cobranças pagas no Asaas no mês, pela data do pagamento.
         </p>
       </Painel>
 

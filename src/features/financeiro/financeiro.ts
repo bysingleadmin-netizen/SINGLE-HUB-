@@ -1,10 +1,8 @@
-import { proximoMes, restante, valorRecebido, vencimentoNoMes } from '@/features/clientes/cartoes'
-import { diffDias } from '@/lib/datas'
+import { proximoMes, vencimentoNoMes } from '@/features/clientes/cartoes'
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
-import { parseMoeda, ultimosMeses } from '@/lib/regras'
-import type { PontoDeMRR } from '@/lib/regras'
-import type { Client, ClientPayment, Expense, TrafficMetric } from '@/types/database'
+import { parseMoeda } from '@/lib/regras'
+import type { Expense, TrafficMetric } from '@/types/database'
 
 // Regras do Financeiro. Meses trafegam como 'AAAA-MM'; no banco, `mes` é o primeiro dia ('AAAA-MM-01').
 
@@ -15,17 +13,6 @@ export const FORMAS_DE_PAGAMENTO = ['Pix', 'Cartão', 'Boleto', 'Dinheiro', 'Tra
 const VALOR_INVALIDO = 'Informe um valor como 1.500,00.'
 
 const somar = (valores: number[]) => valores.reduce((soma, valor) => soma + Number(valor), 0)
-
-type Recebimento = Pick<ClientPayment, 'status' | 'valor' | 'data_pagamento' | 'valor_pago' | 'pago_em'>
-
-/** Receita do mês: o que entrou de fato (parcial ou total), pela data do recebimento. */
-export function receitaDoMes(pagamentos: Recebimento[], mes: string): number {
-  return somar(
-    pagamentos
-      .filter((p) => p.status !== 'cancelado' && (p.pago_em ?? p.data_pagamento)?.slice(0, 7) === mes)
-      .map(valorRecebido),
-  )
-}
 
 export function despesaDoMes(despesas: Pick<Expense, 'valor' | 'data'>[], mes: string): number {
   return somar(despesas.filter((d) => d.data.slice(0, 7) === mes).map((d) => d.valor))
@@ -39,104 +26,12 @@ export interface LinhaDoDRE {
   resultado: number
 }
 
-export function dreDoMes(
-  pagamentos: Recebimento[],
-  despesas: Pick<Expense, 'valor' | 'data'>[],
-  mes: string,
-): LinhaDoDRE {
-  const receita = receitaDoMes(pagamentos, mes)
+/** Resultado do mês: a receita (o recebido no Asaas) menos as despesas lançadas. */
+export function dreDoMes(receita: number, despesas: Pick<Expense, 'valor' | 'data'>[], mes: string): LinhaDoDRE {
   const gasto = despesaDoMes(despesas, mes)
   return { mes, receita, despesas: gasto, resultado: receita - gasto }
 }
 
-/** Faturamento recebido mês a mês, do mais antigo ao atual, pronto para o gráfico. */
-export function faturamentoPorMes(
-  pagamentos: Recebimento[],
-  hoje: string,
-  meses = 6,
-): PontoDeMRR[] {
-  return ultimosMeses(hoje, meses).map((ponto) => ({
-    ...ponto,
-    valor: receitaDoMes(pagamentos, ponto.mes),
-  }))
-}
-
-type Cobranca = Pick<
-  ClientPayment,
-  'client_id' | 'mes_referencia' | 'valor' | 'data_vencimento' | 'status' | 'valor_pago'
->
-
-const emAberto = (pagamento: Pick<ClientPayment, 'status'>) =>
-  pagamento.status === 'pendente' || pagamento.status === 'atrasado'
-
-/** Quanto ainda falta receber das cobranças do mês ('AAAA-MM'): só o restante de cada uma. */
-export function pendenteNoMes(pagamentos: Cobranca[], mes: string): number {
-  return somar(
-    pagamentos
-      .filter((p) => emAberto(p) && p.mes_referencia.slice(0, 7) === mes)
-      .map((p) => restante(Number(p.valor), valorRecebido(p))),
-  )
-}
-
-export interface Vencimento {
-  cliente: Pick<Client, 'id' | 'nome'>
-  /** Primeiro dia do mês de referência */
-  mes: string
-  valor: number
-  vencimento: string
-  /** Dias até vencer; negativo quando já venceu */
-  dias: number
-}
-
-function vencimentos(
-  clientes: Pick<Client, 'id' | 'nome'>[],
-  pagamentos: Cobranca[],
-  hoje: string,
-): Vencimento[] {
-  const nomes = new Map(clientes.map((c) => [c.id, c.nome]))
-  return pagamentos.filter(emAberto).map((p) => ({
-    cliente: { id: p.client_id, nome: nomes.get(p.client_id) ?? 'Cliente removido' },
-    mes: p.mes_referencia,
-    valor: restante(Number(p.valor), valorRecebido(p)),
-    vencimento: p.data_vencimento,
-    dias: diffDias(hoje, p.data_vencimento),
-  }))
-}
-
-/**
- * Cobranças vencidas e não pagas, da mais atrasada para a menos. Lê as mesmas cobranças da
- * aba Pagamentos, então os dois lugares sempre concordam.
- */
-export function pagamentosEmAtraso(
-  clientes: Pick<Client, 'id' | 'nome'>[],
-  pagamentos: Cobranca[],
-  hoje: string,
-): Vencimento[] {
-  return vencimentos(clientes, pagamentos, hoje)
-    .filter((v) => v.dias < 0)
-    .sort((a, b) => a.dias - b.dias)
-}
-
-/** Cobranças que vencem de hoje até daqui a `dias` dias, da mais próxima para a mais distante. */
-export function proximosVencimentos(
-  clientes: Pick<Client, 'id' | 'nome'>[],
-  pagamentos: Cobranca[],
-  hoje: string,
-  dias = 7,
-): Vencimento[] {
-  return vencimentos(clientes, pagamentos, hoje)
-    .filter((v) => v.dias >= 0 && v.dias <= dias)
-    .sort((a, b) => a.dias - b.dias)
-}
-
-/** O atraso em um número: quanto, de quantas cobranças e de quantos clientes. */
-export function inadimplencia(atrasos: Vencimento[]) {
-  return {
-    total: atrasos.reduce((soma, atraso) => soma + atraso.valor, 0),
-    cobrancas: atrasos.length,
-    clientes: new Set(atrasos.map((atraso) => atraso.cliente.id)).size,
-  }
-}
 type Leads = Pick<TrafficMetric, 'leads_instagram' | 'leads_whatsapp'>
 
 export function totalDeLeads(metrica: Leads): number {
@@ -300,36 +195,4 @@ export function validarMetricas(form: FormMetricas): Validacao<ValoresMetricas, 
 
 export function formatarPercentual(valor: number): string {
   return `${valor.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
-}
-
-export interface ProgressoDoCliente {
-  cliente: Pick<Client, 'id' | 'nome'>
-  pago: number
-  total: number
-  /** 0 a 100, arredondado */
-  percentual: number
-}
-
-/** Quanto cada cliente já pagou das cobranças do mês ('AAAA-MM'), sem as canceladas. Por nome. */
-export function progressoPorCliente(
-  clientes: Pick<Client, 'id' | 'nome'>[],
-  pagamentos: Cobranca[],
-  mes: string,
-): ProgressoDoCliente[] {
-  return clientes
-    .map((cliente) => {
-      const doMes = pagamentos.filter(
-        (p) => p.client_id === cliente.id && p.status !== 'cancelado' && p.mes_referencia.slice(0, 7) === mes,
-      )
-      const total = somar(doMes.map((p) => p.valor))
-      const pago = somar(doMes.map(valorRecebido))
-      return {
-        cliente: { id: cliente.id, nome: cliente.nome },
-        pago,
-        total,
-        percentual: total > 0 ? Math.round((pago / total) * 100) : 0,
-      }
-    })
-    .filter((linha) => linha.total > 0)
-    .sort((a, b) => a.cliente.nome.localeCompare(b.cliente.nome))
 }

@@ -8,8 +8,9 @@ import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
+import { useReceitasAsaas } from '@/dados/asaas'
 import { juntarConsultas, useSalvar } from '@/dados/base'
-import { useMetas, useMetricasDeTrafego, usePagamentos } from '@/dados/tabelas'
+import { useMetas, useMetricasDeTrafego } from '@/dados/tabelas'
 import { formatarMes, moedaParaCampo } from '@/features/clientes/cliente'
 import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
@@ -20,12 +21,12 @@ import {
   custoPorLead,
   formatarPercentual,
   progressoDaMeta,
-  receitaDoMes,
   taxaDeConversao,
   totalDeLeads,
   validarMetricas,
 } from './financeiro'
 import type { FormMetricas } from './financeiro'
+import { recebidoNoMes } from './asaas'
 import styles from './financeiro.module.css'
 
 const SEM_DADOS = 'sem dados'
@@ -250,10 +251,10 @@ function MetricasDeTrafego({ mesAtual, metricas }: { mesAtual: string; metricas:
 
 /** Meta de faturamento do mês e as métricas de tráfego digitadas mês a mês. */
 export function MetaETrafego() {
-  const pagamentos = usePagamentos()
+  const receitas = useReceitasAsaas()
   const metas = useMetas()
   const metricas = useMetricasDeTrafego()
-  const estado = juntarConsultas(pagamentos, metas, metricas)
+  const estado = juntarConsultas(receitas, metas, metricas)
 
   if (estado.erro) return <EstadoErro onTentar={estado.tentar} />
   if (estado.carregando) return <Skeleton altura="240px" />
@@ -265,7 +266,7 @@ export function MetaETrafego() {
       <MetaDoMes
         mes={mes}
         meta={(metas.data ?? []).find((m) => m.mes.slice(0, 7) === mes)}
-        recebido={receitaDoMes(pagamentos.data ?? [], mes)}
+        recebido={recebidoNoMes(receitas.data ?? [], mes)}
       />
       <MetricasDeTrafego mesAtual={mes} metricas={metricas.data ?? []} />
     </>

@@ -1,29 +1,13 @@
 import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { lerFalha } from './funcoes'
+import type { Recusa } from './funcoes'
 
 export const FUNCAO_NAO_PUBLICADA =
   'A função de convite ainda não foi publicada no Supabase. Veja docs/INTEGRACOES.md.'
 
 export const FUNCAO_INALCANCAVEL =
   'Não foi possível chegar à função de convite. Confira no Supabase se existe uma Edge Function chamada convidar-colaborador neste projeto. Veja docs/INTEGRACOES.md.'
-
-interface Recusa {
-  erro?: string
-  detalhe?: string
-}
-
-async function lerFalha(error: unknown): Promise<{ status?: number; corpo: Recusa | null }> {
-  const contexto = (error as { context?: { status?: number; json?: () => Promise<unknown> } }).context
-  let corpo: Recusa | null = null
-  if (typeof contexto?.json === 'function') {
-    try {
-      corpo = (await contexto.json()) as Recusa
-    } catch {
-      // resposta sem JSON
-    }
-  }
-  return { status: contexto?.status, corpo }
-}
 
 interface ConviteParams {
   email: string

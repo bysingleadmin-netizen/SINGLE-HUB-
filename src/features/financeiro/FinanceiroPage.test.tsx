@@ -21,6 +21,7 @@ function abrir(aba = '', tabelas: Record<string, object[]> = {}) {
   bancoFalso().reiniciar({
     clients: [],
     client_payments: [],
+    receitas_asaas: [],
     expenses: [],
     monthly_goals: [],
     traffic_metrics: [],
@@ -39,24 +40,45 @@ const painel = (nome: string) => within(screen.getByRole('region', { name: nome 
 /** Para painéis que só aparecem depois de os dados carregarem */
 const painelPronto = async (nome: string) => within(await screen.findByRole('region', { name: nome }))
 
-const MES_ATUAL = `${MES}-01`
+let sequencia = 0
 
-function cobranca(parcial: Record<string, unknown>) {
+/** Uma linha de receitas_asaas */
+function receita(parcial: Record<string, unknown>) {
+  sequencia++
   return {
-    client_id: 'c1',
-    mes_referencia: MES_ATUAL,
-    valor: 2000,
+    id: `r${sequencia}`,
+    asaas_id: `pay_${sequencia}`,
+    cliente_id: null,
+    asaas_customer_id: null,
+    nome_cliente_asaas: null,
+    descricao: 'Mensalidade',
+    valor: 1000,
     data_vencimento: HOJE,
     data_pagamento: null,
-    status: 'pendente',
+    status: 'PENDING',
+    forma_pagamento: 'PIX',
+    tipo: 'PIX',
+    vinculado: false,
+    criado_em: HOJE,
+    atualizado_em: HOJE,
     ...parcial,
   }
 }
 
+/** Cobrança lançada à mão antes do Asaas: não pode entrar em nenhuma conta */
+const MANUAL_ANTIGA = {
+  id: 'antiga',
+  client_id: 'c1',
+  mes_referencia: `${MES}-01`,
+  valor: 9999,
+  data_vencimento: HOJE,
+  data_pagamento: HOJE,
+  status: 'pago',
+}
+
 const CLIENTES = [
-  { id: 'c1', nome: 'Clínica Aurora', status: 'ativo', mrr: 2000, data_inicio_contrato: null },
-  { id: 'c2', nome: 'Padaria Sol', status: 'ativo', mrr: 800, data_inicio_contrato: null },
-  { id: 'c3', nome: 'Loja Pausada', status: 'pausado', mrr: 900, data_inicio_contrato: null },
+  { id: 'c1', nome: 'Clínica Aurora', status: 'ativo', mrr: 2000, asaas_customer_id: 'cus_1' },
+  { id: 'c2', nome: 'Padaria Sol', status: 'ativo', mrr: 800, asaas_customer_id: null },
 ]
 
 describe('abas', () => {
@@ -67,6 +89,7 @@ describe('abas', () => {
     for (const nome of ['Pagamentos', 'Despesas', 'Relatórios']) {
       expect(screen.getByRole('tab', { name: nome })).toBeInTheDocument()
     }
+    expect(screen.queryByRole('tab', { name: 'Cobranças Asaas' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: 'Relatórios' }))
     expect(screen.getByRole('tab', { name: 'Relatórios' })).toHaveAttribute('aria-selected', 'true')
@@ -80,62 +103,64 @@ describe('abas', () => {
 })
 
 describe('Visão Geral', () => {
-  const pagamentos = [
-    // Recebido neste mês
-    cobranca({ id: 'p1', client_id: 'c2', valor: 750, status: 'pago', data_pagamento: HOJE }),
-    // Venceu há 10 dias
-    cobranca({ id: 'p2', data_vencimento: somarDias(HOJE, -10) }),
-    // Vence em 3 dias
-    cobranca({ id: 'p3', client_id: 'c2', valor: 800, data_vencimento: somarDias(HOJE, 3) }),
-    // Vence fora da janela de 7 dias
-    cobranca({ id: 'p4', client_id: 'c2', valor: 800, data_vencimento: somarDias(HOJE, 20), mes_referencia: '2099-01-01' }),
-  ]
+  const vinculada = { cliente_id: 'c1', asaas_customer_id: 'cus_1', nome_cliente_asaas: 'Aurora ME', vinculado: true }
 
-  it('mostra MRR ativo, recebido, pendente e a inadimplência', async () => {
-    abrir('', { clients: CLIENTES, client_payments: pagamentos })
-    const atrasados = painel('Pagamentos atrasados')
-    expect(await atrasados.findByRole('link', { name: 'Clínica Aurora' })).toHaveAttribute(
-      'href',
-      '/app/clientes/c1',
-    )
-    expect(atrasados.getByText('10 dias de atraso')).toBeInTheDocument()
-
-    const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
-    // O pausado não entra no MRR
-    expect(valorDe('MRR ativo')).toHaveTextContent(moeda(2800))
-    expect(valorDe('Recebido no mês')).toHaveTextContent(moeda(750))
-    // Do mês atual: a vencida (2.000) e a que vence em 3 dias (800)
-    expect(valorDe('A receber no mês')).toHaveTextContent(moeda(2800))
-    expect(valorDe('Em atraso')).toHaveTextContent(moeda(2000))
-    expect(screen.getByText('1 cobrança vencida de 1 cliente')).toBeInTheDocument()
-    expect(
-      screen.getByRole('img', { name: /^Recebimentos dos últimos 6 meses/ }),
-    ).toBeInTheDocument()
-  })
-
-  it('recebido conta o parcial que entrou; a receber, só o restante', async () => {
+  it('os números saem das cobranças do Asaas, sem as manuais antigas', async () => {
     abrir('', {
       clients: CLIENTES,
-      client_payments: [
-        cobranca({ id: 'p1', valor: 2870, valor_pago: 2000, pago_em: HOJE, data_vencimento: somarDias(HOJE, 5) }),
+      client_payments: [MANUAL_ANTIGA],
+      receitas_asaas: [
+        receita({ status: 'RECEIVED', valor: 750, data_vencimento: `${MES}-01`, data_pagamento: HOJE }),
+        receita({ ...vinculada, status: 'OVERDUE', valor: 2000, data_vencimento: `${MES}-01` }),
+        receita({ status: 'PENDING', valor: 800, data_vencimento: `${MES}-28` }),
+        receita({ status: 'DELETED', valor: 5000, data_vencimento: `${MES}-02` }),
+        receita({ status: 'PENDING', valor: 300, data_vencimento: '2099-01-10' }),
       ],
     })
     const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
-    await waitFor(() => expect(valorDe('Recebido no mês')).toHaveTextContent(moeda(2000)))
-    expect(valorDe('A receber no mês')).toHaveTextContent(moeda(870))
+    await waitFor(() => expect(valorDe('Recebido no mês')).toHaveTextContent(moeda(750)))
+    // Vencem no mês: a paga, a atrasada e a pendente; a excluída fica de fora
+    expect(valorDe('MRR ativo')).toHaveTextContent(moeda(3550))
+    expect(valorDe('A receber no mês')).toHaveTextContent(moeda(800))
+    expect(valorDe('Em atraso')).toHaveTextContent(moeda(2000))
+    expect(screen.getByText('1 cobrança vencida de 1 cliente')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /^Recebimentos dos últimos 6 meses/ })).toBeInTheDocument()
   })
 
-  it('lista os vencimentos dos próximos sete dias', async () => {
-    abrir('', { clients: CLIENTES, client_payments: pagamentos })
-    const proximos = painel('Próximos vencimentos')
-    expect(await proximos.findByRole('link', { name: 'Padaria Sol' })).toBeInTheDocument()
+  it('pagamentos atrasados levam ao cliente vinculado e mostram os dias', async () => {
+    abrir('', {
+      clients: CLIENTES,
+      receitas_asaas: [
+        receita({ ...vinculada, status: 'OVERDUE', valor: 2000, data_vencimento: somarDias(HOJE, -10) }),
+        receita({ nome_cliente_asaas: 'Sem Vínculo', status: 'OVERDUE', data_vencimento: somarDias(HOJE, -2) }),
+      ],
+    })
+    const atrasados = await painelPronto('Pagamentos atrasados')
+    expect(await atrasados.findByRole('link', { name: 'Clínica Aurora' })).toHaveAttribute('href', '/app/clientes/c1')
+    expect(atrasados.getByText('10 dias de atraso')).toBeInTheDocument()
+    // Sem vínculo aparece com o nome do Asaas, sem link
+    expect(atrasados.getByText('Sem Vínculo')).toBeInTheDocument()
+    expect(atrasados.queryByRole('link', { name: 'Sem Vínculo' })).not.toBeInTheDocument()
+  })
+
+  it('próximos vencimentos: as pendentes dos próximos 30 dias', async () => {
+    abrir('', {
+      clients: CLIENTES,
+      receitas_asaas: [
+        receita({ nome_cliente_asaas: 'Padaria', data_vencimento: somarDias(HOJE, 3) }),
+        receita({ nome_cliente_asaas: 'Distante', data_vencimento: somarDias(HOJE, 40) }),
+        receita({ nome_cliente_asaas: 'Já paga', status: 'RECEIVED', data_vencimento: somarDias(HOJE, 5) }),
+      ],
+    })
+    const proximos = await painelPronto('Próximos vencimentos')
+    expect(await proximos.findByText('Padaria')).toBeInTheDocument()
     expect(proximos.getAllByRole('listitem')).toHaveLength(1)
     expect(proximos.getByText('Vence em 3 dias')).toBeInTheDocument()
   })
 
   it('sem nada vencido nem a vencer, diz isso', async () => {
     abrir()
-    expect(await screen.findByText('Nenhum vencimento nos próximos 7 dias.')).toBeInTheDocument()
+    expect(await screen.findByText('Nenhum vencimento nos próximos 30 dias.')).toBeInTheDocument()
     expect(screen.getByText('Nenhuma cobrança vencida')).toBeInTheDocument()
   })
 
@@ -151,155 +176,122 @@ describe('Visão Geral', () => {
 })
 
 describe('Pagamentos', () => {
-  const pagamentos = [
-    cobranca({ id: 'p1', data_vencimento: somarDias(HOJE, -2) }),
-    cobranca({ id: 'p2', client_id: 'c2', valor: 800 }),
-    cobranca({ id: 'p3', client_id: 'c2', valor: 800, mes_referencia: '2020-01-01', status: 'pago', data_pagamento: '2020-01-10', forma_pagamento: 'dinheiro' }),
+  const RECEITAS = [
+    receita({ cliente_id: 'c1', asaas_customer_id: 'cus_1', nome_cliente_asaas: 'Aurora Clínica ME', valor: 2000, data_vencimento: '2026-10-10', data_pagamento: '2026-10-09', status: 'RECEIVED', vinculado: true }),
+    receita({ asaas_customer_id: 'cus_2', nome_cliente_asaas: 'Sol Panificadora', valor: 800, data_vencimento: '2026-10-20', status: 'PENDING', forma_pagamento: 'BOLETO', tipo: 'SUBSCRIPTION' }),
+    receita({ asaas_customer_id: 'cus_2', nome_cliente_asaas: 'Sol Panificadora', descricao: 'Setembro', valor: 800, data_vencimento: '2026-09-20', status: 'OVERDUE', forma_pagamento: 'BOLETO' }),
+    receita({ asaas_customer_id: 'cus_3', nome_cliente_asaas: 'Outro', valor: 50, data_vencimento: '2026-09-01', status: 'DELETED' }),
   ]
-  const mesAtual = formatarMes(MES)
+  const linhasDe = (lista: ReturnType<typeof within>, nome: string) =>
+    lista
+      .getAllByText(nome, { selector: '[data-cobranca] *' })
+      .map((el: HTMLElement) => within(el.closest('[data-cobranca]') as HTMLElement))
 
-  it('mostra as cobranças em aberto de todos os clientes, com o total', async () => {
-    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
+  it('em aberto mostra as pendentes e as atrasadas do Asaas, com o total', async () => {
+    abrir('pagamentos', { clients: CLIENTES, client_payments: [MANUAL_ANTIGA], receitas_asaas: RECEITAS })
     const lista = await painelPronto('Pagamentos')
-    const cartoes = lista.getAllByRole('listitem')
-    expect(cartoes).toHaveLength(2)
-    expect(cartoes[0]).toHaveTextContent('Clínica Aurora')
-    expect(cartoes[0]).toHaveTextContent('Pendente')
-    expect(cartoes[0]).toHaveTextContent('2 dias de atraso')
-    expect(cartoes[1]).toHaveTextContent('Padaria Sol')
+    const [atrasada, pendente] = linhasDe(lista, 'Sol Panificadora')
+    expect(atrasada.getByText('Atrasado')).toBeInTheDocument()
+    expect(pendente.getByText('Pendente')).toBeInTheDocument()
+    expect(pendente.getByText(/Boleto, assinatura/)).toBeInTheDocument()
     expect(lista.getByText('2 cobranças em aberto')).toBeInTheDocument()
-    expect(lista.getByText(moeda(2800))).toBeInTheDocument()
-    expect(lista.queryByRole('button', { name: /Adicionar|Novo pagamento/ })).not.toBeInTheDocument()
+    expect(lista.getByText(moeda(1600))).toBeInTheDocument()
+    // Nem a paga, nem a excluída, nem a manual antiga
+    expect(lista.queryByText('Clínica Aurora', { selector: '[data-cobranca] *' })).not.toBeInTheDocument()
+    expect(lista.queryByText('Outro', { selector: '[data-cobranca] *' })).not.toBeInTheDocument()
+    expect(lista.getByText(/3 cobranças sem cliente vinculado/)).toBeInTheDocument()
+    // Ninguém confirma pagamento à mão
+    expect(lista.queryByRole('button', { name: /Pix|Dinheiro|Editar/ })).not.toBeInTheDocument()
   })
 
-  it('confirma o recebimento em dinheiro e a cobrança vai para o histórico', async () => {
-    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
+  it('o histórico mostra as pagas como Pago, com o cliente vinculado', async () => {
+    abrir('pagamentos', { clients: CLIENTES, receitas_asaas: RECEITAS })
     const lista = await painelPronto('Pagamentos')
-    fireEvent.click(lista.getByRole('button', { name: `Pagar ${mesAtual} de Padaria Sol com Dinheiro` }))
-    const confirmacao = within(screen.getByRole('dialog', { name: 'Confirmar pagamento' }))
-    expect(confirmacao.getByText('Padaria Sol')).toBeInTheDocument()
-    fireEvent.click(confirmacao.getByRole('button', { name: 'Confirmar pagamento' }))
-
-    expect(await screen.findByText('Pagamento confirmado.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.client_payments.find((l) => l.id === 'p2')).toMatchObject({
-      status: 'pago',
-      data_pagamento: HOJE,
-      forma_pagamento: 'dinheiro',
-      arquivado: true,
-    })
-    await waitFor(() => expect(lista.getByText('1 cobrança em aberto')).toBeInTheDocument())
-
     fireEvent.click(lista.getByRole('button', { name: 'Histórico' }))
-    expect(lista.getByText('2 pagamentos recebidos')).toBeInTheDocument()
-    expect(lista.getByText(`Padaria Sol, ${mesAtual}`)).toBeInTheDocument()
+    const [linha] = linhasDe(lista, 'Clínica Aurora')
+    expect(linha.getByRole('link', { name: 'Clínica Aurora' })).toHaveAttribute('href', '/app/clientes/c1')
+    expect(linha.getByText('vinculada')).toBeInTheDocument()
+    expect(linha.getByText('Pago')).toBeInTheDocument()
+    expect(lista.getByText('1 pagamento recebido')).toBeInTheDocument()
   })
 
-  it('edita uma cobrança com pagamento parcial e mostra o selo Parcial', async () => {
-    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
+  it('filtra pelo cliente vinculado', async () => {
+    abrir('pagamentos', { clients: CLIENTES, receitas_asaas: RECEITAS })
     const lista = await painelPronto('Pagamentos')
-    fireEvent.click(await lista.findByRole('button', { name: `Editar ${mesAtual} de Padaria Sol` }))
-    const modal = within(screen.getByRole('dialog', { name: `Editar cobrança de ${mesAtual} de Padaria Sol` }))
-    expect(modal.getByLabelText('Valor total da cobrança')).toHaveValue('800,00')
-    fireEvent.change(modal.getByLabelText('Valor já pago'), { target: { value: '300,00' } })
-    fireEvent.change(modal.getByLabelText('Data do pagamento'), { target: { value: HOJE } })
-    expect(modal.getByText(moeda(500))).toBeInTheDocument()
-    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
-
-    expect(await screen.findByText('Cobrança atualizada.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.client_payments.find((l) => l.id === 'p2')).toMatchObject({
-      valor_pago: 300,
-      pago_em: HOJE,
-      status: 'pendente',
-      data_pagamento: null,
-      valor_manual: false,
-    })
-    await waitFor(() => {
-      const cartao = lista.getAllByRole('listitem').find((li) => li.textContent?.includes('Padaria Sol'))!
-      expect(cartao).toHaveTextContent('Parcial')
-      expect(cartao).toHaveTextContent(`${moeda(300)} pagos, faltam ${moeda(500)}`)
-    })
-  })
-
-  it('pagar o total pela edição quita e manda para o histórico', async () => {
-    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
-    const lista = await painelPronto('Pagamentos')
-    fireEvent.click(await lista.findByRole('button', { name: `Editar ${mesAtual} de Padaria Sol` }))
-    const modal = within(screen.getByRole('dialog', { name: /^Editar cobrança/ }))
-    fireEvent.change(modal.getByLabelText('Valor já pago'), { target: { value: '800,00' } })
-    fireEvent.change(modal.getByLabelText('Data do pagamento'), { target: { value: HOJE } })
-    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
-    await waitFor(() =>
-      expect(bancoFalso().tabelas.client_payments.find((l) => l.id === 'p2')).toMatchObject({
-        status: 'pago',
-        valor_pago: 800,
-        data_pagamento: HOJE,
-        arquivado: true,
-      }),
-    )
-  })
-
-  it('mudar o valor total marca a cobrança como manual', async () => {
-    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
-    const lista = await painelPronto('Pagamentos')
-    fireEvent.click(await lista.findByRole('button', { name: `Editar ${mesAtual} de Padaria Sol` }))
-    const modal = within(screen.getByRole('dialog', { name: /^Editar cobrança/ }))
-    fireEvent.change(modal.getByLabelText('Valor total da cobrança'), { target: { value: '650,00' } })
-    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
-    await waitFor(() =>
-      expect(bancoFalso().tabelas.client_payments.find((l) => l.id === 'p2')).toMatchObject({
-        valor: 650,
-        valor_manual: true,
-      }),
-    )
-  })
-
-  it('confirmar pelo Pix grava o valor recebido', async () => {
-    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
-    const lista = await painelPronto('Pagamentos')
-    fireEvent.click(lista.getByRole('button', { name: `Pagar ${mesAtual} de Padaria Sol com Pix` }))
-    fireEvent.click(within(screen.getByRole('dialog', { name: 'Confirmar pagamento' })).getByRole('button', { name: 'Confirmar pagamento' }))
-    await waitFor(() =>
-      expect(bancoFalso().tabelas.client_payments.find((l) => l.id === 'p2')).toMatchObject({
-        valor_pago: 800,
-        pago_em: HOJE,
-      }),
-    )
-  })
-
-  it('o total em aberto soma só o que falta receber', async () => {
-    abrir('pagamentos', {
-      clients: CLIENTES,
-      client_payments: [cobranca({ id: 'p1', valor: 2000, valor_pago: 1500, pago_em: HOJE }), cobranca({ id: 'p2', client_id: 'c2', valor: 800 })],
-    })
-    const lista = await painelPronto('Pagamentos')
-    expect(lista.getByText(moeda(1300))).toBeInTheDocument()
+    fireEvent.change(lista.getByLabelText('Cliente'), { target: { value: 'c1' } })
+    expect(lista.getByText('Nenhuma cobrança em aberto.')).toBeInTheDocument()
   })
 
   it('por cliente mostra quanto foi pago das cobranças do mês', async () => {
-    abrir('pagamentos', {
-      clients: CLIENTES,
-      client_payments: [
-        cobranca({ id: 'p1', valor: 2870, valor_pago: 2000, pago_em: HOJE }),
-        cobranca({ id: 'p2', client_id: 'c2', valor: 800 }),
-      ],
-    })
+    abrir('pagamentos', { clients: CLIENTES, receitas_asaas: RECEITAS })
     const lista = await painelPronto('Pagamentos')
     fireEvent.click(lista.getByRole('button', { name: 'Por cliente' }))
-    expect(lista.getByText(`${moeda(2000)} pagos de ${moeda(2870)} (70%)`)).toBeInTheDocument()
-    expect(lista.getByRole('progressbar', { name: 'Clínica Aurora' })).toHaveAttribute('aria-valuenow', '70')
-    expect(lista.getByRole('progressbar', { name: 'Padaria Sol' })).toHaveAttribute('aria-valuenow', '0')
-    expect(lista.getByLabelText('Mês')).toHaveValue(MES)
+    fireEvent.change(lista.getByLabelText('Mês'), { target: { value: '2026-10' } })
+    expect(lista.getByRole('progressbar', { name: 'Clínica Aurora' })).toHaveAttribute('aria-valuenow', '100')
+    expect(lista.getByRole('progressbar', { name: 'Sol Panificadora' })).toHaveAttribute('aria-valuenow', '0')
   })
 
-  it('o histórico guarda o que foi pago e filtra por cliente', async () => {
-    abrir('pagamentos', { clients: CLIENTES, client_payments: pagamentos })
+  it('vincular salva o id do Asaas no cliente e vincula todas as cobranças dele', async () => {
+    abrir('pagamentos', { clients: CLIENTES, receitas_asaas: RECEITAS })
     const lista = await painelPronto('Pagamentos')
-    fireEvent.click(lista.getByRole('button', { name: 'Histórico' }))
-    expect(lista.getByText('Padaria Sol, 01/2020')).toBeInTheDocument()
-    expect(lista.getByText(/Pago em 10\/01\/2020, Dinheiro/)).toBeInTheDocument()
+    fireEvent.click(lista.getAllByRole('button', { name: 'Vincular cliente de Sol Panificadora' })[0])
 
-    fireEvent.change(lista.getByLabelText('Cliente'), { target: { value: 'c1' } })
-    expect(lista.getByText('Nenhum pagamento confirmado ainda.')).toBeInTheDocument()
+    const modal = within(screen.getByRole('dialog', { name: 'Vincular cliente' }))
+    fireEvent.change(modal.getByLabelText('Cliente'), { target: { value: 'c2' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Vincular' }))
+
+    expect(await screen.findByText('Cobranças de Sol Panificadora vinculadas a Padaria Sol.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.clients.find((c) => c.id === 'c2')).toMatchObject({ asaas_customer_id: 'cus_2' })
+    const deCus2 = bancoFalso().tabelas.receitas_asaas.filter((r) => r.asaas_customer_id === 'cus_2')
+    expect(deCus2.every((r) => r.vinculado === true && r.cliente_id === 'c2')).toBe(true)
+    await waitFor(() => expect(lista.queryAllByRole('button', { name: /^Vincular cliente/ })).toHaveLength(0))
+  })
+
+  it('não vincula sem escolher o cliente', async () => {
+    abrir('pagamentos', { clients: CLIENTES, receitas_asaas: RECEITAS })
+    const lista = await painelPronto('Pagamentos')
+    fireEvent.click(lista.getAllByRole('button', { name: 'Vincular cliente de Sol Panificadora' })[0])
+    const modal = within(screen.getByRole('dialog', { name: 'Vincular cliente' }))
+    fireEvent.click(modal.getByRole('button', { name: 'Vincular' }))
+    expect(await modal.findByText('Escolha o cliente.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.clients.find((c) => c.id === 'c2')).toMatchObject({ asaas_customer_id: null })
+  })
+
+  it('sem cobranças, convida a sincronizar; o botão chama a função e conta o resultado', async () => {
+    abrir('pagamentos', { clients: CLIENTES })
+    bancoFalso().respostaDaFuncao = { ok: true, cobrancas: 105, vinculadas: 98, semVinculo: 7 }
+    const lista = await painelPronto('Pagamentos')
+    expect(await lista.findByText('Nenhuma cobrança do Asaas ainda.')).toBeInTheDocument()
+
+    fireEvent.click(lista.getByRole('button', { name: 'Sincronizar Asaas' }))
+    expect(
+      await screen.findByText('Asaas sincronizado: 105 cobranças, 98 vinculadas a clientes e 7 sem cliente.'),
+    ).toBeInTheDocument()
+    expect(bancoFalso().funcoesChamadas).toEqual([{ nome: 'asaas-sync', body: {} }])
+  })
+
+  it('a recusa da função aparece como erro', async () => {
+    abrir('pagamentos', { clients: CLIENTES })
+    bancoFalso().respostaDaFuncao = { erro: 'Apenas a liderança pode sincronizar o Asaas.' }
+    const lista = await painelPronto('Pagamentos')
+    fireEvent.click(await lista.findByRole('button', { name: 'Sincronizar Asaas' }))
+    expect(await screen.findByText('Apenas a liderança pode sincronizar o Asaas.')).toBeInTheDocument()
+  })
+
+  it('função não publicada: diz o que falta', async () => {
+    abrir('pagamentos', { clients: CLIENTES })
+    bancoFalso().erroDaFuncao = { message: 'not found', context: { status: 404 } }
+    const lista = await painelPronto('Pagamentos')
+    fireEvent.click(await lista.findByRole('button', { name: 'Sincronizar Asaas' }))
+    expect(
+      await screen.findByText('A função asaas-sync ainda não foi publicada no Supabase. Veja docs/INTEGRACOES.md.'),
+    ).toBeInTheDocument()
+  })
+
+  it('sem a tabela no banco, explica o que falta configurar', async () => {
+    abrir('pagamentos', { clients: CLIENTES })
+    bancoFalso().tabelasAusentes = ['receitas_asaas']
+    expect(await screen.findByText('As cobranças do Asaas aparecem depois da migration 0006.')).toBeInTheDocument()
   })
 })
 
@@ -468,17 +460,8 @@ describe('Despesas', () => {
 describe('DRE', () => {
   it('mostra receita, despesas e resultado do mês e a tabela dos últimos seis', async () => {
     abrir('relatorios', {
-      client_payments: [
-        {
-          id: 'p1',
-          client_id: 'c1',
-          mes_referencia: `${MES}-01`,
-          valor: 5000,
-          data_vencimento: HOJE,
-          data_pagamento: HOJE,
-          status: 'pago',
-        },
-      ],
+      client_payments: [MANUAL_ANTIGA],
+      receitas_asaas: [receita({ status: 'RECEIVED', valor: 5000, data_pagamento: HOJE })],
       expenses: [
         { id: 'd1', descricao: 'Equipe', categoria: 'Equipe', valor: 1800, data: HOJE, forma_pagamento: 'Pix' },
       ],
@@ -510,18 +493,10 @@ describe('DRE', () => {
 })
 
 describe('Meta e Tráfego', () => {
-  const recebido = {
-    id: 'p1',
-    client_id: 'c1',
-    mes_referencia: `${MES}-01`,
-    valor: 2500,
-    data_vencimento: HOJE,
-    data_pagamento: HOJE,
-    status: 'pago',
-  }
+  const recebido = receita({ status: 'RECEIVED', valor: 2500, data_pagamento: HOJE })
 
   it('sem meta definida, explica e deixa definir', async () => {
-    abrir('relatorios', { client_payments: [recebido] })
+    abrir('relatorios', { receitas_asaas: [recebido] })
     const meta = await painelPronto(`Meta de ${formatarMes(MES)}`)
     expect(await meta.findByText(/Nenhuma meta definida para este mês/)).toBeInTheDocument()
 
@@ -538,7 +513,7 @@ describe('Meta e Tráfego', () => {
 
   it('atualiza a meta do mês em vez de criar outra', async () => {
     abrir('relatorios', {
-      client_payments: [recebido],
+      receitas_asaas: [recebido],
       monthly_goals: [{ id: 'g1', mes: `${MES}-01`, meta: 2000 }],
     })
     const meta = await painelPronto(`Meta de ${formatarMes(MES)}`)
@@ -619,64 +594,5 @@ describe('Meta e Tráfego', () => {
       await form.findByText('Os convertidos não podem passar do total de leads.'),
     ).toBeInTheDocument()
     expect(bancoFalso().tabelas.traffic_metrics).toHaveLength(0)
-  })
-})
-
-describe('Cobranças Asaas', () => {
-  const CLIENTES = [
-    { id: 'c1', nome: 'Clínica Aurora', status: 'ativo', mrr: 2000, asaas_customer_id: 'cus_1' },
-    { id: 'c2', nome: 'Padaria Sol', status: 'ativo', mrr: 800, asaas_customer_id: null },
-  ]
-  const RECEITAS = [
-    { id: 'r1', asaas_id: 'pay_1', cliente_id: 'c1', asaas_customer_id: 'cus_1', nome_cliente_asaas: 'Aurora Clínica ME', descricao: 'Mensalidade', valor: 2000, data_vencimento: '2026-10-10', data_pagamento: '2026-10-09', status: 'RECEIVED', forma_pagamento: 'PIX', tipo: 'PIX', vinculado: true, criado_em: '2026-10-01', atualizado_em: '2026-10-09' },
-    { id: 'r2', asaas_id: 'pay_2', cliente_id: null, asaas_customer_id: 'cus_2', nome_cliente_asaas: 'Sol Panificadora', descricao: 'Mensalidade', valor: 800, data_vencimento: '2026-10-20', data_pagamento: null, status: 'PENDING', forma_pagamento: 'BOLETO', tipo: 'SUBSCRIPTION', vinculado: false, criado_em: '2026-10-01', atualizado_em: '2026-10-01' },
-    { id: 'r3', asaas_id: 'pay_3', cliente_id: null, asaas_customer_id: 'cus_2', nome_cliente_asaas: 'Sol Panificadora', descricao: 'Setembro', valor: 800, data_vencimento: '2026-09-20', data_pagamento: null, status: 'OVERDUE', forma_pagamento: 'BOLETO', tipo: 'BOLETO', vinculado: false, criado_em: '2026-09-01', atualizado_em: '2026-09-21' },
-    { id: 'r4', asaas_id: 'pay_4', cliente_id: null, asaas_customer_id: 'cus_3', nome_cliente_asaas: 'Outro', descricao: null, valor: 50, data_vencimento: '2026-09-01', data_pagamento: null, status: 'DELETED', forma_pagamento: 'PIX', tipo: 'PIX', vinculado: false, criado_em: '2026-09-01', atualizado_em: '2026-09-02' },
-  ]
-
-  it('lista as cobranças com o status em cor e o cliente vinculado', async () => {
-    abrir('asaas', { clients: CLIENTES, receitas_asaas: RECEITAS })
-    const lista = within(await screen.findByRole('region', { name: 'Cobranças Asaas' }))
-    const linha = (nome: string) => within(lista.getByText(nome, { selector: '[data-cobranca] *' }).closest('[data-cobranca]') as HTMLElement)
-
-    expect(await lista.findByText('Clínica Aurora')).toBeInTheDocument()
-    expect(linha('Clínica Aurora').getByText('Recebido')).toBeInTheDocument()
-    expect(lista.getAllByText('Sol Panificadora')).toHaveLength(2)
-    expect(lista.getByText('Pendente')).toBeInTheDocument()
-    expect(lista.getByText('Atrasado')).toBeInTheDocument()
-    expect(lista.getByText('Cancelado')).toBeInTheDocument()
-    expect(lista.getAllByRole('button', { name: /^Vincular cliente/ })).toHaveLength(3)
-    expect(lista.getByText('3 cobranças sem cliente vinculado')).toBeInTheDocument()
-  })
-
-  it('vincular salva o id do Asaas no cliente e vincula todas as cobranças dele', async () => {
-    abrir('asaas', { clients: CLIENTES, receitas_asaas: RECEITAS })
-    const lista = within(await screen.findByRole('region', { name: 'Cobranças Asaas' }))
-    fireEvent.click((await lista.findAllByRole('button', { name: 'Vincular cliente de Sol Panificadora' }))[0])
-
-    const modal = within(screen.getByRole('dialog', { name: 'Vincular cliente' }))
-    fireEvent.change(modal.getByLabelText('Cliente'), { target: { value: 'c2' } })
-    fireEvent.click(modal.getByRole('button', { name: 'Vincular' }))
-
-    expect(await screen.findByText('Cobranças de Sol Panificadora vinculadas a Padaria Sol.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.clients.find((c) => c.id === 'c2')).toMatchObject({ asaas_customer_id: 'cus_2' })
-    const deCus2 = bancoFalso().tabelas.receitas_asaas.filter((r) => r.asaas_customer_id === 'cus_2')
-    expect(deCus2.every((r) => r.vinculado === true && r.cliente_id === 'c2')).toBe(true)
-    await waitFor(() => expect(lista.getAllByRole('button', { name: /^Vincular cliente/ })).toHaveLength(1))
-  })
-
-  it('não vincula sem escolher o cliente', async () => {
-    abrir('asaas', { clients: CLIENTES, receitas_asaas: RECEITAS })
-    fireEvent.click((await within(await screen.findByRole('region', { name: 'Cobranças Asaas' })).findAllByRole('button', { name: 'Vincular cliente de Sol Panificadora' }))[0])
-    const modal = within(screen.getByRole('dialog', { name: 'Vincular cliente' }))
-    fireEvent.click(modal.getByRole('button', { name: 'Vincular' }))
-    expect(await modal.findByText('Escolha o cliente.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.clients.find((c) => c.id === 'c2')).toMatchObject({ asaas_customer_id: null })
-  })
-
-  it('sem a tabela no banco, explica o que falta configurar', async () => {
-    abrir('asaas', { clients: CLIENTES })
-    bancoFalso().tabelasAusentes = ['receitas_asaas']
-    expect(await screen.findByText('As cobranças do Asaas aparecem depois da migration 0006.')).toBeInTheDocument()
   })
 })

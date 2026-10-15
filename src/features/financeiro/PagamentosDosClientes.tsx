@@ -5,15 +5,16 @@ import { Painel } from '@/components/ui/Painel'
 import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
 import ui from '@/components/ui/ui.module.css'
-import { juntarConsultas } from '@/dados/base'
-import { useClientes, usePagamentos } from '@/dados/tabelas'
-import { CobrancasEmAberto, HistoricoDePagamentos } from '@/features/clientes/Cobrancas'
-import { cartoesDe, restante, separarCartoes } from '@/features/clientes/cartoes'
+import { useReceitasAsaas } from '@/dados/asaas'
+import { porId } from '@/dados/base'
+import { useClientes } from '@/dados/tabelas'
+import { useTempoReal } from '@/dados/tempoReal'
 import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
 import { plural } from '@/lib/regras'
-import { progressoPorCliente } from './financeiro'
-import type { ProgressoDoCliente } from './financeiro'
+import { progressoPorCliente, separarReceitas } from './asaas'
+import type { ProgressoAsaas } from './asaas'
+import { ListaDeReceitas, SemTabelaAsaas, SincronizarAsaas, nomeDaReceita } from './ReceitasAsaas'
 import styles from './financeiro.module.css'
 
 const VISOES = [
@@ -25,13 +26,13 @@ const VISOES = [
 type Visao = (typeof VISOES)[number]['valor']
 
 /** Uma linha por cliente: quanto pagou das cobranças do mês, com a barra de progresso. */
-function ProgressoDosClientes({ linhas }: { linhas: ProgressoDoCliente[] }) {
+function ProgressoDosClientes({ linhas }: { linhas: ProgressoAsaas[] }) {
   return (
     <ul className={`${ui.lista} stagger`}>
       {linhas.map((linha) => (
-        <li key={linha.cliente.id} className={styles.progressoLinha}>
+        <li key={linha.chave} className={styles.progressoLinha}>
           <div className={styles.progressoTopo}>
-            <strong>{linha.cliente.nome}</strong>
+            <strong>{linha.nome}</strong>
             <span className={ui.mudo}>
               {formatarMoeda(linha.pago)} pagos de {formatarMoeda(linha.total)} ({linha.percentual}%)
             </span>
@@ -39,7 +40,7 @@ function ProgressoDosClientes({ linhas }: { linhas: ProgressoDoCliente[] }) {
           <span
             className={styles.progressoBarra}
             role="progressbar"
-            aria-label={linha.cliente.nome}
+            aria-label={linha.nome}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={linha.percentual}
@@ -54,110 +55,122 @@ function ProgressoDosClientes({ linhas }: { linhas: ProgressoDoCliente[] }) {
 }
 
 /**
- * Cobranças mensais de todos os clientes. Elas nascem sozinhas do cadastro de cada cliente;
- * aqui a liderança confirma o que recebeu (Pix ou dinheiro) e consulta o histórico.
+ * Cobranças dos clientes, como estão no Asaas. Ninguém lança cobrança aqui: o webhook mantém
+ * cada uma em dia e "Sincronizar Asaas" traz as que já existiam.
  */
 export function PagamentosDosClientes() {
+  const receitas = useReceitasAsaas()
   const clientes = useClientes()
-  const pagamentos = usePagamentos()
-  const estado = juntarConsultas(clientes, pagamentos)
   const [visao, setVisao] = useState<Visao>('abertos')
   const [clienteId, setClienteId] = useState('')
   const [mes, setMes] = useState(() => hojeISO().slice(0, 7))
+  // Um pagamento confirmado no Asaas aparece aqui sem recarregar a página
+  useTempoReal(['receitas_asaas'])
 
-  if (estado.erro) return <EstadoErro onTentar={estado.tentar} />
-  if (estado.carregando) return <Skeleton altura="240px" raio="var(--radius)" />
+  if (receitas.isError || clientes.isError) {
+    return (
+      <EstadoErro
+        onTentar={() => {
+          void receitas.refetch()
+          void clientes.refetch()
+        }}
+      />
+    )
+  }
+  if (receitas.isLoading || clientes.isLoading) return <Skeleton altura="240px" raio="var(--radius)" />
+  if (receitas.data === null) return <SemTabelaAsaas />
 
   const listaDeClientes = clientes.data ?? []
-  const todos = pagamentos.data ?? []
-  const { abertos, historico } = separarCartoes(
-    cartoesDe(
-      todos.filter((p) => clienteId === '' || p.client_id === clienteId),
-      hojeISO(),
-    ),
-  )
-  const lista = visao === 'abertos' ? abertos : historico
-  // Em aberto conta só o que falta receber; o histórico, o que foi pago
-  const total = lista.reduce(
-    (soma, cartao) => soma + (visao === 'abertos' ? restante(cartao.valor, cartao.valorPago) : cartao.valor),
-    0,
-  )
-  const progresso = progressoPorCliente(
-    listaDeClientes.filter((c) => clienteId === '' || c.id === clienteId),
-    todos,
-    mes,
-  )
+  const clientePorId = porId(listaDeClientes)
+  const todas = receitas.data ?? []
+  const filtradas = todas.filter((r) => clienteId === '' || r.cliente_id === clienteId)
+  const { abertas, historico } = separarReceitas(filtradas)
+  const lista = visao === 'abertos' ? abertas : historico
+  const total = lista.reduce((soma, receita) => soma + Number(receita.valor ?? 0), 0)
+  const progresso = progressoPorCliente(filtradas, mes, (r) => nomeDaReceita(r, clientePorId))
+  const semVinculo = todas.filter((r) => !r.vinculado).length
 
   return (
     <Painel
       titulo="Pagamentos"
       acao={
-        <div className={styles.alternar} role="group" aria-label="Quais pagamentos mostrar">
-          {VISOES.map((opcao) => (
-            <button
-              key={opcao.valor}
-              type="button"
-              className={styles.alternarBotao}
-              aria-pressed={visao === opcao.valor}
-              onClick={() => setVisao(opcao.valor)}
-            >
-              {opcao.rotulo}
-            </button>
-          ))}
+        <div className={styles.acoesDoPainel}>
+          <div className={styles.alternar} role="group" aria-label="Quais pagamentos mostrar">
+            {VISOES.map((opcao) => (
+              <button
+                key={opcao.valor}
+                type="button"
+                className={styles.alternarBotao}
+                aria-pressed={visao === opcao.valor}
+                onClick={() => setVisao(opcao.valor)}
+              >
+                {opcao.rotulo}
+              </button>
+            ))}
+          </div>
+          <SincronizarAsaas />
         </div>
       }
     >
-      <div className={styles.rodape}>
-        <Selecao
-          className={styles.mes}
-          rotulo="Cliente"
-          vazio="Todos os clientes"
-          opcoes={listaDeClientes.map((c) => ({ valor: c.id, rotulo: c.nome }))}
-          value={clienteId}
-          onChange={(evento) => setClienteId(evento.target.value)}
-        />
-        {visao === 'clientes' ? (
-          <Campo
-            className={styles.mes}
-            rotulo="Mês"
-            type="month"
-            value={mes}
-            onChange={(evento) => setMes(evento.target.value || hojeISO().slice(0, 7))}
-          />
-        ) : (
-          <div className={styles.total}>
-            <span className={ui.mudo}>
-              {visao === 'abertos'
-                ? plural(lista.length, 'cobrança em aberto', 'cobranças em aberto')
-                : plural(lista.length, 'pagamento recebido', 'pagamentos recebidos')}
-            </span>
-            <strong className={styles.totalValor}>{formatarMoeda(total)}</strong>
-          </div>
-        )}
-      </div>
-
-      {visao === 'clientes' ? (
-        progresso.length === 0 ? (
-          <EstadoVazio ilustracao="pagamentos" titulo="Nenhuma cobrança neste mês." />
-        ) : (
-          <ProgressoDosClientes linhas={progresso} />
-        )
-      ) : lista.length === 0 ? (
+      {todas.length === 0 ? (
         <EstadoVazio
           ilustracao="pagamentos"
-          titulo={
-            visao === 'abertos' ? 'Nenhuma cobrança em aberto.' : 'Nenhum pagamento confirmado ainda.'
-          }
-          texto={
-            visao === 'abertos'
-              ? 'As cobranças são criadas sozinhas para os clientes ativos com valor mensal e dia de vencimento no cadastro.'
-              : 'Ao confirmar um pagamento, ele sai das cobranças em aberto e fica guardado aqui.'
-          }
+          titulo="Nenhuma cobrança do Asaas ainda."
+          texto="Clique em Sincronizar Asaas para trazer as cobranças que já existem. Depois, o webhook mantém tudo em dia sozinho."
         />
-      ) : visao === 'abertos' ? (
-        <CobrancasEmAberto cartoes={abertos} clientes={listaDeClientes} pagamentos={todos} comCliente />
       ) : (
-        <HistoricoDePagamentos cartoes={historico} clientes={listaDeClientes} comCliente />
+        <>
+          <div className={styles.rodape}>
+            <Selecao
+              className={styles.mes}
+              rotulo="Cliente"
+              vazio="Todos os clientes"
+              opcoes={listaDeClientes.map((c) => ({ valor: c.id, rotulo: c.nome }))}
+              value={clienteId}
+              onChange={(evento) => setClienteId(evento.target.value)}
+            />
+            {visao === 'clientes' ? (
+              <Campo
+                className={styles.mes}
+                rotulo="Mês"
+                type="month"
+                value={mes}
+                onChange={(evento) => setMes(evento.target.value || hojeISO().slice(0, 7))}
+              />
+            ) : (
+              <div className={styles.total}>
+                <span className={ui.mudo}>
+                  {visao === 'abertos'
+                    ? plural(lista.length, 'cobrança em aberto', 'cobranças em aberto')
+                    : plural(lista.length, 'pagamento recebido', 'pagamentos recebidos')}
+                </span>
+                <strong className={styles.totalValor}>{formatarMoeda(total)}</strong>
+              </div>
+            )}
+          </div>
+
+          {semVinculo > 0 && (
+            <p className={ui.mudo}>
+              {plural(semVinculo, 'cobrança sem cliente vinculado', 'cobranças sem cliente vinculado')}. Use
+              "Vincular cliente" na cobrança, ou cadastre o CNPJ do cliente e sincronize de novo.
+            </p>
+          )}
+
+          {visao === 'clientes' ? (
+            progresso.length === 0 ? (
+              <EstadoVazio ilustracao="pagamentos" titulo="Nenhuma cobrança neste mês." />
+            ) : (
+              <ProgressoDosClientes linhas={progresso} />
+            )
+          ) : lista.length === 0 ? (
+            <EstadoVazio
+              ilustracao="pagamentos"
+              titulo={visao === 'abertos' ? 'Nenhuma cobrança em aberto.' : 'Nenhum pagamento recebido ainda.'}
+            />
+          ) : (
+            <ListaDeReceitas receitas={lista} clientes={listaDeClientes} />
+          )}
+        </>
       )}
     </Painel>
   )

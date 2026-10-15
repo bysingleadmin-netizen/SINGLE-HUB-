@@ -1,74 +1,89 @@
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Skeleton } from '@/components/ui/Skeleton'
 import ui from '@/components/ui/ui.module.css'
-import { usePagamentos } from '@/dados/tabelas'
+import { useReceitasAsaas } from '@/dados/asaas'
+import { useClientes, usePagamentos } from '@/dados/tabelas'
+import { useTempoReal } from '@/dados/tempoReal'
+import { separarReceitas } from '@/features/financeiro/asaas'
+import { ListaDeReceitas, SemTabelaAsaas } from '@/features/financeiro/ReceitasAsaas'
 import { hojeISO } from '@/lib/datas'
 import type { Client } from '@/types/database'
-import { CobrancasEmAberto, HistoricoDePagamentos } from './Cobrancas'
-import { cartoesDe, diaDeVencimento, separarCartoes } from './cartoes'
+import { HistoricoDePagamentos } from './Cobrancas'
+import { cartoesDe, separarCartoes } from './cartoes'
 import styles from './clientes.module.css'
 
 /**
- * Pagamentos do cliente. As cobranças mensais são geradas sozinhas a partir do cadastro
- * (valor mensal e dia de vencimento); aqui só se confirma o recebimento.
+ * Pagamentos do cliente, como estão no Asaas: as cobranças vinculadas a ele. Os pagamentos
+ * lançados à mão antes do Asaas ficam abaixo, só para consulta.
  * Só é montado para a liderança.
  */
 export function Pagamentos({ cliente }: { cliente: Client }) {
+  const receitas = useReceitasAsaas()
+  const clientes = useClientes()
   const pagamentos = usePagamentos()
+  useTempoReal(['receitas_asaas'])
 
-  if (pagamentos.isError) return <EstadoErro onTentar={() => void pagamentos.refetch()} />
-  if (pagamentos.isLoading) return <Skeleton altura="120px" />
-
-  const todos = pagamentos.data ?? []
-  const { abertos, historico } = separarCartoes(
-    cartoesDe(
-      todos.filter((p) => p.client_id === cliente.id),
-      hojeISO(),
-    ),
-  )
-
-  if (abertos.length === 0 && historico.length === 0) {
-    const falta =
-      cliente.status !== 'ativo'
-        ? 'Cliente pausado ou em churn não gera cobrança.'
-        : !diaDeVencimento(cliente)
-          ? 'Informe o início do contrato ou o dia do vencimento no cadastro do cliente para gerar as cobranças.'
-          : Number(cliente.mrr) <= 0
-            ? 'Informe o valor mensal no cadastro do cliente para gerar as cobranças.'
-            : 'As cobranças deste cliente ainda estão sendo geradas.'
+  if (receitas.isError || clientes.isError || pagamentos.isError) {
     return (
-      <EstadoVazio
-        ilustracao="pagamentos"
-        titulo={falta}
-        texto="As cobranças mensais são criadas sozinhas, do mês atual em diante, com o valor mensal e o dia de vencimento do cadastro."
+      <EstadoErro
+        onTentar={() => {
+          void receitas.refetch()
+          void clientes.refetch()
+          void pagamentos.refetch()
+        }}
       />
     )
   }
+  if (receitas.isLoading || clientes.isLoading || pagamentos.isLoading) return <Skeleton altura="120px" />
+
+  const doCliente = (receitas.data ?? []).filter((r) => r.cliente_id === cliente.id)
+  const { abertas, historico } = separarReceitas(doCliente)
+  const antigos = separarCartoes(
+    cartoesDe(
+      (pagamentos.data ?? []).filter((p) => p.client_id === cliente.id),
+      hojeISO(),
+    ),
+  ).historico
 
   return (
     <div className={styles.pagamentos}>
-      <p className={ui.mudo}>
-        Valor e vencimento vêm do cadastro do cliente. Se mudarem, as cobranças em aberto do mês
-        atual em diante acompanham; as já pagas ficam como foram pagas.
-      </p>
+      {receitas.data === null ? (
+        <SemTabelaAsaas />
+      ) : doCliente.length === 0 ? (
+        <EstadoVazio
+          ilustracao="pagamentos"
+          titulo="Nenhuma cobrança do Asaas ligada a este cliente."
+          texto="As cobranças vêm do Asaas. Cadastre o CNPJ do cliente e use Sincronizar Asaas em Financeiro > Pagamentos, ou vincule a cobrança por lá."
+        />
+      ) : (
+        <>
+          <section className={styles.secao} aria-label="Em aberto">
+            <h3 className={styles.secaoTitulo}>Em aberto</h3>
+            {abertas.length === 0 ? (
+              <p className={ui.mudo}>Nenhuma cobrança em aberto.</p>
+            ) : (
+              <ListaDeReceitas receitas={abertas} clientes={clientes.data ?? []} comCliente={false} />
+            )}
+          </section>
 
-      <section className={styles.secao} aria-label="Em aberto">
-        <h3 className={styles.secaoTitulo}>Em aberto</h3>
-        {abertos.length === 0 ? (
-          <p className={ui.mudo}>Nenhuma cobrança em aberto.</p>
-        ) : (
-          <CobrancasEmAberto cartoes={abertos} clientes={[cliente]} pagamentos={todos} />
-        )}
-      </section>
+          <section className={styles.secao} aria-label="Histórico">
+            <h3 className={styles.secaoTitulo}>Histórico</h3>
+            {historico.length === 0 ? (
+              <p className={ui.mudo}>Nenhum pagamento recebido ainda.</p>
+            ) : (
+              <ListaDeReceitas receitas={historico} clientes={clientes.data ?? []} comCliente={false} />
+            )}
+          </section>
+        </>
+      )}
 
-      <section className={styles.secao} aria-label="Histórico">
-        <h3 className={styles.secaoTitulo}>Histórico</h3>
-        {historico.length === 0 ? (
-          <p className={ui.mudo}>Nenhum pagamento confirmado ainda.</p>
-        ) : (
-          <HistoricoDePagamentos cartoes={historico} clientes={[cliente]} />
-        )}
-      </section>
+      {antigos.length > 0 && (
+        <section className={styles.secao} aria-label="Lançados à mão">
+          <h3 className={styles.secaoTitulo}>Lançados à mão, antes do Asaas</h3>
+          <p className={ui.mudo}>Ficam aqui só para consulta e não entram nos totais do Financeiro.</p>
+          <HistoricoDePagamentos cartoes={antigos} clientes={[cliente]} />
+        </section>
+      )}
     </div>
   )
 }

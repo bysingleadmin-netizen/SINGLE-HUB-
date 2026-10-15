@@ -42,6 +42,8 @@ const SONDAS = {
   quadroTarefas: ['tasks', 'quadro'],
   // migration 0004: posição das tarefas de anúncio no quadro
   posicaoAnuncio: ['campaign_tasks', 'posicao'],
+  // migration 0007: CNPJ do cliente, para ligar ao cliente do Asaas
+  cnpj: ['clients', 'cnpj'],
 } as const satisfies Record<string, readonly [Tabela, string]>
 
 export type ColunaOpcional = keyof typeof SONDAS

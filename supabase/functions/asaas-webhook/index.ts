@@ -6,15 +6,22 @@
 //   https://<ref do projeto>.supabase.co/functions/v1/asaas-webhook
 //
 // Segredos em Edge Functions > Secrets: ASAAS_WEBHOOK_TOKEN (o mesmo token cadastrado no
-// webhook do Asaas). SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY o Supabase já entrega.
+// webhook do Asaas) e ASAAS_API_KEY (para buscar o nome e o CNPJ do cliente, que o evento não
+// traz). SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY o Supabase já entrega.
 //
 // Fora o token errado (401), a resposta é sempre 200: o Asaas reenvia o que recebe 4xx/5xx e,
 // depois de várias falhas seguidas, pausa a fila de eventos. Falhas internas vão para o log.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2'
-import { linhaDaCobranca, termoDoNome, tokenValido } from './regras.ts'
-import type { EventoAsaas, LinhaDaCobranca } from './regras.ts'
+import {
+  API_ASAAS,
+  acharClienteDoAsaas,
+  buscarClienteAsaas,
+  linhaDaCobranca,
+  tokenValido,
+} from '../_shared/asaas.ts'
+import type { ClienteAsaas, EventoAsaas } from '../_shared/asaas.ts'
+import { carregarClientes, gravarCobrancas, gravarIdsDoAsaas } from '../_shared/banco.ts'
 
 function responder(corpo: unknown, status = 200): Response {
   return new Response(JSON.stringify(corpo), {
@@ -23,39 +30,20 @@ function responder(corpo: unknown, status = 200): Response {
   })
 }
 
-/**
- * O cliente daqui desta cobrança: primeiro pelo id do Asaas já vinculado; senão, pelo nome,
- * só quando um único cliente casar e ele ainda não tiver outro id do Asaas. Achando pelo nome,
- * o id fica gravado no cliente para os próximos eventos.
- */
-async function acharCliente(db: SupabaseClient, linha: LinhaDaCobranca): Promise<string | null> {
-  if (linha.asaas_customer_id) {
-    const { data, error } = await db
-      .from('clients')
-      .select('id')
-      .eq('asaas_customer_id', linha.asaas_customer_id)
-      .limit(1)
-    if (error) throw error
-    if (data && data.length > 0) return data[0].id as string
+/** Nome e CNPJ do cliente no Asaas. Sem a chave da API, só o que veio no evento. */
+async function clienteDoEvento(evento: EventoAsaas): Promise<ClienteAsaas | null> {
+  const id = evento.payment?.customer
+  if (!id) return null
+  const chave = Deno.env.get('ASAAS_API_KEY')
+  if (chave) {
+    try {
+      const doAsaas = await buscarClienteAsaas(Deno.env.get('ASAAS_API_URL') ?? API_ASAAS, id, chave)
+      if (doAsaas) return doAsaas
+    } catch (erro) {
+      console.error('asaas-webhook: não buscou o cliente no Asaas', id, erro)
+    }
   }
-
-  const termo = termoDoNome(linha.nome_cliente_asaas)
-  if (!termo || !linha.asaas_customer_id) return null
-  const { data, error } = await db
-    .from('clients')
-    .select('id, asaas_customer_id')
-    .ilike('nome', `%${termo}%`)
-    .limit(2)
-  if (error) throw error
-  if (!data || data.length !== 1 || data[0].asaas_customer_id) return null
-
-  const { error: erroVinculo } = await db
-    .from('clients')
-    .update({ asaas_customer_id: linha.asaas_customer_id })
-    .eq('id', data[0].id)
-    .is('asaas_customer_id', null)
-  if (erroVinculo) throw erroVinculo
-  return data[0].id as string
+  return { id, name: evento.payment?.customerName ?? null }
 }
 
 Deno.serve(async (req) => {
@@ -80,23 +68,20 @@ Deno.serve(async (req) => {
     return responder({ ok: true })
   }
 
-  const linha = linhaDaCobranca(evento, new Date().toISOString())
   // Eventos que não são de cobrança (assinatura, conta...) ficam para depois
-  if (!linha) return responder({ ok: true })
+  if (!linhaDaCobranca(evento, '')) return responder({ ok: true })
 
   try {
+    const cliente = await clienteDoEvento(evento)
+    const linha = linhaDaCobranca(evento, new Date().toISOString(), cliente)!
     const db = createClient(url, chaveDeServico, { auth: { persistSession: false } })
-    const clienteId = await acharCliente(db, linha)
+    const vinculo = cliente ? acharClienteDoAsaas(await carregarClientes(db), cliente) : null
+    if (cliente && vinculo) await gravarIdsDoAsaas(db, new Map([[cliente.id, vinculo]]))
     // Sem cliente achado, cliente_id e vinculado ficam de fora: numa cobrança nova valem os
     // padrões (sem vínculo); numa já vinculada à mão, o vínculo continua.
-    const { error } = await db
-      .from('receitas_asaas')
-      .upsert(clienteId ? { ...linha, cliente_id: clienteId, vinculado: true } : linha, {
-        onConflict: 'asaas_id',
-      })
-    if (error) throw error
+    await gravarCobrancas(db, [{ linha, clienteId: vinculo?.clienteId ?? null }])
   } catch (erro) {
-    console.error('asaas-webhook: não gravou a cobrança', linha.asaas_id, erro)
+    console.error('asaas-webhook: não gravou a cobrança', evento.payment?.id, erro)
   }
   return responder({ ok: true })
 })

@@ -3,8 +3,11 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { isLideranca } from '@/lib/permissoes'
 import { supabase } from '@/lib/supabase'
 import type { ReceitaAsaas } from '@/types/database'
+import { lerFalha } from './funcoes'
+import type { Recusa } from './funcoes'
 
-// Cobranças do Asaas, gravadas pela Edge Function asaas-webhook. Só a liderança lê (RLS).
+// Cobranças do Asaas, gravadas pelas Edge Functions asaas-webhook (cada evento) e asaas-sync
+// (todas as que já existem). Só a liderança lê (RLS).
 // Sem a tabela (migration 0006 não rodada), a consulta devolve null e a tela avisa.
 
 const TABELA_AUSENTE = new Set(['PGRST205', '42P01'])
@@ -58,6 +61,45 @@ export function useVincularAsaas() {
         .update(vinculo)
         .eq('asaas_customer_id', receita.asaas_customer_id)
       if (error) throw error
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['receitas_asaas'] })
+      await queryClient.invalidateQueries({ queryKey: ['clients'] })
+    },
+  })
+}
+
+export interface ResultadoDaSincronizacao {
+  cobrancas: number
+  vinculadas: number
+  semVinculo: number
+}
+
+/** Traz do Asaas todas as cobranças que já existem (Edge Function asaas-sync). */
+export function useSincronizarAsaas() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (): Promise<ResultadoDaSincronizacao> => {
+      const { data, error } = await supabase.functions.invoke('asaas-sync', { body: {} })
+      if (error) {
+        const { status, corpo } = await lerFalha(error)
+        if (status === 404) {
+          throw new Error('A função asaas-sync ainda não foi publicada no Supabase. Veja docs/INTEGRACOES.md.')
+        }
+        if (corpo?.erro) throw new Error(corpo.erro)
+        throw new Error(
+          status == null
+            ? 'Não foi possível chegar à função asaas-sync. Veja docs/INTEGRACOES.md.'
+            : `A sincronização falhou (a função respondeu com erro ${status}).`,
+        )
+      }
+      const resposta = data as (Recusa & Partial<ResultadoDaSincronizacao>) | null
+      if (resposta?.erro) throw new Error(resposta.erro)
+      return {
+        cobrancas: resposta?.cobrancas ?? 0,
+        vinculadas: resposta?.vinculadas ?? 0,
+        semVinculo: resposta?.semVinculo ?? 0,
+      }
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ['receitas_asaas'] })

@@ -48,6 +48,7 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
     const resultado = validarCliente(form, {
       comVencimento: colunas.diaVencimento,
       comContrato: colunas.contratoMeses,
+      comCnpj: colunas.cnpj,
     })
     if ('erros' in resultado) {
       setErros(resultado.erros)
@@ -78,6 +79,9 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
     <Modal aberto titulo={cliente ? 'Editar cliente' : 'Novo cliente'} onFechar={onFechar}>
       <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
         <Campo rotulo="Nome" autoFocus {...campo('nome')} />
+        {colunas.cnpj && (
+          <Campo rotulo="CNPJ ou CPF" inputMode="numeric" placeholder="00.000.000/0000-00" {...campo('cnpj')} />
+        )}
         <div className={ui.duasColunas}>
           <StatusSelect
             rotulo="Status"
@@ -122,9 +126,9 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
           <Campo rotulo="Instagram" placeholder="@perfil" {...campo('instagram')} />
         )}
         <p className={ui.mudo}>
-          {colunas.diaVencimento
-            ? 'Os pagamentos mensais são gerados a partir do início do contrato. Sem dia de vencimento, vale o dia em que o contrato começou.'
-            : 'Os pagamentos mensais são gerados a partir do início do contrato e vencem no mesmo dia do mês.'}
+          {colunas.cnpj
+            ? 'As cobranças vêm do Asaas. O CNPJ (ou CPF) liga este cliente ao cadastro dele no Asaas.'
+            : 'As cobranças vêm do Asaas e são ligadas a este cliente pelo nome.'}
         </p>
         <Campo
           rotulo="Link da conta de anúncios"

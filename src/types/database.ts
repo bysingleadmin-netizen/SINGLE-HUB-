@@ -44,6 +44,8 @@ export interface Profile {
 export interface Client {
   id: string
   nome: string
+  /** Migration 0006: cliente do Asaas ligado a este */
+  asaas_customer_id?: string | null
   logo_url: string | null
   status: ClientStatus
   mrr: number
@@ -264,6 +266,26 @@ export interface CardSubtarefa {
 export type CampoConfiguravel = 'situacao' | 'prioridade' | 'tipo_conteudo'
 
 /** Opção de um dos campos configuráveis dos cards, com o nome que a equipe deu (migration 0003). */
+/** Cobrança vinda do Asaas pelo webhook (migration 0006). Só a liderança lê. */
+export interface ReceitaAsaas {
+  id: string
+  asaas_id: string
+  cliente_id: string | null
+  asaas_customer_id: string | null
+  nome_cliente_asaas: string | null
+  descricao: string | null
+  valor: number | null
+  data_vencimento: string | null
+  data_pagamento: string | null
+  /** Como o Asaas manda: PENDING, RECEIVED, CONFIRMED, OVERDUE, REFUNDED, DELETED... */
+  status: string | null
+  forma_pagamento: string | null
+  tipo: string | null
+  vinculado: boolean
+  criado_em: string
+  atualizado_em: string
+}
+
 export type EtapaDoLead = 'leads' | 'reuniao' | 'fechamento'
 
 /** Lead do CRM (migration 0004). Só a liderança lê. */

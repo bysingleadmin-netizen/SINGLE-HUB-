@@ -22,6 +22,7 @@ export type Tabela =
   | 'card_options'
   | 'leads'
   | 'lead_historico'
+  | 'receitas_asaas'
 
 interface ComId {
   id: string

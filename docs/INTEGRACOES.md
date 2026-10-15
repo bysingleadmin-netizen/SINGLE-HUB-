@@ -116,6 +116,38 @@ Ninguém cadastra pagamento à mão. Para cada cliente ativo com valor mensal e 
 
 Quem gera e ajusta as cobranças é o próprio app, no navegador de alguém da liderança (só a liderança pode gravar pagamentos). Basta uma pessoa da liderança abrir o sistema para o mês novo ganhar suas cobranças. Não há tarefa agendada no servidor.
 
+## Asaas (cobranças pelo webhook)
+
+O Asaas avisa o sistema a cada cobrança criada, paga, vencida, estornada ou excluída. A Edge
+Function `asaas-webhook` grava cada uma em `receitas_asaas` e tenta achar o cliente: primeiro
+pelo id do cliente do Asaas já ligado; senão, pelas duas primeiras palavras do nome, só quando um
+único cliente casar. O que não for achado aparece em Financeiro > Cobranças Asaas com o botão
+"Vincular cliente".
+
+- [ ] Rodar `supabase/migrations/0006_asaas.sql` no SQL Editor (depois da 0005)
+- [ ] Em Edge Functions > Secrets, cadastrar `ASAAS_WEBHOOK_TOKEN` com o token de autenticação do webhook (o mesmo que vai no Asaas). `ASAAS_API_KEY` ainda não é usada: fica para a sincronização manual.
+- [ ] Publicar a função, sem verificação de JWT (o Asaas não tem login no Supabase; quem protege a função é o token):
+  `supabase functions deploy asaas-webhook --no-verify-jwt --project-ref <ref do projeto>`
+- [ ] No Asaas, em Integrações > Webhooks, criar um webhook com a URL
+  `https://<ref do projeto>.supabase.co/functions/v1/asaas-webhook`, o mesmo token em "Token de
+  autenticação" e os eventos de cobrança marcados
+
+Como a função responde:
+
+| Situação | Resposta |
+|---|---|
+| Token ausente ou diferente de `ASAAS_WEBHOOK_TOKEN` | 401, e nada é gravado |
+| Evento de cobrança (`PAYMENT_*`) | grava ou atualiza a cobrança pelo id dela e responde 200 |
+| Outros eventos (assinatura, conta) | ignorados, 200 |
+| Falha ao gravar | vai para o log da função (Edge Functions > asaas-webhook > Logs) e responde 200 |
+
+A resposta é 200 mesmo quando a gravação falha porque o Asaas pausa a fila de eventos depois de
+várias respostas de erro seguidas. Se algo der errado, a cobrança aparece no log e pode ser
+reenviada pelo painel do Asaas.
+
+As cobranças do Asaas aparecem na aba própria e ainda não entram no Recebido, no DRE nem nas
+cobranças geradas pelo sistema em `client_payments`.
+
 ## GitHub (código)
 
 - [x] Repositório criado

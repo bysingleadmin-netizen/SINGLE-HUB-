@@ -621,3 +621,62 @@ describe('Meta e Tráfego', () => {
     expect(bancoFalso().tabelas.traffic_metrics).toHaveLength(0)
   })
 })
+
+describe('Cobranças Asaas', () => {
+  const CLIENTES = [
+    { id: 'c1', nome: 'Clínica Aurora', status: 'ativo', mrr: 2000, asaas_customer_id: 'cus_1' },
+    { id: 'c2', nome: 'Padaria Sol', status: 'ativo', mrr: 800, asaas_customer_id: null },
+  ]
+  const RECEITAS = [
+    { id: 'r1', asaas_id: 'pay_1', cliente_id: 'c1', asaas_customer_id: 'cus_1', nome_cliente_asaas: 'Aurora Clínica ME', descricao: 'Mensalidade', valor: 2000, data_vencimento: '2026-10-10', data_pagamento: '2026-10-09', status: 'RECEIVED', forma_pagamento: 'PIX', tipo: 'PIX', vinculado: true, criado_em: '2026-10-01', atualizado_em: '2026-10-09' },
+    { id: 'r2', asaas_id: 'pay_2', cliente_id: null, asaas_customer_id: 'cus_2', nome_cliente_asaas: 'Sol Panificadora', descricao: 'Mensalidade', valor: 800, data_vencimento: '2026-10-20', data_pagamento: null, status: 'PENDING', forma_pagamento: 'BOLETO', tipo: 'SUBSCRIPTION', vinculado: false, criado_em: '2026-10-01', atualizado_em: '2026-10-01' },
+    { id: 'r3', asaas_id: 'pay_3', cliente_id: null, asaas_customer_id: 'cus_2', nome_cliente_asaas: 'Sol Panificadora', descricao: 'Setembro', valor: 800, data_vencimento: '2026-09-20', data_pagamento: null, status: 'OVERDUE', forma_pagamento: 'BOLETO', tipo: 'BOLETO', vinculado: false, criado_em: '2026-09-01', atualizado_em: '2026-09-21' },
+    { id: 'r4', asaas_id: 'pay_4', cliente_id: null, asaas_customer_id: 'cus_3', nome_cliente_asaas: 'Outro', descricao: null, valor: 50, data_vencimento: '2026-09-01', data_pagamento: null, status: 'DELETED', forma_pagamento: 'PIX', tipo: 'PIX', vinculado: false, criado_em: '2026-09-01', atualizado_em: '2026-09-02' },
+  ]
+
+  it('lista as cobranças com o status em cor e o cliente vinculado', async () => {
+    abrir('asaas', { clients: CLIENTES, receitas_asaas: RECEITAS })
+    const lista = within(await screen.findByRole('region', { name: 'Cobranças Asaas' }))
+    const linha = (nome: string) => within(lista.getByText(nome, { selector: '[data-cobranca] *' }).closest('[data-cobranca]') as HTMLElement)
+
+    expect(await lista.findByText('Clínica Aurora')).toBeInTheDocument()
+    expect(linha('Clínica Aurora').getByText('Recebido')).toBeInTheDocument()
+    expect(lista.getAllByText('Sol Panificadora')).toHaveLength(2)
+    expect(lista.getByText('Pendente')).toBeInTheDocument()
+    expect(lista.getByText('Atrasado')).toBeInTheDocument()
+    expect(lista.getByText('Cancelado')).toBeInTheDocument()
+    expect(lista.getAllByRole('button', { name: /^Vincular cliente/ })).toHaveLength(3)
+    expect(lista.getByText('3 cobranças sem cliente vinculado')).toBeInTheDocument()
+  })
+
+  it('vincular salva o id do Asaas no cliente e vincula todas as cobranças dele', async () => {
+    abrir('asaas', { clients: CLIENTES, receitas_asaas: RECEITAS })
+    const lista = within(await screen.findByRole('region', { name: 'Cobranças Asaas' }))
+    fireEvent.click((await lista.findAllByRole('button', { name: 'Vincular cliente de Sol Panificadora' }))[0])
+
+    const modal = within(screen.getByRole('dialog', { name: 'Vincular cliente' }))
+    fireEvent.change(modal.getByLabelText('Cliente'), { target: { value: 'c2' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Vincular' }))
+
+    expect(await screen.findByText('Cobranças de Sol Panificadora vinculadas a Padaria Sol.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.clients.find((c) => c.id === 'c2')).toMatchObject({ asaas_customer_id: 'cus_2' })
+    const deCus2 = bancoFalso().tabelas.receitas_asaas.filter((r) => r.asaas_customer_id === 'cus_2')
+    expect(deCus2.every((r) => r.vinculado === true && r.cliente_id === 'c2')).toBe(true)
+    await waitFor(() => expect(lista.getAllByRole('button', { name: /^Vincular cliente/ })).toHaveLength(1))
+  })
+
+  it('não vincula sem escolher o cliente', async () => {
+    abrir('asaas', { clients: CLIENTES, receitas_asaas: RECEITAS })
+    fireEvent.click((await within(await screen.findByRole('region', { name: 'Cobranças Asaas' })).findAllByRole('button', { name: 'Vincular cliente de Sol Panificadora' }))[0])
+    const modal = within(screen.getByRole('dialog', { name: 'Vincular cliente' }))
+    fireEvent.click(modal.getByRole('button', { name: 'Vincular' }))
+    expect(await modal.findByText('Escolha o cliente.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.clients.find((c) => c.id === 'c2')).toMatchObject({ asaas_customer_id: null })
+  })
+
+  it('sem a tabela no banco, explica o que falta configurar', async () => {
+    abrir('asaas', { clients: CLIENTES })
+    bancoFalso().tabelasAusentes = ['receitas_asaas']
+    expect(await screen.findByText('As cobranças do Asaas aparecem depois da migration 0006.')).toBeInTheDocument()
+  })
+})

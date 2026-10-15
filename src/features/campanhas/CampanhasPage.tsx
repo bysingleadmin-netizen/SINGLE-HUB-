@@ -5,18 +5,21 @@ import { Abas } from '@/components/ui/Abas'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
+import { ConfirmarExclusao, MenuDeAcoes } from '@/components/ui/MenuDeAcoes'
 import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useColunasOpcionais } from '@/dados/esquema'
+import { useExcluir } from '@/dados/excluir'
 import { useCampanhas, useClientes } from '@/dados/tabelas'
 import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
 import { otimizacaoPendente } from '@/lib/regras'
 import { STATUS_CAMPANHA, opcao } from '@/lib/rotulos'
-import type { CampaignStatus } from '@/types/database'
+import type { Campaign, CampaignStatus } from '@/types/database'
 import { CampanhaModal } from './CampanhaModal'
 import { QuadroDeAnuncios } from './QuadroDeAnuncios'
 import { TarefasDeAnuncio } from './TarefasDeAnuncio'
@@ -34,7 +37,20 @@ function Anuncios() {
   const campanhas = useCampanhas()
   const clientes = useClientes()
   const [criando, setCriando] = useState(false)
+  const [editando, setEditando] = useState<Campaign>()
+  const [confirmando, setConfirmando] = useState<string>()
   const [status, setStatus] = useState<CampaignStatus | ''>('')
+  // Excluir o anúncio leva as tarefas dele (on delete cascade no banco)
+  const excluir = useExcluir<Campaign>({ tabela: 'campaigns', recarregar: ['campaign_tasks'] })
+  const toast = useToast()
+
+  function aoExcluir(campanha: Campaign) {
+    setConfirmando(undefined)
+    excluir.mutate(campanha.id, {
+      onSuccess: () => toast.sucesso('Anúncio excluído.'),
+      onError: () => toast.erro('Não foi possível excluir o anúncio.'),
+    })
+  }
 
   const consultas = juntarConsultas(campanhas, clientes)
   const lista = campanhas.data ?? []
@@ -98,8 +114,30 @@ function Anuncios() {
                     <Pill tom="vermelho">Otimização pendente</Pill>
                   )}
                   <Pill tom={situacao.tom}>{situacao.rotulo}</Pill>
+                  <MenuDeAcoes
+                    className={styles.itemAcoes}
+                    rotulo={`Ações de ${campanha.nome}`}
+                    acoes={[
+                      { rotulo: 'Editar', icone: 'editar', onEscolher: () => setEditando(campanha) },
+                      {
+                        rotulo: 'Excluir',
+                        icone: 'lixeira',
+                        perigo: true,
+                        onEscolher: () => setConfirmando(campanha.id),
+                      },
+                    ]}
+                  />
                   <span className={styles.itemValor}>{formatarMoeda(Number(campanha.orcamento))}</span>
                 </div>
+                {confirmando === campanha.id && (
+                  <div className={styles.itemConfirmar}>
+                    <ConfirmarExclusao
+                      nome={campanha.nome}
+                      onCancelar={() => setConfirmando(undefined)}
+                      onConfirmar={() => aoExcluir(campanha)}
+                    />
+                  </div>
+                )}
               </li>
             )
           })}
@@ -108,6 +146,13 @@ function Anuncios() {
 
       {criando && (
         <CampanhaModal clientes={clientes.data ?? []} onFechar={() => setCriando(false)} />
+      )}
+      {editando && (
+        <CampanhaModal
+          campanha={editando}
+          clientes={clientes.data ?? []}
+          onFechar={() => setEditando(undefined)}
+        />
       )}
     </>
   )

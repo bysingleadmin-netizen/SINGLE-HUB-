@@ -12,6 +12,8 @@ import {
 } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { Icone } from '@/components/ui/Icone'
+import { ConfirmarExclusao, MenuDeAcoes } from '@/components/ui/MenuDeAcoes'
+import type { AcaoDoMenu } from '@/components/ui/MenuDeAcoes'
 import { agrupar, destinoDoArraste, reordenarColunas } from './colunas'
 import type { ItemQuadro } from './colunas'
 import styles from './quadro.module.css'
@@ -42,8 +44,10 @@ interface QuadroProps<T extends ItemQuadro> {
   onMover: (item: T, coluna: string) => void
   onCriar: (coluna: string) => void
   onAbrir: (item: T) => void
-  /** Sem ele, os cards não têm o botão de arquivar */
+  /** Sem ele, o menu do card não tem Arquivar */
   onArquivar?: (item: T) => void
+  /** Exclusão definitiva, depois da confirmação no card. Sem ele, o menu não tem Excluir */
+  onExcluir?: (item: T) => void
   /** Colunas em que o + de criar aparece; sem ele, todas */
   podeCriar?: (coluna: string) => boolean
   edicao?: EdicaoDeColunas
@@ -62,10 +66,19 @@ interface CardProps {
   rodape?: ReactNode
   onAbrir: () => void
   onArquivar?: () => void
+  onExcluir?: () => void
 }
 
-function Card({ id, titulo, atrasado, children, rodape, onAbrir, onArquivar }: CardProps) {
+function Card({ id, titulo, atrasado, children, rodape, onAbrir, onArquivar, onExcluir }: CardProps) {
   const { setNodeRef, listeners, isDragging } = useDraggable({ id })
+  const [confirmando, setConfirmando] = useState(false)
+  const acoes: AcaoDoMenu[] = [
+    { rotulo: 'Editar', icone: 'editar', onEscolher: onAbrir },
+    ...(onArquivar ? [{ rotulo: 'Arquivar', icone: 'arquivar' as const, onEscolher: onArquivar }] : []),
+    ...(onExcluir
+      ? [{ rotulo: 'Excluir', icone: 'lixeira' as const, perigo: true, onEscolher: () => setConfirmando(true) }]
+      : []),
+  ]
   return (
     <div
       ref={setNodeRef}
@@ -87,16 +100,21 @@ function Card({ id, titulo, atrasado, children, rodape, onAbrir, onArquivar }: C
           {rodape}
         </div>
       )}
-      {onArquivar && (
-        <button
-          type="button"
-          className={styles.cardArquivar}
-          aria-label={`Arquivar ${titulo}`}
-          title="Arquivar"
-          onClick={onArquivar}
-        >
-          <Icone nome="arquivar" tamanho={16} />
-        </button>
+      {/* Só Editar repetiria o clique no card: o menu aparece quando há mais o que fazer */}
+      {acoes.length > 1 && (
+        <MenuDeAcoes className={styles.cardAcoes} rotulo={`Ações de ${titulo}`} acoes={acoes} />
+      )}
+      {confirmando && onExcluir && (
+        <div className={styles.cardConfirmar}>
+          <ConfirmarExclusao
+            nome={titulo}
+            onCancelar={() => setConfirmando(false)}
+            onConfirmar={() => {
+              setConfirmando(false)
+              onExcluir()
+            }}
+          />
+        </div>
       )}
     </div>
   )
@@ -237,6 +255,7 @@ export function Quadro<T extends ItemQuadro>({
   onCriar,
   onAbrir,
   onArquivar,
+  onExcluir,
   podeCriar,
   edicao,
   renderRodape,
@@ -316,6 +335,7 @@ export function Quadro<T extends ItemQuadro>({
                   rodape={renderRodape?.(item)}
                   onAbrir={() => onAbrir(item)}
                   onArquivar={onArquivar ? () => onArquivar(item) : undefined}
+                  onExcluir={onExcluir ? () => onExcluir(item) : undefined}
                 >
                   {renderCard(item)}
                 </Card>

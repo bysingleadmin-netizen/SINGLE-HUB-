@@ -286,7 +286,8 @@ describe('DemandasPage', () => {
   it('arquiva pelo card e some do quadro', async () => {
     popular()
     renderizar(<DemandasPage />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Arquivar Roteiro de reels' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Ações de Roteiro de reels' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Arquivar' }))
 
     expect(await screen.findByText('Demanda arquivada.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.tasks[0].status).toBe('arquivado')
@@ -296,12 +297,49 @@ describe('DemandasPage', () => {
   it('se o banco recusa o arquivamento, avisa e o card volta', async () => {
     popular()
     renderizar(<DemandasPage />)
-    const botao = await screen.findByRole('button', { name: 'Arquivar Roteiro de reels' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Ações de Roteiro de reels' }))
     bancoFalso().erroEscrita = { message: 'negado' }
-    fireEvent.click(botao)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Arquivar' }))
 
     expect(await screen.findByText('Não foi possível mover a demanda.')).toBeInTheDocument()
     expect(await coluna('A Fazer').findByText('Roteiro de reels')).toBeInTheDocument()
+  })
+
+  async function excluirPeloMenu(titulo: string) {
+    fireEvent.click(await screen.findByRole('button', { name: `Ações de ${titulo}` }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
+  }
+
+  it('exclui de vez pelo menu do card, levando as subtarefas e os anexos dele', async () => {
+    popular()
+    bancoFalso().tabelas.card_subtarefas = [
+      { id: 's1', quadro: 'demandas', card_id: 't1', titulo: 'Gravar', feita: false, posicao: 1 },
+      { id: 's2', quadro: 'demandas', card_id: 't2', titulo: 'Outra', feita: false, posicao: 1 },
+    ]
+    bancoFalso().tabelas.card_attachments = [
+      { id: 'a1', quadro: 'demandas', card_id: 't1', tipo: 'link', url: 'https://figma.com', nome: 'figma.com' },
+    ]
+    renderizar(<DemandasPage />)
+    await excluirPeloMenu('Roteiro de reels')
+
+    expect(await screen.findByText('Demanda excluída.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Roteiro de reels')).not.toBeInTheDocument())
+    expect(bancoFalso().tabelas.tasks.map((t) => t.id)).toEqual(['t2', 't3'])
+    expect(bancoFalso().tabelas.card_subtarefas.map((s) => s.id)).toEqual(['s2'])
+    expect(bancoFalso().tabelas.card_attachments).toEqual([])
+  })
+
+  it('se o banco recusa a exclusão, avisa e o card fica', async () => {
+    popular()
+    renderizar(<DemandasPage />)
+    await screen.findByText('Roteiro de reels')
+    bancoFalso().erroEscrita = { message: 'negado' }
+    await excluirPeloMenu('Roteiro de reels')
+
+    expect(await screen.findByText('Não foi possível excluir a demanda.')).toBeInTheDocument()
+    expect(coluna('A Fazer').getByText('Roteiro de reels')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.tasks).toHaveLength(3)
   })
 
   async function abrirCard() {

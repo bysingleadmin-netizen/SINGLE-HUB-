@@ -128,3 +128,17 @@ begin
   end;
   update auth.uid_atual set id = null;
 end $$;
+
+-- 5. Limpeza diária leva subtarefas e anexos das tarefas internas
+do $$
+declare
+  tarefa uuid;
+begin
+  insert into public.tasks (titulo, quadro, status, archived_at)
+  values ('Interna velha', 'tarefas', 'arquivado', now() - interval '40 days') returning id into tarefa;
+  insert into public.card_subtarefas (quadro, card_id, titulo) values ('tarefas', tarefa, 'Sobra');
+  perform public.limpar_cards();
+  if exists (select 1 from public.card_subtarefas where card_id = tarefa) then
+    raise exception 'subtarefa da tarefa interna ficou depois da limpeza';
+  end if;
+end $$;

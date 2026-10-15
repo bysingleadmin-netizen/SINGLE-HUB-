@@ -179,7 +179,8 @@ describe('ConteudoPage', () => {
   it('arquiva pelo card e some do quadro', async () => {
     popular()
     renderizar(<ConteudoPage />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Arquivar Carrossel de dicas' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Ações de Carrossel de dicas' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Arquivar' }))
 
     expect(await screen.findByText('Conteúdo arquivado.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.content_cards[1].etapa).toBe('arquivado')
@@ -189,9 +190,9 @@ describe('ConteudoPage', () => {
   it('se o banco recusa o arquivamento, avisa e o card volta', async () => {
     popular()
     renderizar(<ConteudoPage />)
-    const botao = await screen.findByRole('button', { name: 'Arquivar Carrossel de dicas' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Ações de Carrossel de dicas' }))
     bancoFalso().erroEscrita = { message: 'negado' }
-    fireEvent.click(botao)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Arquivar' }))
 
     expect(await screen.findByText('Não foi possível mover o conteúdo.')).toBeInTheDocument()
     expect(await coluna('Editar').findByText('Carrossel de dicas')).toBeInTheDocument()

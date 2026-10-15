@@ -19,11 +19,13 @@ import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 import { useAnexos } from '@/dados/anexos'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useColunasDoQuadro } from '@/dados/colunas'
 import { useComentarios } from '@/dados/comentarios'
 import { useColunasOpcionais } from '@/dados/esquema'
+import { useExcluir } from '@/dados/excluir'
 import { useOpcoes } from '@/dados/opcoes'
 import { resumir, useSubtarefas } from '@/dados/subtarefas'
 import { useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
@@ -51,6 +53,8 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
   const comentarios = useComentarios()
   const anexos = useAnexos(quadro)
   const subtarefas = useSubtarefas(quadro)
+  const excluir = useExcluir<Task>({ tabela: 'tasks', quadro })
+  const toast = useToast()
   const situacoes = useOpcoes('situacao', SITUACOES)
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
   const [verArquivados, setVerArquivados] = useState(false)
@@ -293,6 +297,12 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
               )}
               onMover={(tarefa, destino) => mover(tarefa, destino, todas)}
               onArquivar={(tarefa) => mover(tarefa, 'arquivado', todas)}
+              onExcluir={(tarefa) =>
+                excluir.mutate(tarefa.id, {
+                  onSuccess: () => toast.sucesso(`${texto.Item} excluída.`),
+                  onError: () => toast.erro(`Não foi possível excluir a ${texto.item}.`),
+                })
+              }
               onCriar={(status) =>
                 criar({ categoria: quadro === 'tarefas' ? 'tarefa' : 'demanda', status: status as TaskStatus })
               }

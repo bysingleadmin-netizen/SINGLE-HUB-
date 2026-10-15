@@ -127,8 +127,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.colunaCriar,
-.cardArquivar {
+.colunaCriar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -146,8 +145,7 @@
     opacity 0.18s ease;
 }
 
-.colunaCriar:hover,
-.cardArquivar:hover {
+.colunaCriar:hover {
   background: var(--surface-2);
   color: var(--text);
 }
@@ -217,22 +215,46 @@
   cursor: pointer;
 }
 
-.cardArquivar {
+/* Menu ⋯ do card: aparece ao passar o mouse; no toque fica sempre à vista */
+.cardAcoes {
   position: absolute;
   top: 6px;
   right: 6px;
   opacity: 0;
+  transition: opacity 0.12s ease;
 }
 
-.card:hover .cardArquivar,
-.cardArquivar:focus-visible {
+.card:hover .cardAcoes,
+.cardAcoes:focus-within,
+.cardAcoes[data-aberto] {
   opacity: 1;
 }
 
 @media (hover: none) {
-  .cardArquivar {
+  .cardAcoes {
     opacity: 1;
   }
+}
+
+/* Com o menu aberto, o card fica acima dos vizinhos para a lista não ficar por baixo deles */
+.card:has([data-aberto]) {
+  z-index: 5;
+}
+
+/* A confirmação cobre o card, sem mudar o tamanho dele */
+.cardConfirmar {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.cardConfirmar > * {
+  width: 100%;
 }
 
 /* Miolo do card */
@@ -372,8 +394,7 @@
   }
 
   /* Alvo de toque: no dedo, 30px é pouco */
-  .colunaCriar,
-  .cardArquivar {
+  .colunaCriar {
     width: 38px;
     height: 38px;
   }

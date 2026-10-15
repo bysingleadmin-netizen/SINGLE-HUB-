@@ -84,6 +84,37 @@
   gap: 10px;
 }
 
+/* Menu ⋯ antes do valor, acima do link que cobre o card. Aparece ao passar o mouse; no toque
+   fica sempre à vista */
+.itemAcoes {
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.item:hover .itemAcoes,
+.itemAcoes:focus-within,
+.itemAcoes[data-aberto] {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .itemAcoes {
+    opacity: 1;
+  }
+}
+
+.item:has([data-aberto]) {
+  z-index: 5;
+}
+
+/* Confirmação da exclusão: linha inteira embaixo, acima do link */
+.itemConfirmar {
+  position: relative;
+  z-index: 2;
+  flex-basis: 100%;
+}
+
 .itemValor {
   min-width: 110px;
   font-weight: 600;

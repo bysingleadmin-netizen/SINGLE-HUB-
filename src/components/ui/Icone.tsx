@@ -167,6 +167,13 @@ const DESENHOS = {
       <path d="M12 7.5v5l3 2" />
     </>
   ),
+  acoes: (
+    <>
+      <circle cx="5.5" cy="12" r="1.1" />
+      <circle cx="12" cy="12" r="1.1" />
+      <circle cx="18.5" cy="12" r="1.1" />
+    </>
+  ),
   lua: <path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10Z" />,
   sol: (
     <>

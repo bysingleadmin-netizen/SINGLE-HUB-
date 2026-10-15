@@ -27,7 +27,7 @@ const ITENS: Item[] = [
 ]
 
 function montar(itens = ITENS) {
-  const acoes = { onMover: vi.fn(), onCriar: vi.fn(), onAbrir: vi.fn(), onArquivar: vi.fn() }
+  const acoes = { onMover: vi.fn(), onCriar: vi.fn(), onAbrir: vi.fn(), onArquivar: vi.fn(), onExcluir: vi.fn() }
   render(
     <Quadro
       colunas={COLUNAS}
@@ -70,7 +70,8 @@ describe('Quadro', () => {
 
   it('arquiva sem abrir', () => {
     const { onArquivar, onAbrir } = montar()
-    fireEvent.click(screen.getByRole('button', { name: 'Arquivar Segundo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Segundo' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Arquivar' }))
     expect(onArquivar).toHaveBeenCalledWith(ITENS[0])
     expect(onAbrir).not.toHaveBeenCalled()
   })
@@ -94,6 +95,41 @@ describe('Quadro', () => {
     expect(
       screen.queryByRole('button', { name: `Adicionar em ${COLUNAS[1].titulo}` }),
     ).not.toBeInTheDocument()
+  })
+
+  it('o menu ⋯ do card edita, arquiva e só exclui depois de confirmar no próprio card', () => {
+    const { onAbrir, onExcluir } = montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Segundo' }))
+    const menu = within(screen.getByRole('menu', { name: 'Ações de Segundo' }))
+    expect(menu.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Editar', 'Arquivar', 'Excluir'])
+
+    fireEvent.click(menu.getByRole('menuitem', { name: 'Excluir' }))
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    expect(screen.getByText('Excluir Segundo? Esta ação não pode ser desfeita.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByText(/não pode ser desfeita/)).not.toBeInTheDocument()
+    expect(onExcluir).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Segundo' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Excluir' }))
+    expect(onExcluir).toHaveBeenCalledWith(ITENS[0])
+    expect(onAbrir).not.toHaveBeenCalled()
+  })
+
+  it('Editar abre o card; Escape e clique fora fecham o menu', () => {
+    const { onAbrir } = montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Primeiro' }))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Primeiro' }))
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Primeiro' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
+    expect(onAbrir).toHaveBeenCalledWith(ITENS[1])
   })
 
   it('marca o card atrasado', () => {

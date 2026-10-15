@@ -19,10 +19,12 @@ import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 import { useAnexos } from '@/dados/anexos'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useColunasDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
+import { useExcluir } from '@/dados/excluir'
 import { useOpcoes } from '@/dados/opcoes'
 import { resumir, useSubtarefas } from '@/dados/subtarefas'
 import { useCards, useClientes, usePerfis } from '@/dados/tabelas'
@@ -41,6 +43,8 @@ function cardAtrasado(card: ContentCard, hoje: string): boolean {
 
 export function ConteudoPage() {
   const cards = useCards()
+  const excluir = useExcluir<ContentCard>({ tabela: 'content_cards', quadro: 'conteudo' })
+  const toast = useToast()
   const clientes = useClientes()
   const perfis = usePerfis()
   const criar = useCriar()
@@ -265,6 +269,12 @@ export function ConteudoPage() {
               )}
               onMover={(card, destino) => mover(card, destino, todos)}
               onArquivar={(card) => mover(card, 'arquivado', todos)}
+              onExcluir={(card) =>
+                excluir.mutate(card.id, {
+                  onSuccess: () => toast.sucesso('Conteúdo excluído.'),
+                  onError: () => toast.erro('Não foi possível excluir o conteúdo.'),
+                })
+              }
               onCriar={(etapa) => criar({ categoria: 'conteudo', etapa: etapa as ContentEtapa })}
               onAbrir={abrir}
             />

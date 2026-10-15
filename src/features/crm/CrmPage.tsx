@@ -5,6 +5,8 @@ import { useMover } from '@/components/quadro/useMover'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
+import { useExcluir } from '@/dados/excluir'
 import { registrarMudancaDeEtapa, useLeads } from '@/dados/leads'
 import { useAuth } from '@/features/auth/AuthContext'
 import type { EtapaDoLead, Lead } from '@/types/database'
@@ -21,6 +23,9 @@ export function CrmPage() {
   const { perfil } = useAuth()
   const [formulario, setFormulario] = useState<Formulario>()
   const [convertendo, setConvertendo] = useState<Lead>()
+  // O histórico do lead sai junto (on delete cascade)
+  const excluir = useExcluir<Lead>({ tabela: 'leads' })
+  const toast = useToast()
 
   const mover = useMover<Lead>({
     tabela: 'leads',
@@ -96,6 +101,12 @@ export function CrmPage() {
         onMover={aoMover}
         onCriar={(coluna) => setFormulario({ etapa: coluna as EtapaDoLead })}
         onAbrir={(lead) => setFormulario({ lead, etapa: lead.etapa })}
+        onExcluir={(lead) =>
+          excluir.mutate(lead.id, {
+            onSuccess: () => toast.sucesso('Lead excluído.'),
+            onError: () => toast.erro('Não foi possível excluir o lead.'),
+          })
+        }
       />
 
       {formulario && (

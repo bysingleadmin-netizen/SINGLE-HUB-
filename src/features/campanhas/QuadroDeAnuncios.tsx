@@ -7,8 +7,10 @@ import { useMover } from '@/components/quadro/useMover'
 import { EstadoErro } from '@/components/ui/Estado'
 import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useColunasDoQuadro } from '@/dados/colunas'
+import { useExcluir } from '@/dados/excluir'
 import { useCampanhas, useClientes, usePerfis, useTarefasDeCampanha } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
 import { COLUNAS_ANUNCIO, FUNCOES_CAMPANHA } from '@/lib/rotulos'
@@ -24,6 +26,8 @@ export function QuadroDeAnuncios() {
   const perfis = usePerfis()
   const criar = useCriar()
   const navigate = useNavigate()
+  const excluir = useExcluir<CampaignTask>({ tabela: 'campaign_tasks' })
+  const toast = useToast()
   const { colunas, titulo, edicao, carregando } = useColunasDoQuadro('anuncios', COLUNAS_ANUNCIO)
 
   const mover = useMover<TarefaNoQuadro>({
@@ -79,6 +83,12 @@ export function QuadroDeAnuncios() {
         onMover={(tarefa, destino) => mover(tarefa, destino, itens)}
         onCriar={(coluna) => criar({ categoria: 'campanha', statusDeAnuncio: coluna })}
         onAbrir={(tarefa) => navigate(`/app/anuncios/${tarefa.campaign_id}`)}
+        onExcluir={(tarefa) =>
+          excluir.mutate(tarefa.id, {
+            onSuccess: () => toast.sucesso('Tarefa de anúncio excluída.'),
+            onError: () => toast.erro('Não foi possível excluir a tarefa de anúncio.'),
+          })
+        }
       />
     </>
   )

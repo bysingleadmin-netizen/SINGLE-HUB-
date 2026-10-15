@@ -203,4 +203,48 @@ begin
   end if;
 end $$;
 
+-- A limpeza diária da 0003 também leva as subtarefas e os anexos das tarefas internas, que
+-- ficam na tabela tasks mas com quadro 'tarefas'
+create or replace function public.limpar_cards()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  -- Concluído há mais de 7 dias: sai do quadro. O prazo de exclusão conta do fim dos 7 dias.
+  update public.tasks
+  set status = 'arquivado', archived_at = concluded_at + interval '7 days'
+  where status <> 'arquivado' and concluded_at < now() - interval '7 days';
+
+  update public.content_cards
+  set etapa = 'arquivado', archived_at = concluded_at + interval '7 days'
+  where etapa <> 'arquivado' and concluded_at < now() - interval '7 days';
+
+  -- Arquivado há mais de 30 dias: excluído, junto com o que pertence ao card.
+  with excluidos as (
+    delete from public.tasks
+    where status = 'arquivado' and archived_at < now() - interval '30 days'
+    returning id
+  ), sem_subtarefas as (
+    delete from public.card_subtarefas
+    where quadro in ('demandas', 'tarefas') and card_id in (select id from excluidos)
+  )
+  delete from public.card_attachments
+  where quadro in ('demandas', 'tarefas') and card_id in (select id from excluidos);
+
+  with excluidos as (
+    delete from public.content_cards
+    where etapa = 'arquivado' and archived_at < now() - interval '30 days'
+    returning id
+  ), sem_subtarefas as (
+    delete from public.card_subtarefas
+    where quadro = 'conteudo' and card_id in (select id from excluidos)
+  )
+  delete from public.card_attachments
+  where quadro = 'conteudo' and card_id in (select id from excluidos);
+end $$;
+
+revoke all on function public.limpar_cards() from public, anon, authenticated;
+
 commit;

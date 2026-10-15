@@ -164,6 +164,30 @@ describe('CampanhasPage', () => {
     expect(within(tabela.getByRole('row', { name: /De outra campanha/ })).getByText('A fazer')).toBeInTheDocument()
   })
 
+  it('exclui um anúncio pelo menu da lista, só depois de confirmar', async () => {
+    popular()
+    renderizar(<CampanhasPage />)
+    abrirCampanhas()
+    const linha = within((await screen.findByRole('link', { name: 'Black Friday' })).closest('li')!)
+    fireEvent.click(linha.getByRole('button', { name: 'Ações de Black Friday' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir' }))
+    expect(linha.getByText('Excluir Black Friday? Esta ação não pode ser desfeita.')).toBeInTheDocument()
+    fireEvent.click(linha.getByRole('button', { name: 'Excluir' }))
+
+    expect(await screen.findByText('Anúncio excluído.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Black Friday' })).not.toBeInTheDocument())
+    expect(bancoFalso().tabelas.campaigns.map((c) => c.id)).toEqual(['g2'])
+  })
+
+  it('Editar no menu da lista abre o anúncio para edição', async () => {
+    popular()
+    renderizar(<CampanhasPage />)
+    abrirCampanhas()
+    fireEvent.click(await screen.findByRole('button', { name: 'Ações de Institucional' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
+    expect(within(screen.getByRole('dialog')).getByLabelText('Nome')).toHaveValue('Institucional')
+  })
+
   it('cria a campanha, aceita orçamento com vírgula e registra a atividade', async () => {
     bancoFalso().reiniciar({ clients: [CLIENTE] })
     renderizar(<CampanhasPage />)

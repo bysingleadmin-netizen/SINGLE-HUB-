@@ -1,0 +1,172 @@
+.menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.gatilho {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.gatilho:hover,
+.menu[data-aberto] .gatilho {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.lista {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 168px;
+  padding: 6px;
+  background: var(--surface-flutuante);
+  border: 1px solid var(--campo-borda);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px var(--sombra);
+  animation: menuEntra 0.12s ease-out both;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.item svg {
+  color: var(--text-fraco);
+}
+
+.item:hover,
+.item:focus-visible {
+  background: var(--realce-forte);
+  outline: none;
+}
+
+.item[data-perigo],
+.item[data-perigo] svg {
+  color: var(--perigo);
+}
+
+.item[data-perigo]:hover,
+.item[data-perigo]:focus-visible {
+  background: color-mix(in srgb, var(--perigo) 12%, transparent);
+}
+
+/* Confirmação no próprio item */
+.confirmar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--perigo) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--perigo) 40%, transparent);
+  border-radius: var(--radius-sm);
+  cursor: default;
+  animation: menuEntra 0.12s ease-out both;
+}
+
+.confirmarTexto {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.confirmarAcoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cancelar,
+.excluir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancelar {
+  background: transparent;
+  border-color: var(--campo-borda);
+  color: var(--text);
+}
+
+.cancelar:hover {
+  background: var(--realce-forte);
+}
+
+/* Fundo fixo nos dois temas: o branco do texto precisa de contraste */
+.excluir {
+  background: #c62828;
+  color: #fff;
+}
+
+.excluir:hover:not(:disabled) {
+  background: #b01f1f;
+}
+
+.excluir:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@keyframes menuEntra {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 767px) {
+  /* Alvos de toque maiores no celular */
+  .gatilho {
+    width: 38px;
+    height: 38px;
+  }
+
+  .item,
+  .cancelar,
+  .excluir {
+    min-height: 42px;
+  }
+}

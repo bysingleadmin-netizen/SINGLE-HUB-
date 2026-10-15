@@ -145,6 +145,19 @@ describe('criação central de tarefas', () => {
     expect(modal.getByLabelText('Etapa')).toHaveValue('editar')
   })
 
+  it('sem a coluna de quadro no banco, não oferece Tarefa, que não teria onde ficar', async () => {
+    popular()
+    bancoFalso().colunasAusentes = ['tasks.quadro']
+    const modal = await abrir()
+    await waitFor(() =>
+      expect(within(modal.getByLabelText('Tipo')).getAllByRole('option').map((o) => o.textContent)).toEqual([
+        'Conteúdo',
+        'Demanda',
+        'Anúncio',
+      ]),
+    )
+  })
+
   it('oferece os quatro tipos', async () => {
     popular()
     const modal = await abrir()

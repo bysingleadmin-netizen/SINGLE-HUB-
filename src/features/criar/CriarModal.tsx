@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Modal } from '@/components/ui/Modal'
 import { Selecao } from '@/components/ui/Selecao'
+import { useColunasOpcionais } from '@/dados/esquema'
 import ui from '@/components/ui/ui.module.css'
 import type { Categoria, PedidoDeCriacao } from './CriacaoContext'
 import { FormConteudo } from './FormConteudo'
@@ -34,17 +35,23 @@ interface CriarModalProps {
  */
 export function CriarModal({ pedido, onFechar }: CriarModalProps) {
   const { pathname } = useLocation()
-  const [categoria, setCategoria] = useState<Categoria>(
+  const esquema = useColunasOpcionais()
+  const [escolhida, setCategoria] = useState<Categoria>(
     () => pedido.categoria ?? categoriaDaRota(pathname),
   )
-  const atual = CATEGORIAS.find((item) => item.valor === categoria) ?? CATEGORIAS[0]
+  // Sem a coluna de quadro (migration 0004) a tarefa interna não tem onde ficar: o tipo some e
+  // quem estava nele passa para Demanda. Enquanto o banco é consultado, o tipo fica visível.
+  const semTarefas = esquema.pronto && !esquema.quadroTarefas
+  const categorias = semTarefas ? CATEGORIAS.filter((item) => item.valor !== 'tarefa') : CATEGORIAS
+  const categoria = semTarefas && escolhida === 'tarefa' ? 'demanda' : escolhida
+  const atual = categorias.find((item) => item.valor === categoria) ?? categorias[0]
 
   return (
     <Modal aberto titulo="Nova tarefa" onFechar={onFechar}>
       <div className={ui.formulario}>
         <Selecao
           rotulo="Tipo"
-          opcoes={CATEGORIAS}
+          opcoes={categorias}
           value={categoria}
           onChange={(evento) => setCategoria(evento.target.value as Categoria)}
         />

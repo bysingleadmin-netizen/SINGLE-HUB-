@@ -53,6 +53,8 @@ export function FormDemanda({ quadro, statusInicial, onFechar }: FormDemandaProp
 
   function aoEnviar(evento: FormEvent) {
     evento.preventDefault()
+    // Antes de saber se o banco tem a coluna de quadro, a tarefa interna cairia em Demandas
+    if (quadro === 'tarefas' && !esquema.pronto) return
     const resultado = validarTarefa(form)
     if ('erros' in resultado) {
       setErros(resultado.erros)

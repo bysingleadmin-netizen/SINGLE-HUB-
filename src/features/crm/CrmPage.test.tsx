@@ -59,7 +59,8 @@ describe('CrmPage', () => {
     popular()
     renderizar(<CrmPage />)
     expect(await screen.findByText('Ana')).toBeInTheDocument()
-    expect(screen.getAllByRole('heading').map((h) => h.textContent)).toEqual(['Leads', 'Reunião', 'Fechamento de contrato', 'Cliente'])
+    const colunas = ['Leads', 'Reunião', 'Fechamento de contrato', 'Cliente']
+    expect(screen.getAllByRole('heading').map((h) => h.textContent).filter((t) => colunas.includes(t ?? ''))).toEqual(colunas)
     expect(screen.getByRole('link', { name: 'WhatsApp de Ana' })).toHaveAttribute('href', 'https://wa.me/5527999990000')
     expect(screen.getByText('Instagram')).toBeInTheDocument()
     expect(screen.getByText('Na etapa desde hoje')).toBeInTheDocument()
@@ -169,5 +170,28 @@ describe('CrmPage', () => {
     expect(await painel.findByLabelText('Telefone')).toBeInTheDocument()
     expect(painel.queryByLabelText('Segmento')).not.toBeInTheDocument()
     expect(painel.queryByLabelText('Temperatura')).not.toBeInTheDocument()
+  })
+
+  it('acima do quadro, o funil por temperatura e a rosca de segmentos', async () => {
+    popular()
+    bancoFalso().tabelas.leads = [
+      { ...LEAD, temperatura: 'quente', segmento: 'Arquitetura' },
+      { ...LEAD, id: 'l2', nome: 'Bruno', etapa: 'leads', temperatura: 'frio', segmento: 'Arquitetura' },
+      { ...LEAD, id: 'l3', nome: 'Carla', etapa: 'leads', temperatura: 'morno', segmento: null },
+    ]
+    renderizar(<CrmPage />)
+    const funil = within(await screen.findByRole('figure', { name: 'Leads de cada etapa por temperatura' }))
+    expect(funil.getByRole('listitem', { name: 'Leads: Quente 0, Morno 1, Frio 1' })).toBeInTheDocument()
+    expect(funil.getByRole('listitem', { name: 'Fechamento de contrato: Quente 1, Morno 0, Frio 0' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Leads por segmento: Arquitetura 2, Outros 1' })).toBeInTheDocument()
+  })
+
+  it('sem a migration 0008, os gráficos não aparecem', async () => {
+    popular()
+    bancoFalso().colunasAusentes = ['leads.temperatura']
+    renderizar(<CrmPage />)
+    await screen.findByText('Ana')
+    await waitFor(() => expect(screen.queryByRole('figure')).not.toBeInTheDocument())
+    expect(screen.queryByRole('img', { name: /^Leads por segmento/ })).not.toBeInTheDocument()
   })
 })

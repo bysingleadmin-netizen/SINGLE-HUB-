@@ -85,8 +85,15 @@ describe('CampanhasPage', () => {
     })
     renderizar(<CampanhasPage />)
     expect(await screen.findByRole('button', { name: 'Abrir Escrever anúncios' })).toBeInTheDocument()
-    expect(screen.getByText('Em andamento')).toBeInTheDocument()
+    expect(screen.getAllByText('Em andamento').length).toBeGreaterThan(0)
     expect(screen.getByText('Copy')).toBeInTheDocument()
+    // Acima do quadro, quantas demandas há em cada coluna
+    const grafico = within(screen.getByRole('list', { name: 'Demandas de anúncio por coluna do quadro' }))
+    expect(grafico.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'Pendente0',
+      'Em andamento1',
+      'Concluído0',
+    ])
     expect(screen.queryByRole('button', { name: /^Arquivar / })).not.toBeInTheDocument()
   })
 

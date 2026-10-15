@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
+import { BarrasHorizontais } from '@/components/graficos/BarrasHorizontais'
 import { Abas } from '@/components/ui/Abas'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
 import { ConfirmarExclusao, MenuDeAcoes } from '@/components/ui/MenuDeAcoes'
+import { Painel } from '@/components/ui/Painel'
 import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -12,19 +14,20 @@ import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { juntarConsultas, porId } from '@/dados/base'
+import { useColunasDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
 import { useExcluir } from '@/dados/excluir'
-import { useCampanhas, useClientes, usePerfis } from '@/dados/tabelas'
+import { useCampanhas, useClientes, usePerfis, useTarefasDeCampanha } from '@/dados/tabelas'
 import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
 import { otimizacaoPendente } from '@/lib/regras'
-import { STATUS_CAMPANHA, opcao } from '@/lib/rotulos'
+import { COLUNAS_ANUNCIO, STATUS_CAMPANHA, opcao } from '@/lib/rotulos'
 import type { Campaign, CampaignStatus } from '@/types/database'
 import { CampanhaDrawer } from './CampanhaDrawer'
 import { CampanhaModal } from './CampanhaModal'
 import { QuadroDeAnuncios } from './QuadroDeAnuncios'
 import { TarefasDeAnuncio } from './TarefasDeAnuncio'
-import { periodoDaCampanha } from './campanha'
+import { demandasPorColuna, periodoDaCampanha } from './campanha'
 import styles from './campanhas.module.css'
 
 const ABAS = [
@@ -184,6 +187,31 @@ function Campanhas() {
   )
 }
 
+/** Quantas demandas há em cada coluna, de um cliente ou de todos. */
+function DemandasPorColuna() {
+  const tarefas = useTarefasDeCampanha()
+  const campanhas = useCampanhas()
+  const clientes = useClientes()
+  const { colunas } = useColunasDoQuadro('anuncios', COLUNAS_ANUNCIO)
+  const [clienteId, setClienteId] = useState('')
+  if (!tarefas.data || tarefas.data.length === 0) return null
+  const barras = demandasPorColuna(tarefas.data, colunas, clienteId, porId(campanhas.data))
+
+  return (
+    <Painel titulo="Demandas por coluna">
+      <Selecao
+        className={styles.filtro}
+        rotulo="Cliente do gráfico"
+        vazio="Todos os clientes"
+        opcoes={(clientes.data ?? []).map((c) => ({ valor: c.id, rotulo: c.nome }))}
+        value={clienteId}
+        onChange={(evento) => setClienteId(evento.target.value)}
+      />
+      <BarrasHorizontais titulo="Demandas de anúncio por coluna do quadro" itens={barras} />
+    </Painel>
+  )
+}
+
 function TarefasDosAnuncios() {
   const esquema = useColunasOpcionais()
   const [visao, setVisao] = useVisao('anuncios')
@@ -191,6 +219,7 @@ function TarefasDosAnuncios() {
   if (esquema.pronto && !esquema.posicaoAnuncio) return <TarefasDeAnuncio />
   return (
     <>
+      <DemandasPorColuna />
       <div className={styles.barra}>
         <AlternarVisao visao={visao} onMudar={setVisao} />
       </div>

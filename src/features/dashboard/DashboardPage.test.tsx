@@ -74,8 +74,8 @@ function popular() {
       },
     ],
     campaign_tasks: [
-      { id: 'ct1', campaign_id: 'g1', funcao: 'copy', titulo: 'Copy', status: 'pendente' },
-      { id: 'ct2', campaign_id: 'g1', funcao: 'copy', titulo: 'Feita', status: 'concluido' },
+      { id: 'ct1', campaign_id: 'g1', funcao: 'copy', titulo: 'Copy', status: 'pendente', created_at: '2026-01-01' },
+      { id: 'ct2', campaign_id: 'g1', funcao: 'copy', titulo: 'Feita', status: 'concluido', created_at: '2026-01-01' },
     ],
     calendar_events: [
       {
@@ -283,6 +283,16 @@ describe('DashboardPage', () => {
     expect(status.getByRole('heading', { name: 'Demandas' })).toBeInTheDocument()
     expect(status.getByRole('heading', { name: 'Conteúdo' })).toBeInTheDocument()
     expect(screen.queryByText('Cards travados')).not.toBeInTheDocument()
+  })
+
+  it('mostra demandas por cliente, a atividade da semana e a tendência dos indicadores', async () => {
+    popular()
+    renderizar(<DashboardPage />)
+    const porCliente = painel('Cards por cliente')
+    expect(await porCliente.findByRole('list', { name: 'Demandas em aberto por cliente' })).toBeInTheDocument()
+    expect(painel('Atividade da semana').getByRole('img', { name: /^Cards criados nos últimos 7 dias/ })).toBeInTheDocument()
+    expect(await screen.findByText(/^Clientes ativos nas últimas 4 semanas: /)).toBeInTheDocument()
+    expect(screen.getByText(/^Tarefas abertas nas últimas 4 semanas/).textContent).toMatch(/, 6$/)
   })
 
   it('sem cards nos quadros, a rosca dá lugar ao estado vazio', async () => {

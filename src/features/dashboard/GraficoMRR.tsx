@@ -24,6 +24,10 @@ interface GraficoMRRProps {
   nome?: string
   /** Como mostrar o valor na dica que acompanha o mouse */
   formatar?: (valor: number) => string
+  /** O período da série, para leitores de tela; por padrão, "dos últimos N meses" */
+  periodo?: string
+  /** Mostra acima do gráfico quanto o último ponto mudou em relação ao anterior */
+  comparar?: boolean
 }
 
 /**
@@ -31,7 +35,13 @@ interface GraficoMRRProps {
  * Passar o mouse mostra o valor exato do mês mais próximo; o cabeçalho compara o último
  * mês com o anterior.
  */
-export function GraficoMRR({ serie, nome = 'MRR', formatar = formatarMoeda }: GraficoMRRProps) {
+export function GraficoMRR({
+  serie,
+  nome = 'MRR',
+  formatar = formatarMoeda,
+  periodo,
+  comparar = true,
+}: GraficoMRRProps) {
   const caixa = useRef<HTMLDivElement>(null)
   const gradiente = useId()
   const [tamanho, setTamanho] = useState({ largura: 600, altura: 240 })
@@ -57,7 +67,7 @@ export function GraficoMRR({ serie, nome = 'MRR', formatar = formatarMoeda }: Gr
     pontos.length > 0
       ? `${linha} L${pontos[pontos.length - 1].x},${base} L${pontos[0].x},${base} Z`
       : ''
-  const descricao = serie.map((p) => `${p.rotulo} ${formatarMoeda(p.valor)}`).join(', ')
+  const descricao = serie.map((p) => `${p.rotulo} ${formatar(p.valor)}`).join(', ')
   const mudanca = variacao(serie)
   const destacado = ativo != null ? pontos[ativo] : undefined
 
@@ -68,7 +78,7 @@ export function GraficoMRR({ serie, nome = 'MRR', formatar = formatarMoeda }: Gr
 
   return (
     <div className={styles.graficoBloco}>
-      {mudanca != null && serie.length > 1 && (
+      {comparar && mudanca != null && serie.length > 1 && (
         <p className={styles.graficoResumo}>
           <span className={styles.graficoVariacao} data-sinal={mudanca < 0 ? 'negativo' : 'positivo'}>
             {percentual.format(mudanca)}
@@ -86,7 +96,7 @@ export function GraficoMRR({ serie, nome = 'MRR', formatar = formatarMoeda }: Gr
         <svg
           viewBox={`0 0 ${largura} ${altura}`}
           role="img"
-          aria-label={`${nome} dos últimos ${serie.length} meses: ${descricao}`}
+          aria-label={`${nome} ${periodo ?? `dos últimos ${serie.length} meses`}: ${descricao}`}
         >
           <defs>
             <linearGradient id={gradiente} x1="0" y1="0" x2="0" y2="1">

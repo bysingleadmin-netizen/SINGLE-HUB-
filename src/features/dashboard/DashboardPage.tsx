@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { BarrasHorizontais } from '@/components/graficos/BarrasHorizontais'
 import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
@@ -42,8 +43,10 @@ import {
 } from '@/lib/regras'
 import { AtividadeRecente } from './AtividadeRecente'
 import { Carga } from './Carga'
+import { GraficoMRR } from './GraficoMRR'
 import { GraficoStatus } from './GraficoStatus'
 import { cardsAtrasados, contarPorColuna } from './statusDosCards'
+import { atividadeDaSemana, cardsPorCliente, tendenciasDosIndicadores } from './tendencias'
 import styles from './dashboard.module.css'
 
 function Carregando() {
@@ -99,6 +102,15 @@ export function DashboardPage() {
   // O status de um card é a coluna em que ele está
   const porColunaDeDemandas = contarPorColuna(tarefas.data ?? [], colunasDeDemandas.colunas, (tarefa) => tarefa.status)
   const porColunaDeConteudo = contarPorColuna(cards.data ?? [], colunasDeConteudo.colunas, (card) => card.etapa)
+  const porCliente = cardsPorCliente(tarefas.data ?? [], clientes.data ?? [])
+  const semana = atividadeDaSemana(tarefas.data ?? [], cards.data ?? [], hoje)
+  const tendencias = tendenciasDosIndicadores(
+    clientes.data ?? [],
+    tarefas.data ?? [],
+    cards.data ?? [],
+    hoje,
+    tarefasDeAnuncio.data ?? [],
+  )
   const roscas = [
     { titulo: 'Demandas', fatias: porColunaDeDemandas },
     { titulo: 'Conteúdo', fatias: porColunaDeConteudo },
@@ -123,11 +135,13 @@ export function DashboardPage() {
             rotulo="Clientes ativos"
             valor={metricas.clientesAtivos}
             carregando={kpis.carregando}
+            tendencia={tendencias.clientesAtivos}
           />
           <KpiCard
             rotulo="Tarefas abertas"
             valor={metricas.tarefasAbertas}
             carregando={kpis.carregando}
+            tendencia={tendencias.tarefasAbertas}
           />
           <KpiCard
             rotulo="Conteúdos aguardando aprovação"
@@ -138,6 +152,7 @@ export function DashboardPage() {
             rotulo="Cards atrasados"
             valor={cardsAtrasados(tarefas.data ?? [], cards.data ?? [], hoje)}
             carregando={kpis.carregando}
+            tendencia={tendencias.cardsAtrasados}
           />
         </div>
       )}
@@ -208,6 +223,36 @@ export function DashboardPage() {
                 </section>
               ))}
             </div>
+          )}
+        </Painel>
+      </div>
+
+      <div className={styles.paineisIguais}>
+        <Painel titulo="Cards por cliente">
+          {painelStatus.erro ? (
+            <EstadoErro onTentar={todas.tentar} />
+          ) : painelStatus.carregando ? (
+            <Carregando />
+          ) : porCliente.length === 0 ? (
+            <EstadoVazio ilustracao="clientes" titulo="Nenhuma demanda em aberto com cliente." />
+          ) : (
+            <BarrasHorizontais titulo="Demandas em aberto por cliente" itens={porCliente} />
+          )}
+        </Painel>
+
+        <Painel titulo="Atividade da semana">
+          {painelStatus.erro ? (
+            <EstadoErro onTentar={todas.tentar} />
+          ) : painelStatus.carregando ? (
+            <Carregando />
+          ) : (
+            <GraficoMRR
+              nome="Cards criados"
+              periodo="nos últimos 7 dias"
+              comparar={false}
+              serie={semana}
+              formatar={(valor) => plural(valor, 'card criado', 'cards criados')}
+            />
           )}
         </Painel>
       </div>

@@ -1,4 +1,13 @@
-import { ETAPAS_DO_LEAD, conversaoEm30Dias, linkDoWhatsapp, tempoNaEtapa, validarConversao, validarLead } from './crm'
+import {
+  ETAPAS_DO_LEAD,
+  conversaoEm30Dias,
+  leadsPorSegmento,
+  linkDoWhatsapp,
+  temperaturaPorEtapa,
+  tempoNaEtapa,
+  validarConversao,
+  validarLead,
+} from './crm'
 
 describe('linkDoWhatsapp', () => {
   it('acrescenta o 55 só quando falta', () => {
@@ -71,5 +80,44 @@ describe('validações', () => {
 
   it('quatro colunas fixas, a última é Cliente', () => {
     expect(ETAPAS_DO_LEAD.map((e) => e.titulo)).toEqual(['Leads', 'Reunião', 'Fechamento de contrato', 'Cliente'])
+  })
+})
+
+describe('gráficos do CRM', () => {
+  const lead = (campos: Record<string, unknown>) =>
+    ({ etapa: 'leads', temperatura: 'frio', segmento: null, convertido_em: null, ...campos }) as Parameters<
+      typeof leadsPorSegmento
+    >[0][number]
+
+  it('temperatura por etapa, sem os convertidos', () => {
+    const linhas = temperaturaPorEtapa([
+      lead({ temperatura: 'quente' }),
+      lead({}),
+      lead({ etapa: 'reuniao', temperatura: 'morno' }),
+      lead({ etapa: 'fechamento', temperatura: 'quente', convertido_em: '2026-10-01' }),
+    ])
+    expect(linhas.map((l) => [l.rotulo, l.valores])).toEqual([
+      ['Leads', { frio: 1, morno: 0, quente: 1 }],
+      ['Reunião', { frio: 0, morno: 1, quente: 0 }],
+      ['Fechamento de contrato', { frio: 0, morno: 0, quente: 0 }],
+    ])
+  })
+
+  it('segmentos: os maiores com nome, o resto e os sem segmento em Outros', () => {
+    const fatias = leadsPorSegmento(
+      [
+        lead({ segmento: 'Odontologia' }),
+        lead({ segmento: ' odontologia ' }),
+        lead({ segmento: 'Varejo' }),
+        lead({ segmento: 'Moda' }),
+        lead({ segmento: null }),
+      ],
+      2,
+    )
+    expect(fatias).toEqual([
+      { valor: 'odontologia', rotulo: 'Odontologia', total: 2 },
+      { valor: 'moda', rotulo: 'Moda', total: 1 },
+      { valor: 'outros', rotulo: 'Outros', total: 2 },
+    ])
   })
 })

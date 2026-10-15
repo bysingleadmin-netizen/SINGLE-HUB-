@@ -40,12 +40,26 @@
   --header-h: 64px;
   --font-body: 'Inter', system-ui, sans-serif;
   --font-display: 'Sora', 'Inter', system-ui, sans-serif;
+  /* Séries dos gráficos (identidade, em ordem fixa). Paleta validada para daltonismo nos dois
+     temas com o validador da skill dataviz; o claro troca os tons abaixo. */
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --serie-3: #199e70;
+  --serie-4: #c98500;
+  --serie-5: #d55181;
+  --serie-outros: #6e6e78;
   color-scheme: dark;
 }
 
 /* Tema claro, escolhido em Configurações > Aparência (src/lib/tema.ts) */
 :root[data-theme='light'] {
   --bg: #f4f4f6;
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --serie-3: #1baf7a;
+  --serie-4: #eda100;
+  --serie-5: #e87ba4;
+  --serie-outros: #9a9aa5;
   --surface: #ffffff;
   --surface-2: #efeff3;
   --border: #dedee5;

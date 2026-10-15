@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { BarrasEmpilhadas } from '@/components/graficos/BarrasEmpilhadas'
 import { Quadro } from '@/components/quadro/Quadro'
 import { proximaPosicao } from '@/components/quadro/colunas'
 import { useMover } from '@/components/quadro/useMover'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
+import { Painel } from '@/components/ui/Painel'
 import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
@@ -11,11 +13,20 @@ import { useColunasOpcionais } from '@/dados/esquema'
 import { useExcluir } from '@/dados/excluir'
 import { registrarMudancaDeEtapa, useLeads } from '@/dados/leads'
 import { useAuth } from '@/features/auth/AuthContext'
+import { GraficoStatus } from '@/features/dashboard/GraficoStatus'
+import { COR_DO_TOM } from '@/lib/rotulos'
 import type { EtapaDoLead, Lead } from '@/types/database'
 import { ConverterLeadModal } from './ConverterLeadModal'
 import { LeadDrawer } from './LeadDrawer'
 import { LeadModal } from './LeadModal'
-import { ETAPAS_DO_LEAD, TEMPERATURAS, linkDoWhatsapp, tempoNaEtapa } from './crm'
+import {
+  ETAPAS_DO_LEAD,
+  TEMPERATURAS,
+  leadsPorSegmento,
+  linkDoWhatsapp,
+  temperaturaPorEtapa,
+  tempoNaEtapa,
+} from './crm'
 import styles from './crm.module.css'
 
 type Formulario = { etapa: EtapaDoLead } | undefined
@@ -68,8 +79,34 @@ export function CrmPage() {
     void registrarMudancaDeEtapa(lead.id, lead.etapa, destino, perfil?.id)
   }
 
+  // Quente primeiro: o funil lê da temperatura mais perto de fechar para a mais distante
+  const seriesDeTemperatura = [...TEMPERATURAS].reverse().map((t) => ({
+    chave: t.valor,
+    rotulo: t.rotulo,
+    cor: COR_DO_TOM[t.tom],
+  }))
+  // Cores das séries em ordem fixa; "Outros" sempre cinza
+  const segmentos = leadsPorSegmento(noPipeline).map((fatia, i) => ({
+    ...fatia,
+    cor: fatia.valor === 'outros' ? 'var(--serie-outros)' : `var(--serie-${i + 1})`,
+  }))
+
   return (
     <div className={styles.pagina}>
+      {esquema.perfilDoLead && noPipeline.length > 0 && (
+        <div className={styles.graficos}>
+          <Painel titulo="Leads por temperatura">
+            <BarrasEmpilhadas
+              titulo="Leads de cada etapa por temperatura"
+              series={seriesDeTemperatura}
+              linhas={temperaturaPorEtapa(noPipeline)}
+            />
+          </Painel>
+          <Painel titulo="Segmentos">
+            <GraficoStatus titulo="Leads por segmento" fatias={segmentos} />
+          </Painel>
+        </div>
+      )}
       <Quadro
         colunas={ETAPAS_DO_LEAD}
         itens={noPipeline}

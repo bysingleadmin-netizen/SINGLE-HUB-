@@ -35,10 +35,10 @@ export function GraficoStatus({ titulo, fatias }: { titulo: string; fatias: Fati
               cx="20"
               cy="20"
               r={RAIO}
-              stroke={arco.cor}
               strokeDasharray={`${Math.max(arco.fracao * 100 - vao, 0.01)} ${100}`}
               strokeDashoffset={-arco.inicio * 100}
-              style={{ animationDelay: `${0.1 + i * 0.08}s` }}
+              // Pelo style, a cor pode ser uma variável do tema (var(--serie-1))
+              style={{ stroke: arco.cor, animationDelay: `${0.1 + i * 0.08}s` }}
               onMouseEnter={() => setAtivo(arco.valor)}
               onMouseLeave={() => setAtivo(null)}
             />

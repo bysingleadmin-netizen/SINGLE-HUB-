@@ -98,3 +98,49 @@ export function validarLead(form: FormLead): Validacao<ValoresLead, FormLead> {
     },
   }
 }
+
+type LeadDoGrafico = Pick<Lead, 'etapa' | 'temperatura' | 'segmento' | 'convertido_em'>
+
+/** Leads no pipeline de cada etapa, separados por temperatura: o funil do CRM. */
+export function temperaturaPorEtapa(leads: LeadDoGrafico[]) {
+  return ETAPAS_DO_LEAD.filter((etapa) => etapa.id !== 'cliente').map((etapa) => {
+    const daEtapa = leads.filter((lead) => lead.convertido_em == null && lead.etapa === etapa.id)
+    const valores = Object.fromEntries(
+      TEMPERATURAS.map((t) => [t.valor, daEtapa.filter((lead) => (lead.temperatura ?? 'frio') === t.valor).length]),
+    )
+    return { chave: etapa.id, rotulo: etapa.titulo, valores }
+  })
+}
+
+export interface FatiaDeSegmento {
+  valor: string
+  rotulo: string
+  total: number
+}
+
+/**
+ * Leads no pipeline por segmento: os `limite` maiores com nome próprio e o resto, junto com
+ * quem não tem segmento, em "Outros". Grafias diferentes do mesmo segmento contam juntas.
+ */
+export function leadsPorSegmento(leads: LeadDoGrafico[], limite = 5): FatiaDeSegmento[] {
+  const grupos = new Map<string, FatiaDeSegmento>()
+  let outros = 0
+  for (const lead of leads) {
+    if (lead.convertido_em != null) continue
+    const nome = lead.segmento?.trim()
+    if (!nome) {
+      outros++
+      continue
+    }
+    const chave = nome.toLocaleLowerCase('pt-BR')
+    const grupo = grupos.get(chave) ?? { valor: chave, rotulo: nome, total: 0 }
+    grupo.total++
+    grupos.set(chave, grupo)
+  }
+  const ordenados = [...grupos.values()].sort((a, b) => b.total - a.total || a.rotulo.localeCompare(b.rotulo))
+  outros += ordenados.slice(limite).reduce((soma, grupo) => soma + grupo.total, 0)
+  return [
+    ...ordenados.slice(0, limite),
+    ...(outros > 0 ? [{ valor: 'outros', rotulo: 'Outros', total: outros }] : []),
+  ]
+}

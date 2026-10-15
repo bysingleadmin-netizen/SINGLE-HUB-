@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Sparkline } from '@/components/graficos/Sparkline'
 import { Skeleton } from './Skeleton'
 import styles from './ui.module.css'
 
@@ -43,6 +44,8 @@ interface KpiCardProps {
   valor: number | null
   formatar?: (valor: number) => string
   carregando?: boolean
+  /** Como o número estava nas últimas semanas, do mais antigo ao atual: vira uma linha de tendência */
+  tendencia?: number[]
 }
 
 function Valor({ valor, formatar }: { valor: number; formatar?: (valor: number) => string }) {
@@ -54,7 +57,7 @@ function Valor({ valor, formatar }: { valor: number; formatar?: (valor: number) 
   )
 }
 
-export function KpiCard({ rotulo, valor, formatar, carregando = false }: KpiCardProps) {
+export function KpiCard({ rotulo, valor, formatar, carregando = false, tendencia }: KpiCardProps) {
   return (
     <div className={styles.kpi}>
       <span className={styles.kpiRotulo}>{rotulo}</span>
@@ -64,6 +67,9 @@ export function KpiCard({ rotulo, valor, formatar, carregando = false }: KpiCard
         <strong className={styles.kpiValor}>—</strong>
       ) : (
         <Valor valor={valor} formatar={formatar} />
+      )}
+      {!carregando && tendencia && (
+        <Sparkline valores={tendencia} periodo={`${rotulo} nas últimas ${tendencia.length} semanas`} />
       )}
     </div>
   )

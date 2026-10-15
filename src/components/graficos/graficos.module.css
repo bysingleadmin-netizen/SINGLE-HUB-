@@ -1,0 +1,177 @@
+/* Gráficos de barras e sparklines. Marcas finas, pontas arredondadas, grade e eixos discretos;
+   os textos usam as cores de texto, nunca a cor da série. */
+
+.barras {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.barra {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.barraRotulo {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barraTrilho {
+  display: block;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--vidro-hover);
+}
+
+.barraValor {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: 4px;
+  background: var(--accent);
+  transition: width 0.4s ease-out, filter 0.12s ease;
+}
+
+.barra:hover .barraValor,
+.barra:hover .trecho {
+  filter: brightness(1.15);
+}
+
+.barraNumero {
+  min-width: 2ch;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Empilhadas: os trechos dividem a barra, com 2px de superfície entre eles */
+.empilhadas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+}
+
+.pilha {
+  display: flex;
+  gap: 2px;
+  height: 100%;
+  min-width: 4px;
+  transition: width 0.4s ease-out;
+}
+
+.trecho {
+  display: block;
+  min-width: 3px;
+  height: 100%;
+  transition: filter 0.12s ease;
+}
+
+.trecho:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.trecho:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.trecho:only-child {
+  border-radius: 4px;
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.legenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legenda strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.legendaCor {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* Sparkline dos indicadores */
+.sparkline {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 28px;
+  margin-top: 6px;
+}
+
+.sparkline svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.sparkline polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.sparklinePonto {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+  transform: translate(-50%, -50%);
+}
+
+.somenteLeitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 420px) {
+  .barra {
+    grid-template-columns: minmax(0, 6.5rem) minmax(0, 1fr) auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barraValor,
+  .pilha {
+    transition: none;
+  }
+}

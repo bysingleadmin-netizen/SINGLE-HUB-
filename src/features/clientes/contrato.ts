@@ -1,23 +1,28 @@
-import { diffDias } from '@/lib/datas'
+import { diffDias, somarDias } from '@/lib/datas'
+import { formatarData } from '@/lib/formato'
 import type { Tom } from '@/lib/rotulos'
 import type { Client } from '@/types/database'
 
-// Contrato de fidelidade: começa na data de início do cliente e dura 3, 6, 12 ou 15 meses.
+// Contrato de fidelidade: começa na data de início do cliente (quando ele passa a pagar) e dura
+// 3, 6, 12 ou 15 meses. O último dia é a véspera do mesmo dia N meses depois:
+// 01/08/2024 + 3 meses termina em 31/10/2024.
 // O selo avisa quando faltam 30 dias ou menos (amarelo) e quando já venceu (vermelho).
 
 export const DURACOES = [3, 6, 12, 15] as const
 export const DIAS_DE_AVISO = 30
 
-const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 const doisDigitos = (n: number) => String(n).padStart(2, '0')
 
+/** Último dia do contrato: início + meses - 1 dia. */
 export function fimDoContrato(inicio: string, meses: number): string {
   const [ano, mes, dia] = inicio.split('-').map(Number)
   const indice = mes - 1 + meses
   const anoFim = ano + Math.floor(indice / 12)
   const mesFim = (indice % 12) + 1
   const ultimoDia = new Date(anoFim, mesFim, 0).getDate()
-  return `${anoFim}-${doisDigitos(mesFim)}-${doisDigitos(Math.min(dia, ultimoDia))}`
+  // Começou num dia que o mês final não tem (30/11 + 3 meses): o contrato vai até o último dia dele
+  if (dia > ultimoDia) return `${anoFim}-${doisDigitos(mesFim)}-${doisDigitos(ultimoDia)}`
+  return somarDias(`${anoFim}-${doisDigitos(mesFim)}-${doisDigitos(dia)}`, -1)
 }
 
 export type SituacaoDoContrato = 'vigente' | 'perto' | 'vencido'
@@ -26,12 +31,6 @@ export function situacaoDoContrato(fim: string, hoje: string): SituacaoDoContrat
   const faltam = diffDias(hoje, fim)
   if (faltam < 0) return 'vencido'
   return faltam <= DIAS_DE_AVISO ? 'perto' : 'vigente'
-}
-
-/** '2027-03-15' vira 'mar/2027'. */
-export function formatarMesCurto(iso: string): string {
-  const [ano, mes] = iso.split('-').map(Number)
-  return `${MESES[mes - 1]}/${ano}`
 }
 
 const TOM: Record<SituacaoDoContrato, Tom> = { vigente: 'cinza', perto: 'amarelo', vencido: 'vermelho' }
@@ -43,9 +42,9 @@ export function seloDoContrato(
   if (!cliente.data_inicio_contrato || !cliente.contrato_meses) return null
   const fim = fimDoContrato(cliente.data_inicio_contrato, cliente.contrato_meses)
   const situacao = situacaoDoContrato(fim, hoje)
-  const mes = formatarMesCurto(fim)
+  const data = formatarData(fim)
   return {
-    texto: situacao === 'vencido' ? `Encerrou em ${mes}` : `Encerra em ${mes}`,
+    texto: situacao === 'vencido' ? `Encerrou em ${data}` : `Encerra em ${data}`,
     tom: TOM[situacao],
   }
 }

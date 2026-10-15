@@ -61,7 +61,7 @@ export const SITUACOES_PAGAMENTO: readonly Opcao<SituacaoDoPagamento>[] = [
 
 export const PRIORIDADES: readonly Opcao<Prioridade>[] = [
   { valor: 'baixa', rotulo: 'Baixa', tom: 'cinza' },
-  { valor: 'media', rotulo: 'Média', tom: 'azul' },
+  { valor: 'media', rotulo: 'Média', tom: 'cinza' },
   { valor: 'alta', rotulo: 'Alta', tom: 'laranja' },
   { valor: 'urgente', rotulo: 'Urgente', tom: 'vermelho' },
 ]
@@ -120,7 +120,7 @@ export const STATUS_CAMPANHA: readonly Opcao<CampaignStatus>[] = [
   { valor: 'planejamento', rotulo: 'Planejamento', tom: 'cinza' },
   { valor: 'em_execucao', rotulo: 'Em execução', tom: 'verde' },
   { valor: 'pausada', rotulo: 'Pausada', tom: 'amarelo' },
-  { valor: 'finalizada', rotulo: 'Finalizada', tom: 'azul' },
+  { valor: 'finalizada', rotulo: 'Finalizada', tom: 'cinza' },
 ]
 
 export const PLATAFORMAS = ['Meta Ads', 'Google Ads', 'TikTok Ads', 'LinkedIn Ads', 'Outra'] as const

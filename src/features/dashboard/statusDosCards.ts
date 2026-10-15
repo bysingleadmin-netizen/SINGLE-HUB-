@@ -1,8 +1,7 @@
 import { venceuOPrazoVisivel } from '@/components/quadro/ciclo'
 import type { ColunaDoQuadro } from '@/dados/colunas'
 import { COR_DO_TOM } from '@/lib/rotulos'
-import { cardAberto, tarefaAtrasada } from '@/lib/regras'
-import type { ContentCard, Task } from '@/types/database'
+import type { Task } from '@/types/database'
 
 // Cards de cada quadro por coluna, para as roscas do Dashboard. O status de um card é a coluna
 // em que ele está (tasks.status, content_cards.etapa). Conta o que está nos quadros:
@@ -53,18 +52,6 @@ export function contarPorColuna<T extends NoQuadro>(
     if (!conhecidas.has(valor)) fatias.push({ valor, rotulo: valor, cor: COR_DO_TOM.cinza, total })
   }
   return fatias
-}
-
-/** Demandas, tarefas e conteúdos em aberto com o prazo de entrega vencido. */
-export function cardsAtrasados(
-  tarefas: readonly Pick<Task, 'status' | 'data_entrega'>[],
-  cards: readonly Pick<ContentCard, 'etapa' | 'data_entrega'>[],
-  hoje: string,
-): number {
-  return (
-    tarefas.filter((tarefa) => tarefaAtrasada(tarefa, hoje)).length +
-    cards.filter((card) => cardAberto(card) && card.data_entrega != null && card.data_entrega < hoje).length
-  )
 }
 
 export interface ArcoDaRosca extends FatiaDeStatus {

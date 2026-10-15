@@ -1,6 +1,6 @@
 import { hojeISO, somarDias } from '@/lib/datas'
 import { tarefaAberta } from '@/lib/regras'
-import type { CampaignTask, Client, ContentCard, Task } from '@/types/database'
+import type { Client, ContentCard, Task } from '@/types/database'
 
 // Contas dos gráficos do Dashboard. Datas trafegam como 'AAAA-MM-DD', no fuso de quem usa.
 
@@ -64,59 +64,39 @@ export function fimDasSemanas(hoje: string, semanas = 4): string[] {
   return Array.from({ length: semanas }, (_, i) => somarDias(hoje, -7 * (semanas - 1 - i)))
 }
 
-type CardDoQuadro = Pick<Task, 'created_at' | 'concluded_at' | 'archived_at'>
+type CardDoQuadro = Pick<Task, 'status' | 'created_at' | 'concluded_at' | 'archived_at'>
 
 /**
- * O card estava em aberto no fim do dia `dia`? Reconstrói pelo que o banco guarda: quando foi
- * criado, concluído e arquivado. Concluído sem data registrada conta como concluído desde sempre.
+ * A demanda estava em aberto no fim do dia `dia`? Reconstrói pelo que o banco guarda: quando foi
+ * criada, concluída e arquivada. Concluída sem data registrada conta como concluída desde sempre.
  */
-function abertoEm(card: CardDoQuadro, dia: string, entregue: boolean): boolean {
-  if (diaDe(card.created_at) > dia) return false
-  if (card.archived_at && diaDe(card.archived_at) <= dia) return false
-  if (card.concluded_at) return diaDe(card.concluded_at) > dia
-  return !entregue
+function abertaEm(tarefa: CardDoQuadro, dia: string): boolean {
+  if (diaDe(tarefa.created_at) > dia) return false
+  if (tarefa.archived_at && diaDe(tarefa.archived_at) <= dia) return false
+  if (tarefa.concluded_at) return diaDe(tarefa.concluded_at) > dia
+  return tarefaAberta(tarefa)
 }
 
 export interface Tendencias {
   clientesAtivos: number[]
-  tarefasAbertas: number[]
-  cardsAtrasados: number[]
+  demandasAbertas: number[]
 }
 
 /**
  * Como cada indicador estava no fim de cada uma das últimas quatro semanas, contado como o
- * indicador conta, para o último ponto ser o número do card. Onde o banco não guarda a data da
- * mudança, vale o estado de hoje: clientes ativos pelo cadastro e status atual, demandas de
- * anúncio pela criação e por estarem concluídas ou não.
+ * indicador conta, para o último ponto ser o número do card. Clientes ativos usam a data de
+ * cadastro e o status de hoje (o banco não guarda quando o status mudou).
  */
 export function tendenciasDosIndicadores(
   clientes: Pick<Client, 'status' | 'created_at'>[],
-  tarefas: (CardDoQuadro & Pick<Task, 'status' | 'data_entrega'>)[],
-  cards: (Pick<ContentCard, 'etapa' | 'created_at' | 'concluded_at' | 'archived_at' | 'data_entrega'>)[],
+  tarefas: CardDoQuadro[],
   hoje: string,
-  tarefasDeAnuncio: Pick<CampaignTask, 'status' | 'created_at'>[] = [],
 ): Tendencias {
   const dias = fimDasSemanas(hoje)
-  const tarefaEntregue = (t: Pick<Task, 'status'>) => !tarefaAberta(t)
-  const cardEntregue = (c: Pick<ContentCard, 'etapa'>) => c.etapa === 'publicado' || c.etapa === 'arquivado'
   return {
     clientesAtivos: dias.map(
       (dia) => clientes.filter((c) => c.status === 'ativo' && diaDe(c.created_at) <= dia).length,
     ),
-    tarefasAbertas: dias.map(
-      (dia) =>
-        tarefas.filter((t) => abertoEm(t, dia, tarefaEntregue(t))).length +
-        cards.filter((c) => abertoEm(c, dia, cardEntregue(c))).length +
-        tarefasDeAnuncio.filter((t) => t.status !== 'concluido' && diaDe(t.created_at) <= dia).length,
-    ),
-    cardsAtrasados: dias.map(
-      (dia) =>
-        tarefas.filter((t) => abertoEm(t, dia, tarefaEntregue(t)) && t.data_entrega != null && t.data_entrega < dia)
-          .length +
-        cards.filter(
-          (c) =>
-            abertoEm(c, dia, cardEntregue(c)) && c.data_entrega != null && c.data_entrega < dia,
-        ).length,
-    ),
+    demandasAbertas: dias.map((dia) => tarefas.filter((t) => abertaEm(t, dia)).length),
   }
 }

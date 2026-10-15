@@ -21,15 +21,11 @@ import {
   useTarefas,
   useTarefasDeCampanha,
 } from '@/dados/tabelas'
-import { useLeads } from '@/dados/leads'
 import { useTempoReal } from '@/dados/tempoReal'
-import { useAuth } from '@/features/auth/AuthContext'
 import { agendaPorDia, montarAgenda } from '@/features/calendario/calendario'
-import { conversaoEm30Dias } from '@/features/crm/crm'
 import { rotaDaTarefa } from '@/features/demandas/tarefa'
 import { hojeISO } from '@/lib/datas'
-import { formatarData, formatarMoeda } from '@/lib/formato'
-import { isLideranca } from '@/lib/permissoes'
+import { formatarData } from '@/lib/formato'
 import { COLUNAS_CONTEUDO, COLUNAS_TAREFA } from '@/lib/rotulos'
 import {
   calcularMetricas,
@@ -39,13 +35,14 @@ import {
   plural,
   proximasEntregas,
   proximasOtimizacoes,
+  tarefaAberta,
   tarefaAtrasada,
 } from '@/lib/regras'
 import { AtividadeRecente } from './AtividadeRecente'
 import { Carga } from './Carga'
 import { GraficoMRR } from './GraficoMRR'
 import { GraficoStatus } from './GraficoStatus'
-import { cardsAtrasados, contarPorColuna } from './statusDosCards'
+import { contarPorColuna } from './statusDosCards'
 import { atividadeDaSemana, cardsPorCliente, tendenciasDosIndicadores } from './tendencias'
 import styles from './dashboard.module.css'
 
@@ -71,13 +68,8 @@ export function DashboardPage() {
   const { registrar, registrando } = useRegistrarOtimizacao()
   const colunasDeDemandas = useColunasDoQuadro('demandas', COLUNAS_TAREFA)
   const colunasDeConteudo = useColunasDoQuadro('conteudo', COLUNAS_CONTEUDO)
-  const { perfil } = useAuth()
-  const lideranca = isLideranca(perfil?.cargo)
-  // Leads são só da liderança: para os demais a consulta nem é feita
-  const leads = useLeads({ ativo: lideranca })
-  // As roscas acompanham o que a equipe move nos quadros, sem recarregar a página;
-  // para a liderança, os indicadores comerciais também
-  useTempoReal(lideranca ? ['tasks', 'content_cards', 'clients', 'leads'] : ['tasks', 'content_cards'])
+  // Os números e as roscas acompanham o que a equipe muda, sem recarregar a página
+  useTempoReal(['tasks', 'content_cards', 'clients'])
 
   const hoje = hojeISO()
   const clientePorId = porId(clientes.data)
@@ -104,13 +96,7 @@ export function DashboardPage() {
   const porColunaDeConteudo = contarPorColuna(cards.data ?? [], colunasDeConteudo.colunas, (card) => card.etapa)
   const porCliente = cardsPorCliente(tarefas.data ?? [], clientes.data ?? [])
   const semana = atividadeDaSemana(tarefas.data ?? [], cards.data ?? [], hoje)
-  const tendencias = tendenciasDosIndicadores(
-    clientes.data ?? [],
-    tarefas.data ?? [],
-    cards.data ?? [],
-    hoje,
-    tarefasDeAnuncio.data ?? [],
-  )
+  const tendencias = tendenciasDosIndicadores(clientes.data ?? [], tarefas.data ?? [], hoje)
   const roscas = [
     { titulo: 'Demandas', fatias: porColunaDeDemandas },
     { titulo: 'Conteúdo', fatias: porColunaDeConteudo },
@@ -130,7 +116,8 @@ export function DashboardPage() {
       {kpis.erro ? (
         <EstadoErro onTentar={todas.tentar} />
       ) : (
-        <div className={`${styles.kpis} stagger`}>
+        // Só números da operação; o que é dinheiro fica no Financeiro
+        <div className={`${styles.kpis} ${styles.kpisOperacao} stagger`}>
           <KpiCard
             rotulo="Clientes ativos"
             valor={metricas.clientesAtivos}
@@ -138,39 +125,15 @@ export function DashboardPage() {
             tendencia={tendencias.clientesAtivos}
           />
           <KpiCard
-            rotulo="Tarefas abertas"
-            valor={metricas.tarefasAbertas}
+            rotulo="Demandas abertas"
+            valor={(tarefas.data ?? []).filter(tarefaAberta).length}
             carregando={kpis.carregando}
-            tendencia={tendencias.tarefasAbertas}
+            tendencia={tendencias.demandasAbertas}
           />
           <KpiCard
-            rotulo="Conteúdos aguardando aprovação"
-            valor={metricas.conteudosAguardando}
-            carregando={kpis.carregando}
-          />
-          <KpiCard
-            rotulo="Cards atrasados"
-            valor={cardsAtrasados(tarefas.data ?? [], cards.data ?? [], hoje)}
-            carregando={kpis.carregando}
-            tendencia={tendencias.cardsAtrasados}
-          />
-        </div>
-      )}
-
-      {lideranca && !kpis.erro && (
-        <div className={`${styles.kpis} ${styles.kpisComerciais} stagger`} aria-label="Indicadores comerciais">
-          <KpiCard rotulo="MRR total" valor={metricas.mrrTotal} formatar={formatarMoeda} carregando={kpis.carregando} />
-          <KpiCard rotulo="ARR" valor={metricas.mrrTotal * 12} formatar={formatarMoeda} carregando={kpis.carregando} />
-          <KpiCard
-            rotulo="Leads no pipeline"
-            valor={leads.data ? leads.data.filter((l) => l.convertido_em == null).length : null}
-            carregando={leads.isLoading}
-          />
-          <KpiCard
-            rotulo="Conversão em 30 dias"
-            valor={leads.data ? conversaoEm30Dias(leads.data).taxa : null}
-            formatar={(taxa) => `${Math.round(taxa * 100)}%`}
-            carregando={leads.isLoading}
+            rotulo="Entregas de hoje"
+            valor={agendaDeHoje.filter((item) => item.origem !== 'evento').length}
+            carregando={painelHoje.carregando}
           />
         </div>
       )}

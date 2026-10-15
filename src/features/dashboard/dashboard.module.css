@@ -10,6 +10,11 @@
   gap: 16px;
 }
 
+/* Indicadores da operação: três lado a lado */
+.kpisOperacao {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 /* Par de cards da mesma altura: o gráfico acompanha a seção Hoje */
 .paineisIguais {
   display: grid;
@@ -199,6 +204,11 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* Três indicadores em duas colunas: o terceiro ocupa a linha de baixo inteira */
+  .kpisOperacao > :last-child {
+    grid-column: 1 / -1;
+  }
+
   .paineis,
   .paineisIguais {
     grid-template-columns: minmax(0, 1fr);
@@ -211,10 +221,6 @@
     gap: 10px;
   }
 
-  /* MRR e ARR em reais não cabem em meia linha: ocupam a linha toda para o número não quebrar */
-  .kpisComerciais > :nth-child(-n + 2) {
-    grid-column: 1 / -1;
-  }
 }
 
 /* Gráfico de área: o resumo em cima e o desenho ocupando o que sobra do card,

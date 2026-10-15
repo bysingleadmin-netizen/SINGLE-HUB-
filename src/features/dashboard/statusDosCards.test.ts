@@ -1,6 +1,6 @@
 import { COLUNAS_CONTEUDO, COLUNAS_TAREFA } from '@/lib/rotulos'
 import type { ContentCard, Task } from '@/types/database'
-import { arcosDaRosca, cardsAtrasados, contarPorColuna } from './statusDosCards'
+import { arcosDaRosca, contarPorColuna } from './statusDosCards'
 
 const AGORA = new Date('2026-10-14T12:00:00Z')
 const tarefa = (campos: Partial<Task>) => ({ status: 'a_fazer', ...campos }) as Task
@@ -70,24 +70,6 @@ describe('contarPorColuna', () => {
     const cores = fatias.slice(0, 4).map((f) => f.cor)
     expect(new Set(cores.slice(0, 3)).size).toBe(3)
     expect(fatias.find((f) => f.valor === 'publicado')?.cor).not.toBe(cores[0])
-  })
-})
-
-describe('cardsAtrasados', () => {
-  it('soma demandas e conteúdos em aberto com o prazo vencido', () => {
-    const hoje = '2026-10-14'
-    expect(
-      cardsAtrasados(
-        [
-          tarefa({ data_entrega: '2026-10-13' }),
-          tarefa({ status: 'concluido', data_entrega: '2026-10-01' }),
-          tarefa({ data_entrega: '2026-10-14' }),
-          tarefa({ data_entrega: null }),
-        ],
-        [card({ data_entrega: '2026-10-10' }), card({ etapa: 'publicado', data_entrega: '2026-10-10' })],
-        hoje,
-      ),
-    ).toBe(2)
   })
 })
 

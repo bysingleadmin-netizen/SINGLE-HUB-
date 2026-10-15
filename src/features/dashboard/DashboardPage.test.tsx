@@ -137,18 +137,16 @@ describe('DashboardPage', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('calcula os quatro indicadores', async () => {
+  it('mostra só os indicadores da operação: clientes, demandas abertas e entregas de hoje', async () => {
     popular()
     renderizar(<DashboardPage />)
 
     const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
     await waitFor(() => expect(valorDe('Clientes ativos')).toHaveTextContent('2'))
-    expect(valorDe('Clientes ativos')).toHaveTextContent('2')
-    // 3 demandas, 2 conteúdos em produção e 1 tarefa de anúncio
-    expect(valorDe('Tarefas abertas')).toHaveTextContent('6')
-    expect(valorDe('Conteúdos aguardando aprovação')).toHaveTextContent('1')
-    // t1 está aberta com a entrega vencida
-    expect(valorDe('Cards atrasados')).toHaveTextContent('1')
+    // t1, t2 e t4 estão abertas; t3 foi concluída
+    expect(valorDe('Demandas abertas')).toHaveTextContent('3')
+    // t4 vence hoje; eventos do dia não contam como entrega
+    expect(valorDe('Entregas de hoje')).toHaveTextContent('1')
   })
 
   it('lista as próximas entregas, com atraso em destaque e nomes de reserva', async () => {
@@ -227,36 +225,14 @@ describe('DashboardPage', () => {
     expect(screen.queryByRole('img', { name: /MRR/ })).not.toBeInTheDocument()
   })
 
-  it('a liderança vê MRR, ARR, leads no pipeline e conversão', async () => {
+  it('nenhum número financeiro ou comercial no Dashboard, nem para a liderança', async () => {
     popular()
-    const agora = new Date().toISOString()
-    bancoFalso().tabelas.leads = [
-      { id: 'l1', nome: 'A', etapa: 'leads', etapa_desde: agora, posicao: 1, convertido_em: null, created_at: agora },
-      { id: 'l2', nome: 'B', etapa: 'reuniao', etapa_desde: agora, posicao: 1, convertido_em: null, created_at: agora },
-      { id: 'l3', nome: 'C', etapa: 'fechamento', etapa_desde: agora, posicao: 1, convertido_em: agora, created_at: agora },
-      { id: 'l4', nome: 'D', etapa: 'leads', etapa_desde: agora, posicao: 2, convertido_em: null, created_at: agora },
-    ]
     renderizar(<DashboardPage />)
-    const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
-    await waitFor(() => expect(valorDe('MRR total')).toHaveTextContent('R$ 4.000,50'))
-    expect(valorDe('ARR')).toHaveTextContent('R$ 48.006,00')
-    expect(valorDe('Leads no pipeline')).toHaveTextContent('3')
-    expect(valorDe('Conversão em 30 dias')).toHaveTextContent('25%')
-  })
-
-  it('quem não é liderança não vê valores nem consulta leads', async () => {
-    popular()
-    renderizar(<DashboardPage />, { cargo: 'Designer' })
     expect(await screen.findByText('Clientes ativos')).toBeInTheDocument()
-    expect(screen.queryByText('MRR total')).not.toBeInTheDocument()
-    expect(screen.queryByText('Leads no pipeline')).not.toBeInTheDocument()
-  })
-
-  it('sem leads criados nos últimos 30 dias, a conversão mostra um traço', async () => {
-    popular()
-    bancoFalso().tabelas.leads = []
-    renderizar(<DashboardPage />)
-    await waitFor(() => expect(screen.getByText('Conversão em 30 dias').parentElement).toHaveTextContent('—'))
+    for (const rotulo of ['MRR total', 'ARR', 'Leads no pipeline', 'Conversão em 30 dias', 'Tarefas abertas']) {
+      expect(screen.queryByText(rotulo)).not.toBeInTheDocument()
+    }
+    expect(screen.queryByText(/R\$/)).not.toBeInTheDocument()
   })
 
   it('desenha uma rosca por quadro, com os cards contados pela coluna', async () => {
@@ -292,7 +268,7 @@ describe('DashboardPage', () => {
     expect(await porCliente.findByRole('list', { name: 'Demandas em aberto por cliente' })).toBeInTheDocument()
     expect(painel('Atividade da semana').getByRole('img', { name: /^Cards criados nos últimos 7 dias/ })).toBeInTheDocument()
     expect(await screen.findByText(/^Clientes ativos nas últimas 4 semanas: /)).toBeInTheDocument()
-    expect(screen.getByText(/^Tarefas abertas nas últimas 4 semanas/).textContent).toMatch(/, 6$/)
+    expect(screen.getByText(/^Demandas abertas nas últimas 4 semanas/).textContent).toMatch(/, 3$/)
   })
 
   it('sem cards nos quadros, a rosca dá lugar ao estado vazio', async () => {

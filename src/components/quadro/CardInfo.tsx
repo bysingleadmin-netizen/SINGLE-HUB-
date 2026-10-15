@@ -11,6 +11,8 @@ import styles from './quadro.module.css'
 
 interface CardInfoProps {
   titulo: string
+  /** Linha curta abaixo do título, como a função da tarefa de anúncio */
+  legenda?: string
   /** Pill com o tipo da demanda ou do conteúdo */
   etiqueta: ReactNode
   cliente: Client | undefined
@@ -35,6 +37,7 @@ interface CardInfoProps {
  */
 export function CardInfo({
   titulo,
+  legenda,
   etiqueta,
   cliente,
   responsavel,
@@ -52,6 +55,7 @@ export function CardInfo({
         {prioridade && <Pill tom={prioridade.tom} cor={prioridade.cor}>{prioridade.rotulo}</Pill>}
       </span>
       <span className={styles.infoTitulo}>{titulo}</span>
+      {legenda && <span className={styles.infoCargo}>{legenda}</span>}
 
       <span className={styles.infoVinculo}>
         <Avatar nome={cliente?.nome ?? null} url={cliente?.logo_url} tamanho={30} />

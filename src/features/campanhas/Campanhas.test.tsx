@@ -68,9 +68,31 @@ function popular() {
 }
 
 describe('CampanhasPage', () => {
+  // A página abre no quadro das tarefas; a lista de campanhas fica na outra aba
+  function abrirCampanhas() {
+    fireEvent.click(screen.getByRole('tab', { name: 'Campanhas' }))
+  }
+
+  it('abre no quadro das tarefas de anúncio, uma coluna por status', async () => {
+    bancoFalso().reiniciar({
+      profiles: [perfilDeTeste()],
+      clients: [CLIENTE],
+      campaigns: [BLACK_FRIDAY],
+      campaign_tasks: [
+        { id: 'ct1', campaign_id: 'g1', funcao: 'copy', titulo: 'Escrever anúncios', status: 'em_andamento', posicao: 1, responsavel_id: null, created_at: '2026-01-01' },
+      ],
+    })
+    renderizar(<CampanhasPage />)
+    expect(await screen.findByRole('button', { name: 'Abrir Escrever anúncios' })).toBeInTheDocument()
+    expect(screen.getByText('Em andamento')).toBeInTheDocument()
+    expect(screen.getByText('Copy')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Arquivar / })).not.toBeInTheDocument()
+  })
+
   it('sem campanhas mostra o estado vazio com a ação de criar', async () => {
     bancoFalso().reiniciar({ clients: [CLIENTE] })
     renderizar(<CampanhasPage />)
+    abrirCampanhas()
     expect(await screen.findByText('Nenhum anúncio ainda.')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Novo anúncio' }).length).toBeGreaterThan(0)
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
@@ -79,6 +101,7 @@ describe('CampanhasPage', () => {
   it('lista com cliente, status, período, orçamento e alerta de otimização', async () => {
     popular()
     renderizar(<CampanhasPage />)
+    abrirCampanhas()
 
     const linha = within((await screen.findByRole('link', { name: 'Black Friday' })).closest('li')!)
     expect(screen.getByRole('link', { name: 'Black Friday' })).toHaveAttribute(
@@ -98,6 +121,7 @@ describe('CampanhasPage', () => {
   it('filtra por status', async () => {
     popular()
     renderizar(<CampanhasPage />)
+    abrirCampanhas()
     await screen.findByRole('link', { name: 'Black Friday' })
     fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'planejamento' } })
     expect(screen.queryByRole('link', { name: 'Black Friday' })).not.toBeInTheDocument()
@@ -111,6 +135,7 @@ describe('CampanhasPage', () => {
     popular()
     renderizar(<CampanhasPage />)
     fireEvent.click(screen.getByRole('tab', { name: 'Tarefas' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Lista' }))
 
     const tabela = within(await screen.findByRole('table', { name: 'Tarefas de anúncio' }))
     const linha = within(tabela.getByRole('row', { name: /Escrever anúncios/ }))
@@ -128,6 +153,7 @@ describe('CampanhasPage', () => {
   it('cria a campanha, aceita orçamento com vírgula e registra a atividade', async () => {
     bancoFalso().reiniciar({ clients: [CLIENTE] })
     renderizar(<CampanhasPage />)
+    abrirCampanhas()
     await screen.findByText('Nenhum anúncio ainda.')
     fireEvent.click(screen.getAllByRole('button', { name: 'Novo anúncio' })[0])
 
@@ -155,6 +181,7 @@ describe('CampanhasPage', () => {
   it('sem clientes, o formulário manda cadastrar um antes', async () => {
     bancoFalso().reiniciar()
     renderizar(<CampanhasPage />)
+    abrirCampanhas()
     await screen.findByText('Nenhum anúncio ainda.')
     fireEvent.click(screen.getAllByRole('button', { name: 'Novo anúncio' })[0])
 
@@ -171,6 +198,7 @@ describe('CampanhasPage', () => {
     bancoFalso().reiniciar()
     bancoFalso().erroLeitura = { message: 'sem rede' }
     renderizar(<CampanhasPage />)
+    abrirCampanhas()
     expect(await screen.findByRole('alert')).toBeInTheDocument()
 
     bancoFalso().erroLeitura = null

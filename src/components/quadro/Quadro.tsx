@@ -42,7 +42,10 @@ interface QuadroProps<T extends ItemQuadro> {
   onMover: (item: T, coluna: string) => void
   onCriar: (coluna: string) => void
   onAbrir: (item: T) => void
-  onArquivar: (item: T) => void
+  /** Sem ele, os cards não têm o botão de arquivar */
+  onArquivar?: (item: T) => void
+  /** Colunas em que o + de criar aparece; sem ele, todas */
+  podeCriar?: (coluna: string) => boolean
   edicao?: EdicaoDeColunas
   /** Faixa de baixo do card, fora do botão de abrir: menu de status e anexos */
   renderRodape?: (item: T) => ReactNode
@@ -58,7 +61,7 @@ interface CardProps {
   children: ReactNode
   rodape?: ReactNode
   onAbrir: () => void
-  onArquivar: () => void
+  onArquivar?: () => void
 }
 
 function Card({ id, titulo, atrasado, children, rodape, onAbrir, onArquivar }: CardProps) {
@@ -84,15 +87,17 @@ function Card({ id, titulo, atrasado, children, rodape, onAbrir, onArquivar }: C
           {rodape}
         </div>
       )}
-      <button
-        type="button"
-        className={styles.cardArquivar}
-        aria-label={`Arquivar ${titulo}`}
-        title="Arquivar"
-        onClick={onArquivar}
-      >
-        <Icone nome="arquivar" tamanho={16} />
-      </button>
+      {onArquivar && (
+        <button
+          type="button"
+          className={styles.cardArquivar}
+          aria-label={`Arquivar ${titulo}`}
+          title="Arquivar"
+          onClick={onArquivar}
+        >
+          <Icone nome="arquivar" tamanho={16} />
+        </button>
+      )}
     </div>
   )
 }
@@ -101,7 +106,8 @@ interface ColunaProps {
   coluna: ColunaQuadro
   total: number
   children: ReactNode
-  onCriar: () => void
+  /** Sem ele, a coluna não tem o + de criar */
+  onCriar?: () => void
   edicao?: EdicaoDeColunas
 }
 
@@ -162,15 +168,17 @@ function Coluna({ coluna, total, children, onCriar, edicao }: ColunaProps) {
             <Icone nome="lixeira" tamanho={15} />
           </button>
         )}
-        <button
-          type="button"
-          className={styles.colunaCriar}
-          aria-label={`Adicionar em ${coluna.titulo}`}
-          title="Adicionar"
-          onClick={onCriar}
-        >
-          <Icone nome="mais" tamanho={16} />
-        </button>
+        {onCriar && (
+          <button
+            type="button"
+            className={styles.colunaCriar}
+            aria-label={`Adicionar em ${coluna.titulo}`}
+            title="Adicionar"
+            onClick={onCriar}
+          >
+            <Icone nome="mais" tamanho={16} />
+          </button>
+        )}
       </header>
       <div className={styles.cards}>
         {total === 0 ? <p className={styles.colunaVazia}>Nada aqui.</p> : children}
@@ -229,6 +237,7 @@ export function Quadro<T extends ItemQuadro>({
   onCriar,
   onAbrir,
   onArquivar,
+  podeCriar,
   edicao,
   renderRodape,
 }: QuadroProps<T>) {
@@ -295,7 +304,7 @@ export function Quadro<T extends ItemQuadro>({
               key={coluna.id}
               coluna={coluna}
               total={daColuna.length}
-              onCriar={() => onCriar(coluna.id)}
+              onCriar={(podeCriar?.(coluna.id) ?? true) ? () => onCriar(coluna.id) : undefined}
               edicao={edicao}
             >
               {daColuna.map((item) => (
@@ -306,7 +315,7 @@ export function Quadro<T extends ItemQuadro>({
                   atrasado={atrasado?.(item) ?? false}
                   rodape={renderRodape?.(item)}
                   onAbrir={() => onAbrir(item)}
-                  onArquivar={() => onArquivar(item)}
+                  onArquivar={onArquivar ? () => onArquivar(item) : undefined}
                 >
                   {renderCard(item)}
                 </Card>

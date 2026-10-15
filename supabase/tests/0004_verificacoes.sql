@@ -66,3 +66,21 @@ begin
   exception when check_violation then null;
   end;
 end $$;
+
+-- 3c. Quadro de Anúncios
+do $$
+declare
+  cliente uuid;
+  campanha uuid;
+begin
+  insert into public.clients (nome) values ('Cliente do anúncio') returning id into cliente;
+  insert into public.campaigns (nome, client_id) values ('Campanha teste', cliente) returning id into campanha;
+  insert into public.campaign_tasks (campaign_id, funcao, titulo, status, posicao)
+  values (campanha, 'copy', 'Coluna personalizada', 'personalizada_x', 2);
+  begin
+    insert into public.campaign_tasks (campaign_id, funcao, titulo, status)
+    values (campanha, 'copy', 'Sem status', '');
+    raise exception 'status vazio foi aceito';
+  exception when check_violation then null;
+  end;
+end $$;

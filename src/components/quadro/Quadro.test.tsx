@@ -75,6 +75,27 @@ describe('Quadro', () => {
     expect(onAbrir).not.toHaveBeenCalled()
   })
 
+  it('sem onArquivar, o card não tem botão de arquivar; podeCriar esconde o + da coluna', () => {
+    render(
+      <Quadro
+        colunas={COLUNAS}
+        itens={ITENS}
+        colunaDe={(item) => item.status}
+        tituloDe={(item) => item.titulo}
+        renderCard={(item) => item.titulo}
+        onMover={vi.fn()}
+        onCriar={vi.fn()}
+        onAbrir={vi.fn()}
+        podeCriar={(coluna) => coluna !== COLUNAS[1].id}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: /^Arquivar / })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: `Adicionar em ${COLUNAS[0].titulo}` })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: `Adicionar em ${COLUNAS[1].titulo}` }),
+    ).not.toBeInTheDocument()
+  })
+
   it('marca o card atrasado', () => {
     montar()
     const card = (titulo: string) =>

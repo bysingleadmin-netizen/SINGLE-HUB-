@@ -93,6 +93,13 @@ export const COLUNAS_TAREFA: readonly { id: TaskStatus; titulo: string }[] = [
   { id: 'concluido', titulo: 'Concluído' },
 ]
 
+/** Colunas do quadro de Anúncios: os status que as tarefas de anúncio já tinham. */
+export const COLUNAS_ANUNCIO: readonly { id: string; titulo: string }[] = [
+  { id: 'pendente', titulo: 'Pendente' },
+  { id: 'em_andamento', titulo: 'Em andamento' },
+  { id: 'concluido', titulo: 'Concluído' },
+]
+
 export const TIPOS_CONTEUDO: readonly Opcao<TipoConteudo>[] = [
   { valor: 'reels', rotulo: 'Reels', tom: 'roxo' },
   { valor: 'carrossel', rotulo: 'Carrossel', tom: 'azul' },

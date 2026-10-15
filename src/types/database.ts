@@ -29,7 +29,8 @@ export type ContentEtapa =
   | 'arquivado'
 export type CampaignStatus = 'planejamento' | 'em_execucao' | 'pausada' | 'finalizada'
 export type CampaignFuncao = 'copy' | 'criativos' | 'captacao_material' | 'trafego' | 'estrategia'
-export type CampaignTaskStatus = 'pendente' | 'em_andamento' | 'concluido'
+/** Os três de sempre, ou a chave de uma coluna criada no quadro de Anúncios */
+export type CampaignTaskStatus = 'pendente' | 'em_andamento' | 'concluido' | (string & {})
 
 export interface Profile {
   id: string
@@ -144,6 +145,8 @@ export interface CampaignTask {
   titulo: string
   status: CampaignTaskStatus
   responsavel_id: string | null
+  /** Migration 0004 */
+  posicao?: number
   created_at: string
 }
 

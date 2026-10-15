@@ -78,4 +78,23 @@ alter table public.card_attachments add constraint card_attachments_quadro_check
 alter table public.card_subtarefas add constraint card_subtarefas_quadro_check
   check (quadro in ('demandas', 'conteudo', 'tarefas', 'anuncios'));
 
+-- Tarefas de anúncio viram quadro: ganham posição na coluna, e a lista fechada de status sai
+-- para a equipe poder criar colunas.
+alter table public.campaign_tasks add column if not exists posicao double precision not null default 0;
+
+do $$
+declare
+  restricao record;
+begin
+  for restricao in
+    select conname from pg_constraint
+    where conrelid = 'public.campaign_tasks'::regclass and contype = 'c'
+      and pg_get_constraintdef(oid) ilike '%status%'
+  loop
+    execute format('alter table public.campaign_tasks drop constraint %I', restricao.conname);
+  end loop;
+end $$;
+
+alter table public.campaign_tasks add constraint campaign_tasks_status_check check (status <> '');
+
 commit;

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
 import { Abas } from '@/components/ui/Abas'
 import { Button } from '@/components/ui/Button'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
@@ -9,6 +10,7 @@ import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
 import ui from '@/components/ui/ui.module.css'
 import { juntarConsultas, porId } from '@/dados/base'
+import { useColunasOpcionais } from '@/dados/esquema'
 import { useCampanhas, useClientes } from '@/dados/tabelas'
 import { hojeISO } from '@/lib/datas'
 import { formatarMoeda } from '@/lib/formato'
@@ -16,13 +18,14 @@ import { otimizacaoPendente } from '@/lib/regras'
 import { STATUS_CAMPANHA, opcao } from '@/lib/rotulos'
 import type { CampaignStatus } from '@/types/database'
 import { CampanhaModal } from './CampanhaModal'
+import { QuadroDeAnuncios } from './QuadroDeAnuncios'
 import { TarefasDeAnuncio } from './TarefasDeAnuncio'
 import { periodoDaCampanha } from './campanha'
 import styles from './campanhas.module.css'
 
 const ABAS = [
-  { id: 'anuncios', rotulo: 'Anúncios' },
-  { id: 'tarefas', rotulo: 'Tarefas' },
+  { id: 'quadro', rotulo: 'Tarefas' },
+  { id: 'campanhas', rotulo: 'Campanhas' },
 ] as const
 
 type Aba = (typeof ABAS)[number]['id']
@@ -110,13 +113,28 @@ function Anuncios() {
   )
 }
 
-/** Menu Anúncios: os anúncios em si e, na outra aba, todas as tarefas deles em lista. */
+function TarefasDosAnuncios() {
+  const esquema = useColunasOpcionais()
+  const [visao, setVisao] = useVisao('anuncios')
+  // Sem a coluna de posição o quadro não tem como guardar a ordem: fica a lista
+  if (esquema.pronto && !esquema.posicaoAnuncio) return <TarefasDeAnuncio />
+  return (
+    <>
+      <div className={styles.barra}>
+        <AlternarVisao visao={visao} onMudar={setVisao} />
+      </div>
+      {visao === 'lista' ? <TarefasDeAnuncio /> : <QuadroDeAnuncios />}
+    </>
+  )
+}
+
+/** Menu Anúncios: as tarefas de todos os anúncios em quadro ou lista e, na outra aba, as campanhas. */
 export function CampanhasPage() {
-  const [aba, setAba] = useState<Aba>('anuncios')
+  const [aba, setAba] = useState<Aba>('quadro')
   return (
     <div className={styles.pagina}>
       <Abas rotulo="Seções de anúncios" abas={ABAS} ativa={aba} onMudar={setAba}>
-        {aba === 'anuncios' ? <Anuncios /> : <TarefasDeAnuncio />}
+        {aba === 'campanhas' ? <Anuncios /> : <TarefasDosAnuncios />}
       </Abas>
     </div>
   )

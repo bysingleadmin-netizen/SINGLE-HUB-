@@ -40,6 +40,8 @@ const SONDAS = {
   corDasOpcoes: ['card_options', 'cor'],
   // migration 0004: quadro de Tarefas internas na tabela tasks
   quadroTarefas: ['tasks', 'quadro'],
+  // migration 0004: posição das tarefas de anúncio no quadro
+  posicaoAnuncio: ['campaign_tasks', 'posicao'],
 } as const satisfies Record<string, readonly [Tabela, string]>
 
 export type ColunaOpcional = keyof typeof SONDAS

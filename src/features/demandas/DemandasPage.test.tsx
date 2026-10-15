@@ -6,6 +6,7 @@ vi.mock('@/lib/supabase', async () => {
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { hojeISO, somarDias } from '@/lib/datas'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
+import { escolher } from '@/test/escolher'
 import { DemandasPage } from './DemandasPage'
 
 const HOJE = hojeISO()
@@ -102,7 +103,7 @@ describe('DemandasPage', () => {
     expect(modal.getByLabelText('Status')).toHaveValue('em_andamento')
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Relatório mensal' } })
     fireEvent.change(modal.getByLabelText('Cliente'), { target: { value: 'c1' } })
-    fireEvent.change(modal.getByLabelText('Área'), { target: { value: 'estrategia' } })
+    escolher(modal.getByLabelText('Área'), 'estrategia')
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
     expect(await screen.findByText('Demanda criada.')).toBeInTheDocument()
@@ -179,7 +180,7 @@ describe('DemandasPage', () => {
     renderizar(<DemandasPage />)
     await screen.findByText('Roteiro de reels')
 
-    fireEvent.change(screen.getByLabelText('Área'), { target: { value: 'trafego' } })
+    escolher(screen.getByLabelText('Área'), 'trafego')
     expect(screen.queryByText('Roteiro de reels')).not.toBeInTheDocument()
     expect(screen.getByText('Subir campanha')).toBeInTheDocument()
 
@@ -378,7 +379,7 @@ describe('DemandasPage', () => {
 
   it('seleções e data salvam na hora', async () => {
     const painel = await abrirCard()
-    fireEvent.change(painel.getByLabelText('Área'), { target: { value: 'audiovisual' } })
+    escolher(painel.getByLabelText('Área'), 'audiovisual')
     await waitFor(() => expect(bancoFalso().tabelas.tasks[0].tipo).toBe('audiovisual'))
     fireEvent.change(painel.getByLabelText('Responsável'), { target: { value: '' } })
     await waitFor(() => expect(bancoFalso().tabelas.tasks[0].responsavel_id).toBeNull())
@@ -403,9 +404,9 @@ describe('DemandasPage', () => {
   it('desfaz e avisa quando o banco recusa uma edição', async () => {
     const painel = await abrirCard()
     bancoFalso().erroEscrita = { message: 'negado' }
-    fireEvent.change(painel.getByLabelText('Área'), { target: { value: 'audiovisual' } })
+    escolher(painel.getByLabelText('Área'), 'audiovisual')
     expect(await screen.findByText('Não foi possível salvar a demanda.')).toBeInTheDocument()
-    await waitFor(() => expect(painel.getByLabelText('Área')).toHaveValue('conteudo'))
+    await waitFor(() => expect(painel.getByLabelText('Área')).toHaveAttribute('data-valor', 'conteudo'))
   })
 
   it('abre direto a demanda pedida pelo endereço', async () => {
@@ -514,29 +515,29 @@ describe('status do card', () => {
     await screen.findByText('Roteiro de reels')
   }
 
-  const menu = (titulo: string) => screen.getByLabelText(`Status de ${titulo}`) as HTMLSelectElement
+  const menu = (titulo: string) => screen.getByLabelText(`Status de ${titulo}`)
 
   it('marcar como Travado grava no banco e pinta o selo do card', async () => {
     await abrirQuadro()
-    expect(menu('Roteiro de reels')).toHaveValue('')
-    fireEvent.change(menu('Roteiro de reels'), { target: { value: 'travado' } })
+    expect(menu('Roteiro de reels')).toHaveAttribute('data-valor', '')
+    escolher(menu('Roteiro de reels'), 'travado')
 
     expect(await screen.findByText('Status atualizado.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.tasks[0]).toMatchObject({ situacao: 'travado', status: 'a_fazer' })
-    await waitFor(() => expect(menu('Roteiro de reels')).toHaveAttribute('data-situacao', 'travado'))
+    await waitFor(() => expect(menu('Roteiro de reels')).toHaveAttribute('data-valor', 'travado'))
     expect(coluna('A Fazer').getByText('Roteiro de reels')).toBeInTheDocument()
   })
 
   it('Feito leva o card para a coluna seguinte, onde ele chega sem status', async () => {
     await abrirQuadro()
-    fireEvent.change(menu('Roteiro de reels'), { target: { value: 'em_andamento' } })
+    escolher(menu('Roteiro de reels'), 'em_andamento')
     await screen.findByText('Status atualizado.')
 
-    fireEvent.change(menu('Roteiro de reels'), { target: { value: 'feito' } })
+    escolher(menu('Roteiro de reels'), 'feito')
     expect(await screen.findByText('Demanda movida para Em Andamento.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.tasks[0]).toMatchObject({ status: 'em_andamento', situacao: null })
     expect(await coluna('Em Andamento').findByText('Roteiro de reels')).toBeInTheDocument()
-    expect(menu('Roteiro de reels')).toHaveValue('')
+    expect(menu('Roteiro de reels')).toHaveAttribute('data-valor', '')
   })
 
   it('na última coluna não há para onde andar: o card fica marcado como Feito', async () => {
@@ -546,7 +547,7 @@ describe('status do card', () => {
     })
     renderizar(<DemandasPage />)
     await screen.findByText('Entregue')
-    fireEvent.change(menu('Entregue'), { target: { value: 'feito' } })
+    escolher(menu('Entregue'), 'feito')
 
     expect(await screen.findByText('Status atualizado.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.tasks[0]).toMatchObject({ status: 'concluido', situacao: 'feito' })
@@ -555,9 +556,9 @@ describe('status do card', () => {
   it('avisa e desfaz quando o banco recusa', async () => {
     await abrirQuadro()
     bancoFalso().erroEscrita = { message: 'negado' }
-    fireEvent.change(menu('Roteiro de reels'), { target: { value: 'travado' } })
+    escolher(menu('Roteiro de reels'), 'travado')
     expect(await screen.findByText('Não foi possível atualizar o status.')).toBeInTheDocument()
-    await waitFor(() => expect(menu('Roteiro de reels')).toHaveValue(''))
+    await waitFor(() => expect(menu('Roteiro de reels')).toHaveAttribute('data-valor', ''))
   })
 
   it('sem a coluna no banco, só Feito funciona, e ele move o card do mesmo jeito', async () => {
@@ -566,12 +567,13 @@ describe('status do card', () => {
     renderizar(<DemandasPage />)
     await screen.findByText('Roteiro de reels')
 
+    fireEvent.click(menu('Roteiro de reels'))
     await waitFor(() =>
-      expect(within(menu('Roteiro de reels')).getByRole('option', { name: 'Feito' })).toBeEnabled(),
+      expect(screen.getByRole('option', { name: 'Travado' })).toHaveAttribute('aria-disabled', 'true'),
     )
-    expect(within(menu('Roteiro de reels')).getByRole('option', { name: 'Travado' })).toBeDisabled()
+    expect(screen.getByRole('option', { name: 'Feito' })).not.toHaveAttribute('aria-disabled')
 
-    fireEvent.change(menu('Roteiro de reels'), { target: { value: 'feito' } })
+    fireEvent.click(screen.getByRole('option', { name: 'Feito' }))
     expect(await screen.findByText('Demanda movida para Em Andamento.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.tasks[0]).not.toHaveProperty('situacao')
   })

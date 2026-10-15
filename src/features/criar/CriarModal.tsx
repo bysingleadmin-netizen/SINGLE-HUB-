@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Modal } from '@/components/ui/Modal'
-import { Selecao } from '@/components/ui/Selecao'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useColunasOpcionais } from '@/dados/esquema'
+import type { Tom } from '@/lib/rotulos'
 import ui from '@/components/ui/ui.module.css'
 import type { Categoria, PedidoDeCriacao } from './CriacaoContext'
 import { FormConteudo } from './FormConteudo'
 import { FormDemanda } from './FormDemanda'
 import { FormTarefaDeCampanha } from './FormTarefaDeCampanha'
 
-const CATEGORIAS: readonly { valor: Categoria; rotulo: string; destino: string }[] = [
-  { valor: 'tarefa', rotulo: 'Tarefa', destino: 'Trabalho interno da agência. Vai para o menu Tarefas.' },
-  { valor: 'conteudo', rotulo: 'Conteúdo', destino: 'Vai para o menu Conteúdo.' },
-  { valor: 'demanda', rotulo: 'Demanda', destino: 'Pedido de cliente. Vai para o menu Demandas.' },
-  { valor: 'campanha', rotulo: 'Anúncio', destino: 'Tarefa de um anúncio. Vai para o menu Anúncios.' },
+const CATEGORIAS: readonly { valor: Categoria; rotulo: string; tom: Tom; destino: string }[] = [
+  { valor: 'tarefa', rotulo: 'Tarefa', tom: 'azul', destino: 'Trabalho interno da agência. Vai para o menu Tarefas.' },
+  { valor: 'conteudo', rotulo: 'Conteúdo', tom: 'roxo', destino: 'Vai para o menu Conteúdo.' },
+  { valor: 'demanda', rotulo: 'Demanda', tom: 'vermelho', destino: 'Pedido de cliente. Vai para o menu Demandas.' },
+  { valor: 'campanha', rotulo: 'Anúncio', tom: 'amarelo', destino: 'Tarefa de um anúncio. Vai para o menu Anúncios.' },
 ]
 
 /** O tipo que a página atual sugere quando a pessoa clica em Criar. */
@@ -49,11 +50,11 @@ export function CriarModal({ pedido, onFechar }: CriarModalProps) {
   return (
     <Modal aberto titulo="Nova tarefa" onFechar={onFechar}>
       <div className={ui.formulario}>
-        <Selecao
+        <StatusSelect
           rotulo="Tipo"
           opcoes={categorias}
           value={categoria}
-          onChange={(evento) => setCategoria(evento.target.value as Categoria)}
+          onChange={(valor) => setCategoria(valor as Categoria)}
         />
         <p className={ui.mudo}>{atual.destino}</p>
 

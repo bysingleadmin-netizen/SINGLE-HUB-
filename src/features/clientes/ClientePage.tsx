@@ -10,8 +10,8 @@ import { Icone } from '@/components/ui/Icone'
 import type { NomeIlustracao } from '@/components/ui/Ilustracao'
 import { Painel } from '@/components/ui/Painel'
 import { Pill } from '@/components/ui/Pill'
-import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { ACEITA_IMAGENS, enviarImagem, validarImagem } from '@/dados/arquivos'
@@ -152,12 +152,12 @@ function VisaoGeral({ cliente }: { cliente: Client }) {
       </div>
 
       <div className={ui.painel}>
-        <Selecao
+        <StatusSelect
           className={styles.status}
           rotulo="Status"
           opcoes={STATUS_CLIENTE}
           value={cliente.status}
-          onChange={(evento) => trocarStatus(evento.target.value as ClientStatus)}
+          onChange={(valor) => trocarStatus(valor as ClientStatus)}
         />
         <AreaTexto
           rotulo="Observações"

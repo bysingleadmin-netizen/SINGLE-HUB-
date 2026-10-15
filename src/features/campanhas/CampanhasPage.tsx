@@ -7,8 +7,8 @@ import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
 import { ConfirmarExclusao, MenuDeAcoes } from '@/components/ui/MenuDeAcoes'
 import { Pill } from '@/components/ui/Pill'
-import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { juntarConsultas, porId } from '@/dados/base'
@@ -68,13 +68,13 @@ function Anuncios() {
   return (
     <>
       <div className={styles.barra}>
-        <Selecao
+        <StatusSelect
           className={styles.filtro}
           rotulo="Status"
           vazio="Todos os status"
           opcoes={STATUS_CAMPANHA}
           value={status}
-          onChange={(evento) => setStatus(evento.target.value as CampaignStatus | '')}
+          onChange={(valor) => setStatus(valor as CampaignStatus | '')}
         />
         {botaoNova}
       </div>

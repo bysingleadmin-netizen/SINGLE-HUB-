@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
 import { Modal } from '@/components/ui/Modal'
 import { Selecao } from '@/components/ui/Selecao'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
@@ -93,12 +94,12 @@ export function CampanhaModal({ campanha, clientes, onFechar }: CampanhaModalPro
             opcoes={clientes.map((c) => ({ valor: c.id, rotulo: c.nome }))}
             {...campo('client_id')}
           />
-          <Selecao
+          <StatusSelect
             rotulo="Status"
             opcoes={STATUS_CAMPANHA}
             value={form.status}
-            onChange={(evento) =>
-              setForm((atual) => ({ ...atual, status: evento.target.value as CampaignStatus }))
+            onChange={(valor) =>
+              setForm((atual) => ({ ...atual, status: valor as CampaignStatus }))
             }
           />
         </div>

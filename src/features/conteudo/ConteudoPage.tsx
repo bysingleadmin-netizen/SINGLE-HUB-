@@ -17,8 +17,8 @@ import { useMover } from '@/components/quadro/useMover'
 import { useSituacao } from '@/components/quadro/useSituacao'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Pill } from '@/components/ui/Pill'
-import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import { useAnexos } from '@/dados/anexos'
 import { juntarConsultas, porId } from '@/dados/base'
@@ -164,12 +164,12 @@ export function ConteudoPage() {
     <div className={quadro.pagina}>
       <div className={quadro.barra}>
         <div className={quadro.filtros}>
-          <Selecao
+          <StatusSelect
             rotulo="Tipo de conteúdo"
             vazio="Todos os tipos"
             opcoes={tipos.opcoes}
             value={tipo}
-            onChange={(evento) => setTipo(evento.target.value as TipoConteudo | '')}
+            onChange={(valor) => setTipo(valor as TipoConteudo | '')}
           />
           <FiltroDeColaboradores
             perfis={perfis.data ?? []}

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Icone } from '@/components/ui/Icone'
 import { Selecao } from '@/components/ui/Selecao'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
@@ -103,13 +104,13 @@ function Grupo({ grupo, campanhaId, perfis }: GrupoProps) {
               >
                 {tarefa.titulo}
               </span>
-              <Selecao
+              <StatusSelect
                 rotulo={`Status de ${tarefa.titulo}`}
                 ocultarRotulo
                 opcoes={statusDeAnuncio}
                 value={tarefa.status}
-                onChange={(evento) =>
-                  atualizarTarefa(tarefa, { status: evento.target.value as CampaignTaskStatus })
+                onChange={(valor) =>
+                  atualizarTarefa(tarefa, { status: valor as CampaignTaskStatus })
                 }
               />
               <Selecao

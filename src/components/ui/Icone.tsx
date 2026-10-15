@@ -84,6 +84,7 @@ const DESENHOS = {
     </>
   ),
   seta: <path d="m9 6 6 6-6 6" />,
+  setaBaixo: <path d="m6 9 6 6 6-6" />,
   pix: (
     <>
       <path d="m12 3.5 8.5 8.5-8.5 8.5L3.5 12z" />

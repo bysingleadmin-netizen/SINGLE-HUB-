@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
 import { Modal } from '@/components/ui/Modal'
 import { Selecao } from '@/components/ui/Selecao'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { SeletorDePessoas } from '@/components/ui/SeletorDePessoas'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
@@ -80,11 +81,11 @@ export function EventoModal({ dia, clientes, perfis, onFechar }: EventoModalProp
           onChange={(evento) => mudar('titulo', evento.target.value)}
         />
         <div className={ui.duasColunas}>
-          <Selecao
+          <StatusSelect
             rotulo="Tipo"
             opcoes={TIPOS_EVENTO}
             value={form.tipo}
-            onChange={(evento) => mudar('tipo', evento.target.value as TipoEvento)}
+            onChange={(valor) => mudar('tipo', valor as TipoEvento)}
           />
           <Campo
             rotulo="Data"

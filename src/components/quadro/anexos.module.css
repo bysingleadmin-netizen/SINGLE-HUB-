@@ -8,59 +8,10 @@
   padding: 0 12px 10px;
 }
 
-/* O menu de status é o próprio selo: a cor acompanha a situação escolhida */
+/* O menu de status é o próprio selo (StatusSelect em pílula); não estica no rodapé */
 .situacao {
-  --tom: var(--text-muted);
-  appearance: none;
+  min-width: 0;
   max-width: 100%;
-  height: 24px;
-  padding: 0 22px 0 9px;
-  background-color: color-mix(in srgb, var(--tom) 14%, transparent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%23b4b4be' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m1 1 4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  border: 1px solid color-mix(in srgb, var(--tom) 30%, transparent);
-  border-radius: 999px;
-  color: var(--tom);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    border-color 0.18s ease,
-    background-color 0.18s ease;
-}
-
-.situacao:hover {
-  border-color: color-mix(in srgb, var(--tom) 60%, transparent);
-}
-
-/* A cor vem do tom da opção; status criado pela equipe fica no tom neutro */
-.situacao[data-tom='vermelho'] {
-  --tom: var(--perigo);
-}
-
-.situacao[data-tom='amarelo'] {
-  --tom: var(--amarelo);
-}
-
-.situacao[data-tom='laranja'] {
-  --tom: var(--laranja);
-}
-
-.situacao[data-tom='verde'] {
-  --tom: var(--verde);
-}
-
-.situacao[data-tom='azul'] {
-  --tom: var(--azul);
-}
-
-.situacao[data-tom='roxo'] {
-  --tom: var(--roxo);
-}
-
-.situacao[data-situacao][data-tom='cinza'] {
-  --tom: var(--text);
 }
 
 .miniaturas {
@@ -224,22 +175,10 @@
   }
 }
 
-/* Celular: seletor de status e botão de anexo grandes o bastante para o dedo */
+/* Celular: botão de anexo grande o bastante para o dedo (a pílula de status cresce sozinha) */
 @media (max-width: 767px) {
-  .situacao {
-    height: 34px;
-    padding-left: 12px;
-    font-size: 13px;
-  }
-
   .miniatura {
     width: 36px;
     height: 36px;
   }
-}
-
-/* No claro, a cor do status como texto escurece para continuar legível, inclusive a escolhida
-   pela equipe */
-:global([data-theme='light']) .situacao {
-  color: color-mix(in srgb, var(--tom) 62%, #000);
 }

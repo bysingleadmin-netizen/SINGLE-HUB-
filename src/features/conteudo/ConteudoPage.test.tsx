@@ -5,6 +5,7 @@ vi.mock('@/lib/supabase', async () => {
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
+import { escolher } from '@/test/escolher'
 import { ConteudoPage } from './ConteudoPage'
 
 function card(parcial: Record<string, unknown>) {
@@ -74,7 +75,7 @@ describe('ConteudoPage', () => {
     const modal = within(screen.getByRole('dialog', { name: 'Nova tarefa' }))
     expect(modal.getByLabelText('Etapa')).toHaveValue('editar')
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Stories de bastidores' } })
-    fireEvent.change(modal.getByLabelText('Tipo de conteúdo'), { target: { value: 'stories' } })
+    escolher(modal.getByLabelText('Tipo de conteúdo'), 'stories')
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
     expect(await screen.findByText('Conteúdo criado.')).toBeInTheDocument()
@@ -96,7 +97,7 @@ describe('ConteudoPage', () => {
     renderizar(<ConteudoPage />)
     await screen.findByText('Reels de lançamento')
 
-    fireEvent.change(screen.getByLabelText('Tipo de conteúdo'), { target: { value: 'carrossel' } })
+    escolher(screen.getByLabelText('Tipo de conteúdo'), 'carrossel')
     expect(screen.queryByText('Reels de lançamento')).not.toBeInTheDocument()
     expect(screen.getByText('Carrossel de dicas')).toBeInTheDocument()
 
@@ -132,7 +133,7 @@ describe('ConteudoPage', () => {
     const painel = await abrirCard()
     expect(painel.getByLabelText('Título')).toHaveValue('Reels de lançamento')
     expect(painel.getByLabelText('Cliente')).toHaveValue('c1')
-    expect(painel.getByLabelText('Tipo de conteúdo')).toHaveValue('reels')
+    expect(painel.getByLabelText('Tipo de conteúdo')).toHaveAttribute('data-valor', 'reels')
     expect(painel.queryByRole('button', { name: 'Salvar' })).not.toBeInTheDocument()
   })
 
@@ -157,7 +158,7 @@ describe('ConteudoPage', () => {
     expect(await screen.findByText('Conteúdo atualizado.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.content_cards[0].observacoes).toBe('Usar a trilha nova')
 
-    fireEvent.change(painel.getByLabelText('Tipo de conteúdo'), { target: { value: 'video' } })
+    escolher(painel.getByLabelText('Tipo de conteúdo'), 'video')
     await waitFor(() => expect(bancoFalso().tabelas.content_cards[0].tipo_conteudo).toBe('video'))
   })
 
@@ -200,7 +201,7 @@ describe('ConteudoPage', () => {
 
   it('marcar Feito no painel leva o card para a etapa seguinte, sem status', async () => {
     const painel = await abrirCard()
-    fireEvent.change(await painel.findByLabelText('Status do card'), { target: { value: 'feito' } })
+    escolher(await painel.findByLabelText('Status do card'), 'feito')
 
     await waitFor(() =>
       expect(bancoFalso().tabelas.content_cards[0]).toMatchObject({ etapa: 'editar', situacao: null }),
@@ -272,7 +273,7 @@ describe('ConteudoPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir Reels de lançamento' }))
     const painel = within(await screen.findByRole('dialog', { name: 'Reels de lançamento' }))
 
-    expect(painel.getByLabelText('Tipo de conteúdo')).toHaveValue('reels')
+    expect(painel.getByLabelText('Tipo de conteúdo')).toHaveAttribute('data-valor', 'reels')
     expect(painel.queryByRole('region', { name: 'Subtarefas' })).not.toBeInTheDocument()
     expect(painel.queryByRole('button', { name: /^Configurar/ })).not.toBeInTheDocument()
   })

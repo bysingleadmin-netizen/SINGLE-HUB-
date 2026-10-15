@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
 import { Modal } from '@/components/ui/Modal'
 import { Selecao } from '@/components/ui/Selecao'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
@@ -78,12 +79,12 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
       <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
         <Campo rotulo="Nome" autoFocus {...campo('nome')} />
         <div className={ui.duasColunas}>
-          <Selecao
+          <StatusSelect
             rotulo="Status"
             opcoes={STATUS_CLIENTE}
             value={form.status}
-            onChange={(evento) =>
-              setForm((atual) => ({ ...atual, status: evento.target.value as ClientStatus }))
+            onChange={(valor) =>
+              setForm((atual) => ({ ...atual, status: valor as ClientStatus }))
             }
           />
           <Campo

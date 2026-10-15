@@ -7,6 +7,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { Route, Routes } from 'react-router-dom'
 import { hojeISO, somarDias } from '@/lib/datas'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
+import { escolher } from '@/test/escolher'
 import { CampanhaPage } from './CampanhaPage'
 import { CampanhasPage } from './CampanhasPage'
 
@@ -123,11 +124,11 @@ describe('CampanhasPage', () => {
     renderizar(<CampanhasPage />)
     abrirCampanhas()
     await screen.findByRole('link', { name: 'Black Friday' })
-    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'planejamento' } })
+    escolher(screen.getByLabelText('Status'), 'planejamento')
     expect(screen.queryByRole('link', { name: 'Black Friday' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Institucional' })).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'finalizada' } })
+    escolher(screen.getByLabelText('Status'), 'finalizada')
     expect(screen.getByText('Nenhum anúncio com esse status.')).toBeInTheDocument()
   })
 
@@ -355,9 +356,7 @@ describe('CampanhaPage', () => {
     popular()
     abrir()
     await screen.findByText('Escrever anúncios')
-    fireEvent.change(screen.getByLabelText('Status de Escrever anúncios'), {
-      target: { value: 'concluido' },
-    })
+    escolher(screen.getByLabelText('Status de Escrever anúncios'), 'concluido')
     expect(await screen.findByText('Tarefa atualizada.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.campaign_tasks[0].status).toBe('concluido')
 
@@ -377,8 +376,9 @@ describe('CampanhaPage', () => {
     abrir()
     await screen.findByText('Escrever anúncios')
     const status = await screen.findByLabelText('Status de Escrever anúncios')
-    await waitFor(() => expect(status).toHaveDisplayValue('Aprovação'))
-    expect(within(status).getAllByRole('option').map((o) => o.textContent)).toEqual([
+    await waitFor(() => expect(status).toHaveTextContent('Aprovação'))
+    fireEvent.click(status)
+    expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual([
       'Pendente',
       'Aprovação',
       'Em andamento',
@@ -391,12 +391,10 @@ describe('CampanhaPage', () => {
     abrir()
     await screen.findByText('Escrever anúncios')
     bancoFalso().erroEscrita = { message: 'negado' }
-    fireEvent.change(screen.getByLabelText('Status de Escrever anúncios'), {
-      target: { value: 'concluido' },
-    })
+    escolher(screen.getByLabelText('Status de Escrever anúncios'), 'concluido')
     expect(await screen.findByText('Não foi possível atualizar a tarefa.')).toBeInTheDocument()
     await waitFor(() =>
-      expect(screen.getByLabelText('Status de Escrever anúncios')).toHaveValue('pendente'),
+      expect(screen.getByLabelText('Status de Escrever anúncios')).toHaveAttribute('data-valor', 'pendente'),
     )
   })
 
@@ -414,7 +412,7 @@ describe('CampanhaPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
     const modal = within(screen.getByRole('dialog', { name: 'Editar anúncio' }))
     expect(modal.getByLabelText('Orçamento')).toHaveValue('3000,00')
-    fireEvent.change(modal.getByLabelText('Status'), { target: { value: 'pausada' } })
+    escolher(modal.getByLabelText('Status'), 'pausada')
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
     expect(await screen.findByText('Anúncio atualizado.')).toBeInTheDocument()

@@ -11,6 +11,7 @@ import { Drawer } from '@/components/ui/Drawer'
 import { Icone } from '@/components/ui/Icone'
 import { Pill } from '@/components/ui/Pill'
 import { Selecao } from '@/components/ui/Selecao'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import type { ColunaDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
 import { useOpcoes } from '@/dados/opcoes'
@@ -135,22 +136,22 @@ export function CardDrawer({
             />
             {esquema.situacaoConteudo && (
               <div className={opcoes.comEngrenagem}>
-                <Selecao
+                <StatusSelect
                   rotulo="Status do card"
                   vazio="Sem status"
                   opcoes={situacoes.opcoes}
                   value={card.situacao ?? ''}
-                  onChange={(evento) => onSituacao(evento.target.value || null)}
+                  onChange={(valor) => onSituacao(valor || null)}
                 />
                 <ConfigurarOpcoes campo="status" opcoes={situacoes.opcoes} edicao={situacoes.edicao} />
               </div>
             )}
             <div className={opcoes.comEngrenagem}>
-              <Selecao
+              <StatusSelect
                 rotulo="Tipo de conteúdo"
                 opcoes={tipos.opcoes}
                 value={card.tipo_conteudo}
-                onChange={(evento) => salvar({ tipo_conteudo: evento.target.value })}
+                onChange={(valor) => salvar({ tipo_conteudo: valor })}
               />
               <ConfigurarOpcoes campo="tipos de conteúdo" opcoes={tipos.opcoes} edicao={tipos.edicao} />
             </div>
@@ -176,11 +177,11 @@ export function CardDrawer({
             />
             {esquema.prioridadeConteudo && (
               <div className={opcoes.comEngrenagem}>
-                <Selecao
+                <StatusSelect
                   rotulo="Prioridade"
                   opcoes={prioridades.opcoes}
                   value={card.prioridade ?? 'media'}
-                  onChange={(evento) => salvar({ prioridade: evento.target.value })}
+                  onChange={(valor) => salvar({ prioridade: valor })}
                 />
                 <ConfigurarOpcoes
                   campo="prioridades"

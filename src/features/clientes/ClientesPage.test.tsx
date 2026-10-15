@@ -9,6 +9,7 @@ import { hojeISO, somarDias } from '@/lib/datas'
 import type { Cargo } from '@/lib/permissoes'
 import { SincronizarCobrancas } from '@/dados/pagamentos'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
+import { escolher } from '@/test/escolher'
 import { ClientePage } from './ClientePage'
 import { proximoMes, vencimentoNoMes } from './cartoes'
 import { ClientesPage } from './ClientesPage'
@@ -196,7 +197,7 @@ describe('página do cliente: visão geral', () => {
 
   it('troca o status direto na página', async () => {
     await abrirCliente()
-    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'pausado' } })
+    escolher(screen.getByLabelText('Status'), 'pausado')
     expect(await screen.findByText('Status atualizado.')).toBeInTheDocument()
     expect(bancoFalso().tabelas.clients[0].status).toBe('pausado')
   })

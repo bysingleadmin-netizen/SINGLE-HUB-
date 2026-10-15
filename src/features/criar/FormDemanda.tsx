@@ -5,6 +5,7 @@ import { AreaTexto } from '@/components/ui/AreaTexto'
 import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
 import { Selecao } from '@/components/ui/Selecao'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
@@ -139,11 +140,11 @@ export function FormDemanda({ quadro, statusInicial, onFechar }: FormDemandaProp
       </div>
       <div className={ui.duasColunas}>
         {quadro === 'demandas' && (
-          <Selecao
+          <StatusSelect
             rotulo="Área"
             opcoes={TIPOS_TAREFA}
             value={form.tipo}
-            onChange={(evento) => mudar('tipo', evento.target.value as TaskTipo)}
+            onChange={(valor) => mudar('tipo', valor as TaskTipo)}
           />
         )}
         <Selecao
@@ -161,11 +162,11 @@ export function FormDemanda({ quadro, statusInicial, onFechar }: FormDemandaProp
           onChange={(evento) => mudar('data_entrega', evento.target.value)}
         />
         {esquema.prioridadeTarefa && (
-          <Selecao
+          <StatusSelect
             rotulo="Prioridade"
             opcoes={prioridades.opcoes}
             value={form.prioridade}
-            onChange={(evento) => mudar('prioridade', evento.target.value)}
+            onChange={(valor) => mudar('prioridade', valor)}
           />
         )}
       </div>

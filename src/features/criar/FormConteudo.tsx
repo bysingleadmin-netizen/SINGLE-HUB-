@@ -5,6 +5,7 @@ import { AreaTexto } from '@/components/ui/AreaTexto'
 import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
 import { Selecao } from '@/components/ui/Selecao'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
@@ -93,11 +94,11 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
         onChange={(evento) => mudar('titulo', evento.target.value)}
       />
       <div className={ui.duasColunas}>
-        <Selecao
+        <StatusSelect
           rotulo="Tipo de conteúdo"
           opcoes={tipos.opcoes}
           value={form.tipo_conteudo}
-          onChange={(evento) => mudar('tipo_conteudo', evento.target.value)}
+          onChange={(valor) => mudar('tipo_conteudo', valor)}
         />
         <Selecao
           rotulo="Etapa"
@@ -130,11 +131,11 @@ export function FormConteudo({ etapaInicial, onFechar }: FormConteudoProps) {
           onChange={(evento) => mudar('data_entrega', evento.target.value)}
         />
         {esquema.prioridadeConteudo && (
-          <Selecao
+          <StatusSelect
             rotulo="Prioridade"
             opcoes={prioridades.opcoes}
             value={prioridade}
-            onChange={(evento) => setPrioridade(evento.target.value)}
+            onChange={(valor) => setPrioridade(valor)}
           />
         )}
       </div>

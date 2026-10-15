@@ -17,8 +17,8 @@ import { useMover } from '@/components/quadro/useMover'
 import { useSituacao } from '@/components/quadro/useSituacao'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Pill } from '@/components/ui/Pill'
-import { Selecao } from '@/components/ui/Selecao'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import { useAnexos } from '@/dados/anexos'
 import { juntarConsultas, porId } from '@/dados/base'
@@ -186,12 +186,12 @@ export function DemandasPage({ quadro = 'demandas' }: { quadro?: QuadroDeTarefa 
       <div className={pagina.barra}>
         <div className={pagina.filtros}>
           {quadro === 'demandas' && (
-            <Selecao
+            <StatusSelect
               rotulo="Área"
               vazio="Todas as áreas"
               opcoes={TIPOS_TAREFA}
               value={tipo}
-              onChange={(evento) => setTipo(evento.target.value as TaskTipo | '')}
+              onChange={(valor) => setTipo(valor as TaskTipo | '')}
             />
           )}
           <FiltroDeColaboradores

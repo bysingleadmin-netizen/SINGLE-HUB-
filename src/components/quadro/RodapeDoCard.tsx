@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import type { CSSProperties } from 'react'
 import { Icone } from '@/components/ui/Icone'
 import { Modal } from '@/components/ui/Modal'
+import { StatusSelect } from '@/components/ui/StatusSelect'
 import { rotuloDoAnexo } from '@/dados/anexos'
 import type { OpcaoDeCampo } from '@/dados/opcoes'
-import { corDe } from '@/lib/rotulos'
 import type { CardAttachment, QuadroId, SituacaoDoCard } from '@/types/database'
 import { Anexos } from './Anexos'
 import styles from './anexos.module.css'
@@ -43,30 +42,22 @@ export function RodapeDoCard({
   const [anexando, setAnexando] = useState(false)
   const visiveis = (anexos ?? []).slice(0, MINIATURAS)
   const resto = (anexos?.length ?? 0) - visiveis.length
-  const atual = situacoes.find((opcao) => opcao.valor === situacao)
 
   return (
     <div className={styles.rodape}>
-      <select
+      <StatusSelect
+        pilula
+        ocultarRotulo
         className={styles.situacao}
-        data-situacao={situacao ?? undefined}
-        data-tom={atual?.tom}
-        style={atual ? ({ '--tom': corDe(atual) } as CSSProperties) : undefined}
-        aria-label={`Status de ${titulo}`}
+        rotulo={`Status de ${titulo}`}
+        vazio="Sem status"
+        opcoes={situacoes.map((opcao) => ({
+          ...opcao,
+          desabilitada: !situacaoDisponivel && opcao.valor !== 'feito',
+        }))}
         value={situacao ?? ''}
-        onChange={(evento) => onSituacao((evento.target.value || null) as SituacaoDoCard | null)}
-      >
-        <option value="">Sem status</option>
-        {situacoes.map((opcao) => (
-          <option
-            key={opcao.valor}
-            value={opcao.valor}
-            disabled={!situacaoDisponivel && opcao.valor !== 'feito'}
-          >
-            {opcao.rotulo}
-          </option>
-        ))}
-      </select>
+        onChange={(valor) => onSituacao((valor || null) as SituacaoDoCard | null)}
+      />
 
       {anexos && (
         <div className={styles.miniaturas}>

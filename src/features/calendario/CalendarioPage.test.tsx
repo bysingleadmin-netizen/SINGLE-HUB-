@@ -6,6 +6,7 @@ vi.mock('@/lib/supabase', async () => {
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { hojeISO } from '@/lib/datas'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
+import { escolher } from '@/test/escolher'
 import { CalendarioPage } from './CalendarioPage'
 import { mesDe, mesVizinho, nomeDoDia, nomeDoMes } from './calendario'
 
@@ -168,7 +169,7 @@ describe('CalendarioPage', () => {
 
     const modal = within(screen.getByRole('dialog', { name: 'Novo evento' }))
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Alinhamento mensal' } })
-    fireEvent.change(modal.getByLabelText('Tipo'), { target: { value: 'entrega' } })
+    escolher(modal.getByLabelText('Tipo'), 'entrega')
     fireEvent.change(modal.getByLabelText('Data'), { target: { value: DIA_11 } })
     fireEvent.change(modal.getByLabelText('Início'), { target: { value: '10:00' } })
     fireEvent.change(modal.getByLabelText('Cliente'), { target: { value: 'c1' } })

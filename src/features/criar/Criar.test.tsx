@@ -5,6 +5,7 @@ vi.mock('@/lib/supabase', async () => {
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
+import { escolher } from '@/test/escolher'
 import { BotaoCriar } from './BotaoCriar'
 import { useCriar } from './CriacaoContext'
 
@@ -37,7 +38,7 @@ describe('criação central de tarefas', () => {
   it('abre em Demanda e explica para qual menu a tarefa vai', async () => {
     popular()
     const modal = await abrir()
-    expect(modal.getByLabelText('Tipo')).toHaveValue('demanda')
+    expect(modal.getByLabelText('Tipo')).toHaveAttribute('data-valor', 'demanda')
     expect(modal.getByText('Pedido de cliente. Vai para o menu Demandas.')).toBeInTheDocument()
     expect(modal.getByLabelText('Status')).toHaveValue('a_fazer')
   })
@@ -46,7 +47,7 @@ describe('criação central de tarefas', () => {
     popular()
     const modal = await abrir()
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Banner da campanha' } })
-    fireEvent.change(modal.getByLabelText('Área'), { target: { value: 'trafego' } })
+    escolher(modal.getByLabelText('Área'), 'trafego')
     fireEvent.change(modal.getByLabelText('Responsável'), { target: { value: 'u2' } })
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
@@ -69,13 +70,13 @@ describe('criação central de tarefas', () => {
   it('trocar para Conteúdo muda os campos e grava no pipeline de conteúdo', async () => {
     popular()
     const modal = await abrir()
-    fireEvent.change(modal.getByLabelText('Tipo'), { target: { value: 'conteudo' } })
+    escolher(modal.getByLabelText('Tipo'), 'conteudo')
     expect(modal.getByText('Vai para o menu Conteúdo.')).toBeInTheDocument()
     expect(modal.queryByLabelText('Status')).not.toBeInTheDocument()
     expect(modal.getByLabelText('Etapa')).toHaveValue('captar_material')
 
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Reels de bastidores' } })
-    fireEvent.change(modal.getByLabelText('Tipo de conteúdo'), { target: { value: 'reels' } })
+    escolher(modal.getByLabelText('Tipo de conteúdo'), 'reels')
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
 
     expect(await screen.findByText('Conteúdo criado.')).toBeInTheDocument()
@@ -90,7 +91,7 @@ describe('criação central de tarefas', () => {
   it('categoria Campanha grava a tarefa na campanha e na função escolhidas', async () => {
     popular()
     const modal = await abrir()
-    fireEvent.change(modal.getByLabelText('Tipo'), { target: { value: 'campanha' } })
+    escolher(modal.getByLabelText('Tipo'), 'campanha')
     expect(modal.getByText('Tarefa de um anúncio. Vai para o menu Anúncios.')).toBeInTheDocument()
 
     await modal.findByRole('option', { name: 'Black Friday' })
@@ -111,7 +112,7 @@ describe('criação central de tarefas', () => {
   it('categoria Campanha exige campanha e título', async () => {
     popular()
     const modal = await abrir()
-    fireEvent.change(modal.getByLabelText('Tipo'), { target: { value: 'campanha' } })
+    escolher(modal.getByLabelText('Tipo'), 'campanha')
     fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
     expect(await modal.findByText('Escolha o anúncio.')).toBeInTheDocument()
     expect(modal.getByText('Informe o título da tarefa.')).toBeInTheDocument()
@@ -121,7 +122,7 @@ describe('criação central de tarefas', () => {
   it('sem campanhas cadastradas, manda criar uma antes', async () => {
     popular(false)
     const modal = await abrir()
-    fireEvent.change(modal.getByLabelText('Tipo'), { target: { value: 'campanha' } })
+    escolher(modal.getByLabelText('Tipo'), 'campanha')
     expect(
       await modal.findByText('Crie um anúncio antes de adicionar tarefas a ele.'),
     ).toBeInTheDocument()
@@ -141,7 +142,7 @@ describe('criação central de tarefas', () => {
     renderizar(<Coluna />)
     fireEvent.click(screen.getByText('mais'))
     const modal = within(screen.getByRole('dialog', { name: 'Nova tarefa' }))
-    expect(modal.getByLabelText('Tipo')).toHaveValue('conteudo')
+    expect(modal.getByLabelText('Tipo')).toHaveAttribute('data-valor', 'conteudo')
     expect(modal.getByLabelText('Etapa')).toHaveValue('editar')
   })
 
@@ -149,8 +150,9 @@ describe('criação central de tarefas', () => {
     popular()
     bancoFalso().colunasAusentes = ['tasks.quadro']
     const modal = await abrir()
+    fireEvent.click(modal.getByLabelText('Tipo'))
     await waitFor(() =>
-      expect(within(modal.getByLabelText('Tipo')).getAllByRole('option').map((o) => o.textContent)).toEqual([
+      expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual([
         'Conteúdo',
         'Demanda',
         'Anúncio',
@@ -161,7 +163,8 @@ describe('criação central de tarefas', () => {
   it('oferece os quatro tipos', async () => {
     popular()
     const modal = await abrir()
-    expect(within(modal.getByLabelText('Tipo')).getAllByRole('option').map((o) => o.textContent)).toEqual([
+    fireEvent.click(modal.getByLabelText('Tipo'))
+    expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual([
       'Tarefa',
       'Conteúdo',
       'Demanda',
@@ -172,7 +175,7 @@ describe('criação central de tarefas', () => {
   it('o tipo Tarefa cria no quadro de Tarefas, sem área', async () => {
     popular()
     const modal = await abrir()
-    fireEvent.change(modal.getByLabelText('Tipo'), { target: { value: 'tarefa' } })
+    escolher(modal.getByLabelText('Tipo'), 'tarefa')
     expect(modal.getByText('Trabalho interno da agência. Vai para o menu Tarefas.')).toBeInTheDocument()
     expect(modal.queryByLabelText('Área')).not.toBeInTheDocument()
     fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Organizar o drive' } })

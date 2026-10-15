@@ -82,6 +82,24 @@ O que ela faz e o que o app faz enquanto ela não roda:
 
 Tabelas criadas direto no painel, fora de `supabase/migrations`, que a 0003 passa a cobrir: `calendar_events`, `event_participants`, `notifications`, `task_comments` e a coluna `tasks.prioridade`. Nenhuma tem restrição de `tipo` garantida: o app grava `reuniao`, `gravacao`, `entrega`, `otimizacao` e `outro` nos eventos, e `tarefa`, `evento` e `prazo` nas notificações.
 
+### Migration 0004 (Etapa 8, 2026-10-14)
+
+- [ ] Rodar `supabase/migrations/0004_etapa8.sql` inteiro no SQL Editor (depois da 0003)
+
+Pode rodar mais de uma vez. Foi testada em um Postgres local com o schema da 0001, a 0003 e as tabelas criadas pelo painel.
+
+O que ela faz e o que o app faz enquanto ela não roda:
+
+| Recurso | Sem a migration | Com a migration |
+|---|---|---|
+| Duração do contrato | o campo não aparece no cadastro do cliente | "Duração do contrato" (3, 6, 12 ou 15 meses, ou sem fidelidade) no cadastro, gravada em `clients.contrato_meses` |
+| Editar cobrança e pagamento parcial | a cobrança só é confirmada inteira, sem botão de editar | botão de editar na cobrança, com valor pago, data do recebimento, observação e valor manual; selo Pago, Parcial ou Pendente. Um recebimento parcial seguido da quitação em outro mês conta tudo no mês da quitação: a cobrança guarda um valor pago e uma data |
+| Cores dos status | cada opção usa a cor padrão | seletor de cor na engrenagem; a cor vale nos selos e na rosca do Dashboard (`card_options.cor`) |
+| Quadro de Tarefas | o menu Tarefas avisa que o quadro liga depois desta migration | quadro de trabalho interno, separado de Demandas, na mesma tabela `tasks` (coluna `quadro`); tarefa interna não tem área |
+| Quadro de Anúncios | as tarefas de anúncio aparecem só em lista | quadro com colunas próprias (renomear, criar e reordenar), em `campaign_tasks.posicao`; as campanhas ficam na aba Campanhas |
+| CRM | o menu CRM avisa que liga depois desta migration | pipeline Leads, Reunião e Fechamento de contrato; soltar em Cliente pede MRR, duração e início e cria o cliente pela função `converter_lead`, numa operação só. Tabelas `leads` e `lead_historico`, só para a liderança (RLS) |
+| Indicadores comerciais no Dashboard | MRR e ARR aparecem; leads no pipeline e conversão mostram um traço | MRR, ARR, leads no pipeline e conversão em 30 dias, só para a liderança, atualizando em tempo real (`clients` e `leads` na publicação `supabase_realtime`) |
+
 ### Pagamentos recorrentes
 
 Ninguém cadastra pagamento à mão. Para cada cliente ativo com valor mensal e dia de vencimento, o sistema grava em `client_payments` a cobrança do mês atual e as dos três meses seguintes. Meses anteriores ao atual não são criados depois do fato.

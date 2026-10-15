@@ -20,11 +20,15 @@ import {
   useTarefas,
   useTarefasDeCampanha,
 } from '@/dados/tabelas'
+import { useLeads } from '@/dados/leads'
 import { useTempoReal } from '@/dados/tempoReal'
+import { useAuth } from '@/features/auth/AuthContext'
 import { agendaPorDia, montarAgenda } from '@/features/calendario/calendario'
+import { conversaoEm30Dias } from '@/features/crm/crm'
 import { rotaDaTarefa } from '@/features/demandas/tarefa'
 import { hojeISO } from '@/lib/datas'
-import { formatarData } from '@/lib/formato'
+import { formatarData, formatarMoeda } from '@/lib/formato'
+import { isLideranca } from '@/lib/permissoes'
 import { SITUACOES } from '@/lib/rotulos'
 import {
   calcularMetricas,
@@ -63,8 +67,17 @@ export function DashboardPage() {
   const eventos = useEventos()
   const { registrar, registrando } = useRegistrarOtimizacao()
   const situacoes = useOpcoes('situacao', SITUACOES)
-  // A rosca de status acompanha o que a equipe muda nos quadros, sem recarregar a página
-  useTempoReal(['tasks', 'content_cards', 'card_options'])
+  const { perfil } = useAuth()
+  const lideranca = isLideranca(perfil?.cargo)
+  // Leads são só da liderança: para os demais a consulta nem é feita
+  const leads = useLeads({ ativo: lideranca })
+  // A rosca de status acompanha o que a equipe muda nos quadros, sem recarregar a página;
+  // para a liderança, os indicadores comerciais também
+  useTempoReal(
+    lideranca
+      ? ['tasks', 'content_cards', 'card_options', 'clients', 'leads']
+      : ['tasks', 'content_cards', 'card_options'],
+  )
 
   const hoje = hojeISO()
   const clientePorId = porId(clientes.data)
@@ -126,6 +139,24 @@ export function DashboardPage() {
             }
             valor={travados?.total ?? 0}
             carregando={kpis.carregando}
+          />
+        </div>
+      )}
+
+      {lideranca && !kpis.erro && (
+        <div className={`${styles.kpis} ${styles.kpisComerciais} stagger`} aria-label="Indicadores comerciais">
+          <KpiCard rotulo="MRR total" valor={metricas.mrrTotal} formatar={formatarMoeda} carregando={kpis.carregando} />
+          <KpiCard rotulo="ARR" valor={metricas.mrrTotal * 12} formatar={formatarMoeda} carregando={kpis.carregando} />
+          <KpiCard
+            rotulo="Leads no pipeline"
+            valor={leads.data ? leads.data.filter((l) => l.convertido_em == null).length : null}
+            carregando={leads.isLoading}
+          />
+          <KpiCard
+            rotulo="Conversão em 30 dias"
+            valor={leads.data ? conversaoEm30Dias(leads.data).taxa : null}
+            formatar={(taxa) => `${Math.round(taxa * 100)}%`}
+            carregando={leads.isLoading}
           />
         </div>
       )}

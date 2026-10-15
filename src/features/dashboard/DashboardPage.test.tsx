@@ -218,12 +218,44 @@ describe('DashboardPage', () => {
     expect(await painel('Hoje').findByText('Nada marcado para hoje.')).toBeInTheDocument()
   })
 
-  it('não mostra nada do financeiro', async () => {
+  it('não mostra nada do financeiro para quem não é liderança', async () => {
     popular()
-    renderizar(<DashboardPage />)
+    renderizar(<DashboardPage />, { cargo: 'Designer' })
     expect(await screen.findByText('Clientes ativos')).toBeInTheDocument()
     expect(screen.queryByText('MRR total')).not.toBeInTheDocument()
     expect(screen.queryByRole('img', { name: /MRR/ })).not.toBeInTheDocument()
+  })
+
+  it('a liderança vê MRR, ARR, leads no pipeline e conversão', async () => {
+    popular()
+    const agora = new Date().toISOString()
+    bancoFalso().tabelas.leads = [
+      { id: 'l1', nome: 'A', etapa: 'leads', etapa_desde: agora, posicao: 1, convertido_em: null, created_at: agora },
+      { id: 'l2', nome: 'B', etapa: 'reuniao', etapa_desde: agora, posicao: 1, convertido_em: null, created_at: agora },
+      { id: 'l3', nome: 'C', etapa: 'fechamento', etapa_desde: agora, posicao: 1, convertido_em: agora, created_at: agora },
+      { id: 'l4', nome: 'D', etapa: 'leads', etapa_desde: agora, posicao: 2, convertido_em: null, created_at: agora },
+    ]
+    renderizar(<DashboardPage />)
+    const valorDe = (rotulo: string) => screen.getByText(rotulo).parentElement
+    await waitFor(() => expect(valorDe('MRR total')).toHaveTextContent('R$ 4.000,50'))
+    expect(valorDe('ARR')).toHaveTextContent('R$ 48.006,00')
+    expect(valorDe('Leads no pipeline')).toHaveTextContent('3')
+    expect(valorDe('Conversão em 30 dias')).toHaveTextContent('25%')
+  })
+
+  it('quem não é liderança não vê valores nem consulta leads', async () => {
+    popular()
+    renderizar(<DashboardPage />, { cargo: 'Designer' })
+    expect(await screen.findByText('Clientes ativos')).toBeInTheDocument()
+    expect(screen.queryByText('MRR total')).not.toBeInTheDocument()
+    expect(screen.queryByText('Leads no pipeline')).not.toBeInTheDocument()
+  })
+
+  it('sem leads criados nos últimos 30 dias, a conversão mostra um traço', async () => {
+    popular()
+    bancoFalso().tabelas.leads = []
+    renderizar(<DashboardPage />)
+    await waitFor(() => expect(screen.getByText('Conversão em 30 dias').parentElement).toHaveTextContent('—'))
   })
 
   it('desenha a rosca com o status dos cards, incluindo os criados pela equipe', async () => {

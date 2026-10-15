@@ -210,6 +210,11 @@
   .kpis {
     gap: 10px;
   }
+
+  /* MRR e ARR em reais não cabem em meia linha: ocupam a linha toda para o número não quebrar */
+  .kpisComerciais > :nth-child(-n + 2) {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Gráfico de área: o resumo em cima e o desenho ocupando o que sobra do card,

@@ -39,12 +39,13 @@ function useContagem(alvo: number): number {
 
 interface KpiCardProps {
   rotulo: string
-  valor: number
+  /** Null quando o número não existe, como a conversão sem leads no período: mostra um traço */
+  valor: number | null
   formatar?: (valor: number) => string
   carregando?: boolean
 }
 
-function Valor({ valor, formatar }: Pick<KpiCardProps, 'valor' | 'formatar'>) {
+function Valor({ valor, formatar }: { valor: number; formatar?: (valor: number) => string }) {
   const atual = useContagem(valor)
   return (
     <strong className={styles.kpiValor}>
@@ -59,6 +60,8 @@ export function KpiCard({ rotulo, valor, formatar, carregando = false }: KpiCard
       <span className={styles.kpiRotulo}>{rotulo}</span>
       {carregando ? (
         <Skeleton largura="60%" altura="32px" />
+      ) : valor == null ? (
+        <strong className={styles.kpiValor}>—</strong>
       ) : (
         <Valor valor={valor} formatar={formatar} />
       )}

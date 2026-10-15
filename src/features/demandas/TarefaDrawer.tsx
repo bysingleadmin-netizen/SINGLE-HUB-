@@ -26,7 +26,6 @@ import type {
   CardSubtarefa,
   Client,
   Profile,
-  QuadroDeTarefa,
   Task,
   TaskStatus,
   TaskTipo,
@@ -39,9 +38,6 @@ interface TarefaDrawerProps {
   perfis: Profile[]
   /** Colunas do quadro, com os nomes que a equipe deu */
   colunas: readonly ColunaDoQuadro[]
-  /** Quadro do card: subtarefas e anexos são gravados nele. A área (conteúdo, tráfego...)
-   * só existe nas demandas; tarefa interna não tem */
-  quadro?: QuadroDeTarefa
   /** undefined quando o banco ainda não tem a tabela de anexos */
   anexos?: CardAttachment[]
   /** undefined quando o banco ainda não tem a tabela de subtarefas */
@@ -57,7 +53,6 @@ export function TarefaDrawer({
   clientes,
   perfis,
   colunas,
-  quadro = 'demandas',
   anexos,
   subtarefas,
   onMover,
@@ -136,14 +131,12 @@ export function TarefaDrawer({
               value={tarefa.status}
               onChange={(evento) => onMover(evento.target.value as TaskStatus)}
             />
-            {quadro === 'demandas' && (
-              <StatusSelect
-                rotulo="Área"
-                opcoes={TIPOS_TAREFA}
-                value={tarefa.tipo ?? ''}
-                onChange={(valor) => salvar({ tipo: valor as TaskTipo })}
-              />
-            )}
+            <StatusSelect
+              rotulo="Área"
+              opcoes={TIPOS_TAREFA}
+              value={tarefa.tipo ?? ''}
+              onChange={(valor) => salvar({ tipo: valor as TaskTipo })}
+            />
             <Selecao
               rotulo="Cliente"
               vazio="Sem cliente"
@@ -195,14 +188,14 @@ export function TarefaDrawer({
         {subtarefas && (
           <section className={styles.bloco} aria-label="Subtarefas">
             <h3 className={styles.blocoTitulo}>Subtarefas</h3>
-            <Subtarefas quadro={quadro} cardId={tarefa.id} subtarefas={subtarefas} />
+            <Subtarefas quadro="demandas" cardId={tarefa.id} subtarefas={subtarefas} />
           </section>
         )}
 
         {anexos && (
           <section className={styles.bloco} aria-label="Anexos">
             <h3 className={styles.blocoTitulo}>Anexos</h3>
-            <Anexos quadro={quadro} cardId={tarefa.id} anexos={anexos} />
+            <Anexos quadro="demandas" cardId={tarefa.id} anexos={anexos} />
           </section>
         )}
 

@@ -291,12 +291,22 @@ export interface ReceitaAsaas {
 export type EtapaDoLead = 'leads' | 'reuniao' | 'fechamento'
 
 /** Lead do CRM (migration 0004). Só a liderança lê. */
+export type TemperaturaDoLead = 'frio' | 'morno' | 'quente'
+
 export interface Lead {
   id: string
   nome: string
   empresa: string | null
   telefone: string | null
   origem: string | null
+  /** Perfil do lead: só existe depois da migration 0008 */
+  instagram?: string | null
+  segmento?: string | null
+  faturamento_medio?: string | null
+  tamanho_equipe?: string | null
+  cidade?: string | null
+  observacoes?: string | null
+  temperatura?: TemperaturaDoLead
   etapa: EtapaDoLead
   /** Quando o lead entrou na etapa atual */
   etapa_desde: string

@@ -57,8 +57,8 @@ describe('filtrarTarefas', () => {
 })
 
 describe('rotaDaTarefa', () => {
-  it('abre no quadro de cada uma', () => {
-    expect(rotaDaTarefa({ id: 't1', quadro: 'tarefas' })).toBe('/app/tarefas?abrir=t1')
+  it('abre no quadro de Demandas, inclusive as do antigo quadro de Tarefas', () => {
+    expect(rotaDaTarefa({ id: 't1', quadro: 'tarefas' })).toBe('/app/demandas?abrir=t1')
     expect(rotaDaTarefa({ id: 't2', quadro: 'demandas' })).toBe('/app/demandas?abrir=t2')
     expect(rotaDaTarefa({ id: 't3' })).toBe('/app/demandas?abrir=t3')
   })

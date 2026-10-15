@@ -116,6 +116,19 @@ Ninguém cadastra pagamento à mão. Para cada cliente ativo com valor mensal e 
 
 Quem gera e ajusta as cobranças é o próprio app, no navegador de alguém da liderança (só a liderança pode gravar pagamentos). Basta uma pessoa da liderança abrir o sistema para o mês novo ganhar suas cobranças. Não há tarefa agendada no servidor.
 
+### Migration 0008 (perfil do lead, histórico de campanhas e fim do quadro de Tarefas)
+
+- [ ] Rodar `supabase/migrations/0008_crm_campanhas.sql` no SQL Editor (depois da 0007)
+
+Pode rodar mais de uma vez e não apaga nada.
+
+| Recurso | Sem a migration | Com a migration |
+|---|---|---|
+| Perfil do lead no CRM | o painel do lead mostra nome, empresa, origem e telefone | também Instagram, cidade, temperatura (frio, morno, quente), segmento, faturamento médio, tamanho da equipe e observações |
+| Tarefas internas | aparecem no quadro de Demandas, mas anexos e subtarefas delas continuam marcados como do quadro antigo | passam de vez para Demandas, com anexos e subtarefas; tarefa numa coluna que só existia em Tarefas cai na primeira coluna |
+| Campanhas | sem plataforma, objetivo e histórico | `campaigns.plataforma` e `campaigns.objetivo`; tabela `campaign_historico` com as otimizações de cada campanha |
+| Demanda de anúncio | precisa de uma campanha | a campanha é opcional; a demanda pode ter só o cliente (`campaign_tasks.client_id`) |
+
 ## Asaas (fonte das receitas dos clientes)
 
 O Asaas é a fonte das receitas dos clientes. O sistema não lança nem confirma cobrança de

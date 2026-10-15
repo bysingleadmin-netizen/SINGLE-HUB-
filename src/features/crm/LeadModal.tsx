@@ -6,30 +6,28 @@ import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
-import { useRemoverLead, useSalvarLead } from '@/dados/leads'
+import { useSalvarLead } from '@/dados/leads'
 import type { Erros } from '@/lib/formulario'
-import type { EtapaDoLead, Lead } from '@/types/database'
+import type { EtapaDoLead } from '@/types/database'
 import { validarLead } from './crm'
 import type { FormLead } from './crm'
 
 interface LeadModalProps {
-  /** Lead em edição; sem ele, cria um novo na etapa indicada */
-  lead?: Lead
+  /** Etapa em que o lead nasce; para editar, o card abre o LeadDrawer */
   etapa: EtapaDoLead
   posicao: number
   onFechar: () => void
 }
 
-export function LeadModal({ lead, etapa, posicao, onFechar }: LeadModalProps) {
+export function LeadModal({ etapa, posicao, onFechar }: LeadModalProps) {
   const [form, setForm] = useState<FormLead>({
-    nome: lead?.nome ?? '',
-    empresa: lead?.empresa ?? '',
-    telefone: lead?.telefone ?? '',
-    origem: lead?.origem ?? '',
+    nome: '',
+    empresa: '',
+    telefone: '',
+    origem: '',
   })
   const [erros, setErros] = useState<Erros<FormLead>>({})
   const salvar = useSalvarLead()
-  const remover = useRemoverLead()
   const registrarAtividade = useRegistrarAtividade()
   const toast = useToast()
 
@@ -47,30 +45,17 @@ export function LeadModal({ lead, etapa, posicao, onFechar }: LeadModalProps) {
       return
     }
     try {
-      const id = await salvar.mutateAsync({ id: lead?.id, valores: resultado.valores, etapa, posicao })
-      toast.sucesso(lead ? 'Lead atualizado.' : 'Lead criado.')
-      if (!lead) {
-        void registrarAtividade({ acao: 'lead_criado', descricao: `criou o lead "${resultado.valores.nome}"`, entidade: 'leads', entidadeId: id })
-      }
+      const id = await salvar.mutateAsync({ valores: resultado.valores, etapa, posicao })
+      toast.sucesso('Lead criado.')
+      void registrarAtividade({ acao: 'lead_criado', descricao: `criou o lead "${resultado.valores.nome}"`, entidade: 'leads', entidadeId: id })
       onFechar()
     } catch {
       toast.erro('Não foi possível salvar o lead.')
     }
   }
 
-  async function excluir() {
-    if (!lead) return
-    try {
-      await remover.mutateAsync(lead.id)
-      toast.sucesso('Lead excluído.')
-      onFechar()
-    } catch {
-      toast.erro('Não foi possível excluir o lead.')
-    }
-  }
-
   return (
-    <Modal aberto titulo={lead ? 'Editar lead' : 'Novo lead'} onFechar={onFechar}>
+    <Modal aberto titulo="Novo lead" onFechar={onFechar}>
       <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
         <Campo rotulo="Nome" autoFocus {...campo('nome')} />
         <Campo rotulo="Empresa" {...campo('empresa')} />
@@ -79,11 +64,6 @@ export function LeadModal({ lead, etapa, posicao, onFechar }: LeadModalProps) {
           <Campo rotulo="Origem" placeholder="Instagram, indicação..." {...campo('origem')} />
         </div>
         <div className={ui.acoes}>
-          {lead && (
-            <Button variante="fantasma" carregando={remover.isPending} onClick={() => void excluir()}>
-              Excluir
-            </Button>
-          )}
           <Button variante="fantasma" onClick={onFechar}>
             Cancelar
           </Button>

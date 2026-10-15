@@ -1,7 +1,8 @@
 import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
 import { parseMoeda } from '@/lib/regras'
-import type { EtapaDoLead, Lead } from '@/types/database'
+import type { Tom } from '@/lib/rotulos'
+import type { EtapaDoLead, Lead, TemperaturaDoLead } from '@/types/database'
 import { DURACOES } from '@/features/clientes/contrato'
 
 // CRM de leads. Quatro colunas fixas; "Cliente" nunca guarda card: soltar um lead nela abre a
@@ -12,6 +13,13 @@ export const ETAPAS_DO_LEAD: readonly { id: EtapaDoLead | 'cliente'; titulo: str
   { id: 'reuniao', titulo: 'Reunião' },
   { id: 'fechamento', titulo: 'Fechamento de contrato' },
   { id: 'cliente', titulo: 'Cliente' },
+]
+
+/** Temperatura do lead: o quanto ele está perto de fechar */
+export const TEMPERATURAS: readonly { valor: TemperaturaDoLead; rotulo: string; tom: Tom }[] = [
+  { valor: 'frio', rotulo: 'Frio', tom: 'azul' },
+  { valor: 'morno', rotulo: 'Morno', tom: 'amarelo' },
+  { valor: 'quente', rotulo: 'Quente', tom: 'vermelho' },
 ]
 
 /** Link do WhatsApp com DDI do Brasil. Null se não houver um número que dê para discar. */

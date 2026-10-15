@@ -53,17 +53,6 @@ export function useSalvarLead() {
   })
 }
 
-export function useRemoverLead() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('leads').delete().eq('id', id)
-      if (error) throw error
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['leads'] }),
-  })
-}
-
 /** Converte pela função do banco, que cria o cliente e marca o lead numa transação só. */
 export function useConverterLead() {
   const queryClient = useQueryClient()

@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { CampaignFuncao, CampaignTaskStatus, ContentEtapa, TaskStatus } from '@/types/database'
 
-export type Categoria = 'tarefa' | 'demanda' | 'conteudo' | 'campanha'
+export type Categoria = 'demanda' | 'conteudo' | 'campanha'
 
 /** O que a tela que pediu a criação já sabe; o resto a pessoa escolhe no formulário. */
 export interface PedidoDeCriacao {

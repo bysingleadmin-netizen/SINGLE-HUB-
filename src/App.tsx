@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { ToastProvider } from '@/components/ui/Toast'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { LoginPage } from '@/features/auth/LoginPage'
@@ -25,6 +25,12 @@ function RedirecionarCampanha() {
   return <Navigate to={`/app/anuncios/${id}`} replace />
 }
 
+/** O quadro de Tarefas virou parte de Demandas: o link de uma tarefa (?abrir=) continua abrindo ela */
+function RedirecionarTarefas() {
+  const { search } = useLocation()
+  return <Navigate to={`/app/demandas${search}`} replace />
+}
+
 export default function App() {
   useRastroDoMouse()
 
@@ -41,9 +47,9 @@ export default function App() {
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="clientes" element={<ClientesPage />} />
                   <Route path="clientes/:id" element={<ClientePage />} />
-                  {/* O key zera o estado da página ao trocar de quadro */}
-                  <Route path="tarefas" element={<DemandasPage key="tarefas" quadro="tarefas" />} />
-                  <Route path="demandas" element={<DemandasPage key="demandas" />} />
+                  {/* O quadro de Tarefas virou parte de Demandas; links antigos levam para lá */}
+                  <Route path="tarefas" element={<RedirecionarTarefas />} />
+                  <Route path="demandas" element={<DemandasPage />} />
                   <Route path="conteudo" element={<ConteudoPage />} />
                   {/* O menu se chama Anúncios. No código e no banco a entidade continua
                       "campanha" (tabelas campaigns e campaign_tasks): renomear tabela quebraria

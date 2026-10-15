@@ -74,5 +74,5 @@ export function filtrarTarefas(tarefas: Task[], { tipo, responsaveis }: FiltrosT
 
 /** Endereço que abre a tarefa no quadro dela. Antes da migration 0004, todas são demandas. */
 export function rotaDaTarefa(tarefa: Pick<Task, 'id' | 'quadro'>): string {
-  return `/app/${tarefa.quadro ?? 'demandas'}?abrir=${tarefa.id}`
+  return `/app/demandas?abrir=${tarefa.id}`
 }

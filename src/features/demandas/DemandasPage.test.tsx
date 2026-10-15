@@ -472,67 +472,21 @@ describe('DemandasPage', () => {
   })
 })
 
-describe('quadro de Tarefas', () => {
-  function popularQuadros() {
+describe('antigo quadro de Tarefas', () => {
+  it('as tarefas internas aparecem em Demandas, com área', async () => {
     bancoFalso().reiniciar({
       profiles: [perfilDeTeste()],
       clients: [],
       tasks: [
         { id: 't1', titulo: 'Demanda do cliente', status: 'a_fazer', tipo: 'conteudo', quadro: 'demandas', posicao: 1, created_at: '2026-01-01' },
-        { id: 't2', titulo: 'Organizar o drive', status: 'a_fazer', tipo: null, quadro: 'tarefas', posicao: 1, created_at: '2026-01-02' },
+        { id: 't2', titulo: 'Organizar o drive', status: 'a_fazer', tipo: null, quadro: 'tarefas', posicao: 2, created_at: '2026-01-02' },
       ],
     })
-  }
-
-  it('Tarefas mostra só as tarefas internas, sem o filtro de área', async () => {
-    popularQuadros()
-    renderizar(<DemandasPage quadro="tarefas" />)
-    expect(await screen.findByRole('button', { name: 'Abrir Organizar o drive' })).toBeInTheDocument()
-    expect(screen.queryByText('Demanda do cliente')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Área')).not.toBeInTheDocument()
-  })
-
-  it('Demandas não mostra as tarefas internas', async () => {
-    popularQuadros()
     renderizar(<DemandasPage />)
     expect(await screen.findByRole('button', { name: 'Abrir Demanda do cliente' })).toBeInTheDocument()
-    expect(screen.queryByText('Organizar o drive')).not.toBeInTheDocument()
-  })
-
-  it('o painel de uma tarefa interna não tem área', async () => {
-    popularQuadros()
-    renderizar(<DemandasPage quadro="tarefas" />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Abrir Organizar o drive' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir Organizar o drive' }))
     const painel = within(await screen.findByRole('dialog', { name: 'Organizar o drive' }))
-    expect(painel.getByLabelText('Título')).toHaveValue('Organizar o drive')
-    expect(painel.queryByLabelText('Área')).not.toBeInTheDocument()
-  })
-
-  it('subtarefa e anexo criados no painel de uma tarefa interna ficam no quadro de Tarefas', async () => {
-    popularQuadros()
-    bancoFalso().tabelas.card_subtarefas = []
-    bancoFalso().tabelas.card_attachments = []
-    renderizar(<DemandasPage quadro="tarefas" />)
-    fireEvent.click(await screen.findByRole('button', { name: 'Abrir Organizar o drive' }))
-    const painel = within(await screen.findByRole('dialog', { name: 'Organizar o drive' }))
-
-    fireEvent.change(await painel.findByLabelText('Nova subtarefa'), { target: { value: 'Separar pastas' } })
-    fireEvent.click(painel.getByRole('button', { name: 'Adicionar' }))
-    expect(await painel.findByText('Separar pastas')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.card_subtarefas[0]).toMatchObject({ quadro: 'tarefas', card_id: 't2' })
-
-    fireEvent.change(painel.getByLabelText('Link'), { target: { value: 'drive.google.com/pasta' } })
-    fireEvent.click(painel.getByRole('button', { name: 'Anexar link' }))
-    await waitFor(() =>
-      expect(bancoFalso().tabelas.card_attachments[0]).toMatchObject({ quadro: 'tarefas', card_id: 't2' }),
-    )
-  })
-
-  it('sem a coluna quadro no banco, Tarefas avisa que falta a migration', async () => {
-    popularQuadros()
-    bancoFalso().colunasAusentes = ['tasks.quadro']
-    renderizar(<DemandasPage quadro="tarefas" />)
-    expect(await screen.findByText('O quadro de Tarefas liga depois da migration 0004.')).toBeInTheDocument()
+    expect(painel.getByLabelText('Área')).toBeInTheDocument()
   })
 })
 

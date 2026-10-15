@@ -69,3 +69,26 @@
     min-height: 38px;
   }
 }
+
+/* Perfil do lead no painel: duas colunas; as observações ocupam a largura toda */
+.perfil {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.perfilColuna {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.perfilLargo {
+  margin-top: 14px;
+}
+
+@media (max-width: 560px) {
+  .perfil {
+    grid-template-columns: 1fr;
+  }
+}

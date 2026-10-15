@@ -35,12 +35,12 @@ const SONDAS = {
   pagamentoParcial: ['client_payments', 'valor_pago'],
   // migration 0004: cor de cada opção configurável
   corDasOpcoes: ['card_options', 'cor'],
-  // migration 0004: quadro de Tarefas internas na tabela tasks
-  quadroTarefas: ['tasks', 'quadro'],
   // migration 0004: posição das tarefas de anúncio no quadro
   posicaoAnuncio: ['campaign_tasks', 'posicao'],
   // migration 0007: CNPJ do cliente, para ligar ao cliente do Asaas
   cnpj: ['clients', 'cnpj'],
+  // migration 0008: perfil do lead (segmento, cidade, temperatura...)
+  perfilDoLead: ['leads', 'temperatura'],
 } as const satisfies Record<string, readonly [Tabela, string]>
 
 export type ColunaOpcional = keyof typeof SONDAS

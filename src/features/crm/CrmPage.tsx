@@ -4,18 +4,21 @@ import { proximaPosicao } from '@/components/quadro/colunas'
 import { useMover } from '@/components/quadro/useMover'
 import { EstadoErro, EstadoVazio } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
+import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
+import { useColunasOpcionais } from '@/dados/esquema'
 import { useExcluir } from '@/dados/excluir'
 import { registrarMudancaDeEtapa, useLeads } from '@/dados/leads'
 import { useAuth } from '@/features/auth/AuthContext'
 import type { EtapaDoLead, Lead } from '@/types/database'
 import { ConverterLeadModal } from './ConverterLeadModal'
+import { LeadDrawer } from './LeadDrawer'
 import { LeadModal } from './LeadModal'
-import { ETAPAS_DO_LEAD, linkDoWhatsapp, tempoNaEtapa } from './crm'
+import { ETAPAS_DO_LEAD, TEMPERATURAS, linkDoWhatsapp, tempoNaEtapa } from './crm'
 import styles from './crm.module.css'
 
-type Formulario = { lead?: Lead; etapa: EtapaDoLead } | undefined
+type Formulario = { etapa: EtapaDoLead } | undefined
 
 /** Pipeline de leads da liderança: Leads, Reunião, Fechamento de contrato e, ao fim, Cliente. */
 export function CrmPage() {
@@ -23,6 +26,8 @@ export function CrmPage() {
   const { perfil } = useAuth()
   const [formulario, setFormulario] = useState<Formulario>()
   const [convertendo, setConvertendo] = useState<Lead>()
+  const [abertoId, setAbertoId] = useState<string>()
+  const esquema = useColunasOpcionais()
   // O histórico do lead sai junto (on delete cascade)
   const excluir = useExcluir<Lead>({ tabela: 'leads' })
   const toast = useToast()
@@ -49,6 +54,7 @@ export function CrmPage() {
   }
 
   const noPipeline = (leads.data ?? []).filter((lead) => lead.convertido_em == null)
+  const aberto = noPipeline.find((lead) => lead.id === abertoId)
   const posicaoNova = (etapa: EtapaDoLead) => proximaPosicao(noPipeline.filter((l) => l.etapa === etapa))
 
   function aoMover(lead: Lead, destino: string) {
@@ -74,6 +80,11 @@ export function CrmPage() {
             <strong className={styles.nome}>{lead.nome}</strong>
             {lead.empresa && <span className={styles.empresa}>{lead.empresa}</span>}
             {lead.origem && <span className={styles.origem}>{lead.origem}</span>}
+            {esquema.perfilDoLead && lead.temperatura && lead.temperatura !== 'frio' && (
+              <Pill tom={TEMPERATURAS.find((t) => t.valor === lead.temperatura)?.tom ?? 'cinza'}>
+                {TEMPERATURAS.find((t) => t.valor === lead.temperatura)?.rotulo}
+              </Pill>
+            )}
             <span className={styles.tempo}>{tempoNaEtapa(lead.etapa_desde)}</span>
           </div>
         )}
@@ -100,7 +111,7 @@ export function CrmPage() {
         podeCriar={(coluna) => coluna !== 'cliente'}
         onMover={aoMover}
         onCriar={(coluna) => setFormulario({ etapa: coluna as EtapaDoLead })}
-        onAbrir={(lead) => setFormulario({ lead, etapa: lead.etapa })}
+        onAbrir={(lead) => setAbertoId(lead.id)}
         onExcluir={(lead) =>
           excluir.mutate(lead.id, {
             onSuccess: () => toast.sucesso('Lead excluído.'),
@@ -111,13 +122,13 @@ export function CrmPage() {
 
       {formulario && (
         <LeadModal
-          key={formulario.lead?.id ?? `novo-${formulario.etapa}`}
-          lead={formulario.lead}
+          key={`novo-${formulario.etapa}`}
           etapa={formulario.etapa}
           posicao={posicaoNova(formulario.etapa)}
           onFechar={() => setFormulario(undefined)}
         />
       )}
+      {aberto && <LeadDrawer key={aberto.id} lead={aberto} onFechar={() => setAbertoId(undefined)} />}
       {convertendo && <ConverterLeadModal lead={convertendo} onFechar={() => setConvertendo(undefined)} />}
     </div>
   )

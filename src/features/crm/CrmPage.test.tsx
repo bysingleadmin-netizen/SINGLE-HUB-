@@ -12,6 +12,7 @@ vi.mock('@/components/quadro/Quadro', () => ({
     renderCard: (item: unknown) => React.ReactNode
     renderRodape?: (item: unknown) => React.ReactNode
     onMover: (item: unknown, coluna: string) => void
+    onAbrir: (item: unknown) => void
   }) => (
     <div>
       {props.colunas.map((c) => <h2 key={c.id}>{c.titulo}</h2>)}
@@ -19,6 +20,7 @@ vi.mock('@/components/quadro/Quadro', () => ({
         <div key={item.id}>
           {props.renderCard(item)}
           {props.renderRodape?.(item)}
+          <button onClick={() => props.onAbrir(item)}>{`Abrir ${props.tituloDe(item)}`}</button>
           {props.colunas.map((c) => (
             <button key={c.id} onClick={() => props.onMover(item, c.id)}>
               {`Mover ${props.tituloDe(item)} para ${c.titulo}`}
@@ -31,6 +33,7 @@ vi.mock('@/components/quadro/Quadro', () => ({
 }))
 
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { escolher } from '@/test/escolher'
 import { bancoFalso, perfilDeTeste, renderizar } from '@/test/renderizar'
 import { CrmPage } from './CrmPage'
 
@@ -117,5 +120,54 @@ describe('CrmPage', () => {
     bancoFalso().tabelasAusentes = ['leads']
     renderizar(<CrmPage />)
     expect(await screen.findByText('O CRM liga depois da migration 0004.')).toBeInTheDocument()
+  })
+
+  it('clicar no lead abre o painel; cada campo do perfil salva sozinho', async () => {
+    popular()
+    renderizar(<CrmPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir Ana' }))
+    const painel = within(await screen.findByRole('dialog', { name: 'Ana' }))
+
+    const segmento = await painel.findByLabelText('Segmento')
+    fireEvent.change(segmento, { target: { value: 'Arquitetura' } })
+    fireEvent.blur(segmento)
+    await waitFor(() => expect(bancoFalso().tabelas.leads[0]).toMatchObject({ segmento: 'Arquitetura' }))
+
+    escolher(painel.getByLabelText('Temperatura'), 'quente')
+    await waitFor(() => expect(bancoFalso().tabelas.leads[0]).toMatchObject({ temperatura: 'quente' }))
+    // O card do quadro mostra a temperatura quando não é fria
+    expect(await screen.findAllByText('Quente')).not.toHaveLength(0)
+
+    const observacoes = painel.getByLabelText('Observações')
+    fireEvent.change(observacoes, { target: { value: 'Quer começar em janeiro' } })
+    fireEvent.blur(observacoes)
+    await waitFor(() => expect(bancoFalso().tabelas.leads[0]).toMatchObject({ observacoes: 'Quer começar em janeiro' }))
+    for (const rotulo of ['Telefone', 'Instagram', 'Cidade', 'Faturamento médio', 'Tamanho da equipe']) {
+      expect(painel.getByLabelText(rotulo)).toBeInTheDocument()
+    }
+  })
+
+  it('o nome não fica em branco', async () => {
+    popular()
+    renderizar(<CrmPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir Ana' }))
+    const painel = within(await screen.findByRole('dialog', { name: 'Ana' }))
+    const nome = painel.getByLabelText('Nome')
+    fireEvent.change(nome, { target: { value: '  ' } })
+    fireEvent.blur(nome)
+    expect(await painel.findByText('Informe o nome do lead.')).toBeInTheDocument()
+    expect(nome).toHaveValue('Ana')
+    expect(bancoFalso().tabelas.leads[0].nome).toBe('Ana')
+  })
+
+  it('sem a migration 0008, o painel mostra só o que o banco tem', async () => {
+    popular()
+    bancoFalso().colunasAusentes = ['leads.temperatura']
+    renderizar(<CrmPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir Ana' }))
+    const painel = within(await screen.findByRole('dialog', { name: 'Ana' }))
+    expect(await painel.findByLabelText('Telefone')).toBeInTheDocument()
+    expect(painel.queryByLabelText('Segmento')).not.toBeInTheDocument()
+    expect(painel.queryByLabelText('Temperatura')).not.toBeInTheDocument()
   })
 })

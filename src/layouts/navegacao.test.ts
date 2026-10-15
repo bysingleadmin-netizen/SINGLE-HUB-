@@ -5,7 +5,6 @@ describe('itensVisiveis', () => {
     expect(itensVisiveis('Designer').map((i) => i.rotulo)).toEqual([
       'Dashboard',
       'Clientes',
-      'Tarefas',
       'Demandas',
       'Conteúdo',
       'Anúncios',
@@ -19,7 +18,6 @@ describe('itensVisiveis', () => {
       'Dashboard',
       'Clientes',
       'CRM',
-      'Tarefas',
       'Demandas',
       'Conteúdo',
       'Anúncios',
@@ -57,7 +55,7 @@ describe('avisosDoMenu', () => {
     })
   })
 
-  it('tarefa interna atrasada avisa em Tarefas, não em Demandas', () => {
+  it('tarefa do antigo quadro de Tarefas conta em Demandas', () => {
     const avisos = avisosDoMenu(
       [
         { status: 'a_fazer', data_entrega: '2026-10-08', quadro: 'tarefas' },
@@ -67,10 +65,7 @@ describe('avisosDoMenu', () => {
       [],
       HOJE,
     )
-    expect(avisos).toEqual({
-      '/app/tarefas': { total: 2, descricao: '2 tarefas atrasadas' },
-      '/app/demandas': { total: 1, descricao: '1 demanda atrasada' },
-    })
+    expect(avisos).toEqual({ '/app/demandas': { total: 3, descricao: '3 demandas atrasadas' } })
   })
 
   it('sem pendências não há aviso', () => {
@@ -92,10 +87,10 @@ describe('tituloDaRota', () => {
 
 describe('mostraCriar', () => {
   it('aparece só nos quadros de tarefas', () => {
-    for (const rota of ['/app/tarefas', '/app/demandas', '/app/conteudo', '/app/anuncios', '/app/anuncios/g1']) {
+    for (const rota of ['/app/demandas', '/app/conteudo', '/app/anuncios', '/app/anuncios/g1']) {
       expect(mostraCriar(rota)).toBe(true)
     }
-    for (const rota of ['/app/dashboard', '/app/financeiro', '/app/financeiro/pagamentos', '/app/configuracoes', '/app/clientes', '/app/calendario', '/app/crm', '/app/demandasx']) {
+    for (const rota of ['/app/dashboard', '/app/financeiro', '/app/financeiro/pagamentos', '/app/configuracoes', '/app/clientes', '/app/calendario', '/app/crm', '/app/demandasx', '/app/tarefas']) {
       expect(mostraCriar(rota)).toBe(false)
     }
   })

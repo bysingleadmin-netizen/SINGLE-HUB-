@@ -39,7 +39,7 @@ describe('criação central de tarefas', () => {
     popular()
     const modal = await abrir()
     expect(modal.getByLabelText('Tipo')).toHaveAttribute('data-valor', 'demanda')
-    expect(modal.getByText('Pedido de cliente. Vai para o menu Demandas.')).toBeInTheDocument()
+    expect(modal.getByText('Pedido de cliente ou trabalho interno. Vai para o menu Demandas.')).toBeInTheDocument()
     expect(modal.getByLabelText('Status')).toHaveValue('a_fazer')
   })
 
@@ -160,31 +160,15 @@ describe('criação central de tarefas', () => {
     )
   })
 
-  it('oferece os quatro tipos', async () => {
+  it('oferece os três tipos', async () => {
     popular()
     const modal = await abrir()
     fireEvent.click(modal.getByLabelText('Tipo'))
     expect(within(screen.getByRole('listbox')).getAllByRole('option').map((o) => o.textContent)).toEqual([
-      'Tarefa',
       'Conteúdo',
       'Demanda',
       'Anúncio',
     ])
-  })
-
-  it('o tipo Tarefa cria no quadro de Tarefas, sem área', async () => {
-    popular()
-    const modal = await abrir()
-    escolher(modal.getByLabelText('Tipo'), 'tarefa')
-    expect(modal.getByText('Trabalho interno da agência. Vai para o menu Tarefas.')).toBeInTheDocument()
-    expect(modal.queryByLabelText('Área')).not.toBeInTheDocument()
-    fireEvent.change(modal.getByLabelText('Título'), { target: { value: 'Organizar o drive' } })
-    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
-    expect(await screen.findByText('Tarefa criada.')).toBeInTheDocument()
-    expect(bancoFalso().tabelas.tasks.find((t) => t.titulo === 'Organizar o drive')).toMatchObject({
-      quadro: 'tarefas',
-      tipo: null,
-    })
   })
 
   it('avisa e mantém o formulário quando o banco recusa', async () => {

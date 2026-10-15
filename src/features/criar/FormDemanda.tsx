@@ -21,26 +21,24 @@ import type { FormTarefa } from '@/features/demandas/tarefa'
 import type { Erros } from '@/lib/formulario'
 import { opcoesDePessoas } from '@/lib/pessoas'
 import { COLUNAS_TAREFA, PRIORIDADES, TIPOS_TAREFA } from '@/lib/rotulos'
-import type { QuadroDeTarefa, Task, TaskStatus, TaskTipo } from '@/types/database'
+import type { Task, TaskStatus, TaskTipo } from '@/types/database'
 
 interface FormDemandaProps {
-  /** Demanda de cliente ou tarefa interna: a mesma tabela, quadros diferentes */
-  quadro: QuadroDeTarefa
   /** Coluna em que a demanda nasce */
   statusInicial: TaskStatus
   onFechar: () => void
 }
 
-/** Campos e gravação de uma demanda ou tarefa nova. Para editar, o quadro abre o TarefaDrawer. */
-export function FormDemanda({ quadro, statusInicial, onFechar }: FormDemandaProps) {
-  const item = quadro === 'tarefas' ? 'tarefa' : 'demanda'
+/** Campos e gravação de uma demanda nova. Para editar, o quadro abre o TarefaDrawer. */
+export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
+  const item = 'demanda'
   const { perfil } = useAuth()
   const tarefas = useTarefas()
   const clientes = useClientes()
   const perfis = usePerfis()
   const esquema = useColunasOpcionais()
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
-  const { colunas } = useColunasDoQuadro(quadro, COLUNAS_TAREFA)
+  const { colunas } = useColunasDoQuadro('demandas', COLUNAS_TAREFA)
   const [form, setForm] = useState<FormTarefa>(() => formNovaTarefa(statusInicial))
   const [erros, setErros] = useState<Erros<FormTarefa>>({})
   const salvar = useSalvar<Task>('tasks')
@@ -54,8 +52,6 @@ export function FormDemanda({ quadro, statusInicial, onFechar }: FormDemandaProp
 
   function aoEnviar(evento: FormEvent) {
     evento.preventDefault()
-    // Antes de saber se o banco tem a coluna de quadro, a tarefa interna cairia em Demandas
-    if (quadro === 'tarefas' && !esquema.pronto) return
     const resultado = validarTarefa(form)
     if ('erros' in resultado) {
       setErros(resultado.erros)
@@ -63,20 +59,13 @@ export function FormDemanda({ quadro, statusInicial, onFechar }: FormDemandaProp
     }
     setErros({})
     const { valores } = resultado
-    // A demanda nova entra no fim da coluna do seu quadro
-    const posicao = proximaPosicao(
-      (tarefas.data ?? []).filter(
-        (t) => (t.quadro ?? 'demandas') === quadro && t.status === valores.status,
-      ),
-    )
+    // A demanda nova entra no fim da coluna
+    const posicao = proximaPosicao((tarefas.data ?? []).filter((t) => t.status === valores.status))
 
     salvar.mutate(
       {
         valores: {
           ...valores,
-          // Tarefa interna não tem área
-          ...(quadro === 'tarefas' ? { tipo: null } : {}),
-          ...(esquema.quadroTarefas ? { quadro } : {}),
           posicao,
           created_by: perfil?.id ?? null,
           // A média é o padrão do banco; só vai junto quando a pessoa escolhe outra
@@ -87,7 +76,7 @@ export function FormDemanda({ quadro, statusInicial, onFechar }: FormDemandaProp
       },
       {
         onSuccess: (salva) => {
-          toast.sucesso(quadro === 'tarefas' ? 'Tarefa criada.' : 'Demanda criada.')
+          toast.sucesso('Demanda criada.')
           void registrarAtividade({
             acao: 'demanda_criada',
             descricao: `criou a ${item} "${salva.titulo}"`,
@@ -139,14 +128,12 @@ export function FormDemanda({ quadro, statusInicial, onFechar }: FormDemandaProp
         />
       </div>
       <div className={ui.duasColunas}>
-        {quadro === 'demandas' && (
-          <StatusSelect
-            rotulo="Área"
-            opcoes={TIPOS_TAREFA}
-            value={form.tipo}
-            onChange={(valor) => mudar('tipo', valor as TaskTipo)}
-          />
-        )}
+        <StatusSelect
+          rotulo="Área"
+          opcoes={TIPOS_TAREFA}
+          value={form.tipo}
+          onChange={(valor) => mudar('tipo', valor as TaskTipo)}
+        />
         <Selecao
           rotulo="Status"
           opcoes={colunas.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))}

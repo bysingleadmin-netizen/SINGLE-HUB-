@@ -96,13 +96,8 @@ export function DashboardPage() {
     cards.data ?? [],
     tarefasDeAnuncio.data ?? [],
   )
-  // O status de um card é a coluna em que ele está. Demandas só do quadro de Demandas: as
-  // tarefas internas têm quadro próprio
-  const porColunaDeDemandas = contarPorColuna(
-    (tarefas.data ?? []).filter((tarefa) => (tarefa.quadro ?? 'demandas') === 'demandas'),
-    colunasDeDemandas.colunas,
-    (tarefa) => tarefa.status,
-  )
+  // O status de um card é a coluna em que ele está
+  const porColunaDeDemandas = contarPorColuna(tarefas.data ?? [], colunasDeDemandas.colunas, (tarefa) => tarefa.status)
   const porColunaDeConteudo = contarPorColuna(cards.data ?? [], colunasDeConteudo.colunas, (card) => card.etapa)
   const roscas = [
     { titulo: 'Demandas', fatias: porColunaDeDemandas },

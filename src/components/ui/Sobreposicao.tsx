@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Icone } from './Icone'
@@ -6,6 +6,16 @@ import styles from './ui.module.css'
 
 // Camadas abertas, da mais antiga para a mais nova. Escape fecha só a última.
 const pilha: string[] = []
+
+/** Tempo da animação de saída (ui.module.css: .fundo[data-saindo]) */
+const SAIDA_MS: Record<'modal' | 'drawer', number> = { modal: 150, drawer: 280 }
+
+function animacaoLigada(): boolean {
+  return (
+    typeof window.matchMedia === 'function' &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
 
 export interface SobreposicaoProps {
   aberto: boolean
@@ -27,8 +37,21 @@ export function Sobreposicao({
 }: SobreposicaoProps & { variante: 'modal' | 'drawer' }) {
   const id = useId()
   const caixa = useRef<HTMLDivElement>(null)
-  const fechar = useRef(onFechar)
-  fechar.current = onFechar
+  const [saindo, setSaindo] = useState(false)
+  const avisar = useRef(onFechar)
+  avisar.current = onFechar
+  // Fechar toca a animação de saída e só então avisa quem abriu; sem animação, avisa na hora
+  const fechar = useRef(() => {})
+  fechar.current = () => {
+    if (saindo) return
+    if (!animacaoLigada()) {
+      avisar.current()
+      return
+    }
+    setSaindo(true)
+    window.setTimeout(() => avisar.current(), SAIDA_MS[variante])
+  }
+  const pedirFechar = useCallback(() => fechar.current(), [])
   // Guardado ainda na renderização: depois dela, um campo com autoFocus já teria levado o foco
   const focoAnterior = useRef<Element | null>(null)
   if (aberto && !focoAnterior.current) focoAnterior.current = document.activeElement
@@ -59,8 +82,9 @@ export function Sobreposicao({
     <div
       className={`${styles.fundo} ${styles[`fundo_${variante}`]}`}
       data-testid="sobreposicao-fundo"
+      data-saindo={saindo || undefined}
       onMouseDown={(evento) => {
-        if (evento.target === evento.currentTarget) onFechar()
+        if (evento.target === evento.currentTarget) pedirFechar()
       }}
     >
       <div
@@ -75,7 +99,7 @@ export function Sobreposicao({
           <h2 id={`${id}-titulo`} className={styles.camadaTitulo}>
             {titulo}
           </h2>
-          <button type="button" className={styles.botaoIcone} aria-label="Fechar" onClick={onFechar}>
+          <button type="button" className={styles.botaoIcone} aria-label="Fechar" onClick={pedirFechar}>
             <Icone nome="fechar" tamanho={18} />
           </button>
         </header>

@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
+import { motion } from 'framer-motion'
 import styles from './ui.module.css'
 
 interface AbasProps<T extends string> {
@@ -41,7 +42,16 @@ export function Abas<T extends string>({ rotulo, abas, ativa, onMudar, children 
             className={styles.aba}
             onClick={() => onMudar(aba.id)}
           >
-            {aba.rotulo}
+            {/* O fundo da aba ativa desliza até a aba escolhida */}
+            {aba.id === ativa && (
+              <motion.span
+                layoutId={`${base}-indicador`}
+                className={styles.abaIndicador}
+                transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+                aria-hidden="true"
+              />
+            )}
+            <span className={styles.abaRotulo}>{aba.rotulo}</span>
           </button>
         ))}
       </div>

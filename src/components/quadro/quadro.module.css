@@ -24,8 +24,19 @@
 }
 
 .coluna[data-sobre] {
-  border-color: var(--accent);
+  border-color: rgba(230, 48, 48, 0.4);
   background: var(--accent-soft);
+}
+
+@keyframes entrarCard {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .colunaTopo {
@@ -171,7 +182,8 @@
   border-radius: var(--radius-sm);
   cursor: grab;
   user-select: none;
-  animation: fadeUp 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  /* Card novo entra subindo; a saída (excluir, arquivar, mudar de coluna) é do Framer Motion */
+  animation: entrarCard 0.2s ease-out both;
   transition:
     background-color 0.18s ease,
     border-color 0.18s ease,
@@ -199,8 +211,10 @@
   background: var(--surface-2);
   cursor: grabbing;
   animation: none;
-  box-shadow: 0 16px 40px var(--sombra);
-  transform: rotate(1.5deg);
+  box-shadow:
+    0 22px 48px var(--sombra),
+    0 0 0 1px rgba(230, 48, 48, 0.25);
+  transform: scale(1.03);
 }
 
 .cardAbrir {

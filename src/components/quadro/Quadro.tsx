@@ -11,6 +11,7 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Icone } from '@/components/ui/Icone'
 import { ConfirmarExclusao, MenuDeAcoes } from '@/components/ui/MenuDeAcoes'
 import type { AcaoDoMenu } from '@/components/ui/MenuDeAcoes'
@@ -106,11 +107,14 @@ function Card({
       : []),
   ]
   return (
-    <div
+    // A entrada é a animação do CSS (.card); a saída, ao excluir, arquivar ou mudar de coluna,
+    // é esta: o card esmaece antes de sumir
+    <motion.div
       ref={setNodeRef}
       className={styles.card}
       data-atrasado={atrasado || undefined}
       data-arrastando={isDragging || undefined}
+      exit={{ opacity: 0, transition: { duration: 0.15 } }}
       {...listeners}
     >
       {/* O botão ocupa o card inteiro: clicar em qualquer ponto abre o detalhe */}
@@ -142,7 +146,7 @@ function Card({
           />
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 
@@ -352,22 +356,24 @@ export function Quadro<T extends ItemQuadro>({
               onCriar={(podeCriar?.(coluna.id) ?? true) ? () => onCriar(coluna.id) : undefined}
               edicao={edicao}
             >
-              {daColuna.map((item) => (
-                <Card
-                  key={item.id}
-                  id={item.id}
-                  titulo={tituloDe(item)}
-                  atrasado={atrasado?.(item) ?? false}
-                  rodape={renderRodape?.(item)}
-                  onAbrir={() => onAbrir(item)}
-                  onArquivar={onArquivar ? () => onArquivar(item) : undefined}
-                  onExcluir={onExcluir ? () => onExcluir(item) : undefined}
-                  destinos={colunas.filter((outra) => outra.id !== coluna.id)}
-                  onMoverPara={(destino) => onMover(item, destino)}
-                >
-                  {renderCard(item)}
-                </Card>
-              ))}
+              <AnimatePresence initial={false}>
+                {daColuna.map((item) => (
+                  <Card
+                    key={item.id}
+                    id={item.id}
+                    titulo={tituloDe(item)}
+                    atrasado={atrasado?.(item) ?? false}
+                    rodape={renderRodape?.(item)}
+                    onAbrir={() => onAbrir(item)}
+                    onArquivar={onArquivar ? () => onArquivar(item) : undefined}
+                    onExcluir={onExcluir ? () => onExcluir(item) : undefined}
+                    destinos={colunas.filter((outra) => outra.id !== coluna.id)}
+                    onMoverPara={(destino) => onMover(item, destino)}
+                  >
+                    {renderCard(item)}
+                  </Card>
+                ))}
+              </AnimatePresence>
             </Coluna>
           )
         })}

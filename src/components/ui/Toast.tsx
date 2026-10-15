@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Icone } from './Icone'
 import styles from './ui.module.css'
 
@@ -33,7 +34,15 @@ function Aviso({ toast, onFechar }: { toast: ToastItem; onFechar: (id: number) =
   }, [toast.id, onFechar])
 
   return (
-    <div role="status" className={`${styles.toast} ${styles[`toast_${toast.tipo}`]}`}>
+    // Entra subindo de baixo e sai esmaecendo; com menos movimento pedido, só o esmaecer
+    <motion.div
+      layout
+      role="status"
+      className={`${styles.toast} ${styles[`toast_${toast.tipo}`]}`}
+      initial={{ opacity: 0, y: 60 }}
+      animate={{ opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' } }}
+      exit={{ opacity: 0, transition: { duration: 0.15 } }}
+    >
       <span className={styles.toastMarca} aria-hidden="true" />
       <p className={styles.toastTexto}>{toast.mensagem}</p>
       <button
@@ -44,7 +53,7 @@ function Aviso({ toast, onFechar }: { toast: ToastItem; onFechar: (id: number) =
       >
         <Icone nome="fechar" tamanho={16} />
       </button>
-    </div>
+    </motion.div>
   )
 }
 
@@ -78,9 +87,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div className={styles.toastRegiao} aria-live="polite">
-        {toasts.map((toast) => (
-          <Aviso key={toast.id} toast={toast} onFechar={fechar} />
-        ))}
+        <AnimatePresence initial={false}>
+          {toasts.map((toast) => (
+            <Aviso key={toast.id} toast={toast} onFechar={fechar} />
+          ))}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   )

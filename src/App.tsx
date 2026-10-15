@@ -1,4 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
+import { MotionConfig } from 'framer-motion'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { ToastProvider } from '@/components/ui/Toast'
 import { AuthProvider } from '@/features/auth/AuthProvider'
@@ -35,43 +36,46 @@ export default function App() {
   useRastroDoMouse()
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route element={<RotaProtegida />}>
-                <Route path="/app" element={<AppLayout />}>
-                  <Route index element={<Navigate to="/app/dashboard" replace />} />
-                  <Route path="dashboard" element={<DashboardPage />} />
-                  <Route path="clientes" element={<ClientesPage />} />
-                  <Route path="clientes/:id" element={<ClientePage />} />
-                  {/* O quadro de Tarefas virou parte de Demandas; links antigos levam para lá */}
-                  <Route path="tarefas" element={<RedirecionarTarefas />} />
-                  <Route path="demandas" element={<DemandasPage />} />
-                  <Route path="conteudo" element={<ConteudoPage />} />
-                  {/* O menu se chama Anúncios. No código e no banco a entidade continua
-                      "campanha" (tabelas campaigns e campaign_tasks): renomear tabela quebraria
-                      as políticas e os dados existentes sem mudar nada para quem usa. */}
-                  <Route path="anuncios" element={<CampanhasPage />} />
-                  <Route path="anuncios/:id" element={<CampanhaPage />} />
-                  {/* Endereços antigos, ainda presentes em notificações já gravadas */}
-                  <Route path="campanhas" element={<Navigate to="/app/anuncios" replace />} />
-                  <Route path="campanhas/:id" element={<RedirecionarCampanha />} />
-                  <Route path="calendario" element={<CalendarioPage />} />
-                  <Route element={<RotaLideranca />}>
-                    <Route path="financeiro/:aba?" element={<FinanceiroPage />} />
-                    <Route path="crm" element={<CrmPage />} />
+    // Quem pede menos movimento no sistema operacional fica sem deslocamentos, só esmaecer
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route element={<RotaProtegida />}>
+                  <Route path="/app" element={<AppLayout />}>
+                    <Route index element={<Navigate to="/app/dashboard" replace />} />
+                    <Route path="dashboard" element={<DashboardPage />} />
+                    <Route path="clientes" element={<ClientesPage />} />
+                    <Route path="clientes/:id" element={<ClientePage />} />
+                    {/* O quadro de Tarefas virou parte de Demandas; links antigos levam para lá */}
+                    <Route path="tarefas" element={<RedirecionarTarefas />} />
+                    <Route path="demandas" element={<DemandasPage />} />
+                    <Route path="conteudo" element={<ConteudoPage />} />
+                    {/* O menu se chama Anúncios. No código e no banco a entidade continua
+                        "campanha" (tabelas campaigns e campaign_tasks): renomear tabela quebraria
+                        as políticas e os dados existentes sem mudar nada para quem usa. */}
+                    <Route path="anuncios" element={<CampanhasPage />} />
+                    <Route path="anuncios/:id" element={<CampanhaPage />} />
+                    {/* Endereços antigos, ainda presentes em notificações já gravadas */}
+                    <Route path="campanhas" element={<Navigate to="/app/anuncios" replace />} />
+                    <Route path="campanhas/:id" element={<RedirecionarCampanha />} />
+                    <Route path="calendario" element={<CalendarioPage />} />
+                    <Route element={<RotaLideranca />}>
+                      <Route path="financeiro/:aba?" element={<FinanceiroPage />} />
+                      <Route path="crm" element={<CrmPage />} />
+                    </Route>
+                    <Route path="configuracoes" element={<ConfiguracoesPage />} />
                   </Route>
-                  <Route path="configuracoes" element={<ConfiguracoesPage />} />
                 </Route>
-              </Route>
-              <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
-            </Routes>
-          </BrowserRouter>
-        </AuthProvider>
-      </ToastProvider>
-    </QueryClientProvider>
+                <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
+        </ToastProvider>
+      </QueryClientProvider>
+    </MotionConfig>
   )
 }

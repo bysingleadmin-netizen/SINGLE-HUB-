@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ToastProvider, useToast } from './Toast'
 
 function Gatilho() {
@@ -28,7 +28,7 @@ describe('Toast', () => {
     vi.useRealTimers()
   })
 
-  it('mostra a mensagem e some sozinho depois de 3 segundos', () => {
+  it('mostra a mensagem e some sozinho depois de 3 segundos', async () => {
     montar()
     fireEvent.click(screen.getByText('sucesso'))
     expect(screen.getByRole('status')).toHaveTextContent('Cliente salvo.')
@@ -40,7 +40,9 @@ describe('Toast', () => {
     act(() => {
       vi.advanceTimersByTime(1)
     })
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    // Depois dos 3 segundos ele esmaece e sai (a animação usa o relógio de verdade)
+    vi.useRealTimers()
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
   })
 
   it('não duplica uma mensagem idêntica que ainda está visível', () => {
@@ -57,10 +59,11 @@ describe('Toast', () => {
     expect(screen.getAllByRole('status')).toHaveLength(2)
   })
 
-  it('fecha ao clicar em fechar', () => {
+  it('fecha ao clicar em fechar', async () => {
+    vi.useRealTimers()
     montar()
     fireEvent.click(screen.getByText('sucesso'))
     fireEvent.click(screen.getByRole('button', { name: 'Fechar aviso' }))
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
   })
 })

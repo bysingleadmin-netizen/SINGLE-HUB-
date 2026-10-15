@@ -32,7 +32,7 @@ export function corDe(opcao: { tom: Tom; cor?: string }): string {
   return opcao.cor ?? COR_DO_TOM[opcao.tom]
 }
 
-interface Opcao<T extends string> {
+export interface Opcao<T extends string> {
   valor: T
   rotulo: string
   tom: Tom

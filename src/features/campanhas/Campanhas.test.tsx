@@ -150,6 +150,20 @@ describe('CampanhasPage', () => {
     expect(tabela.queryByRole('row', { name: /De outra campanha/ })).not.toBeInTheDocument()
   })
 
+  it('na lista, a tarefa numa coluna criada no quadro mostra o nome da coluna', async () => {
+    popular()
+    bancoFalso().tabelas.board_columns = [
+      { id: 'b1', quadro: 'anuncios', chave: 'pendente', titulo: 'A fazer', posicao: 1 },
+      { id: 'b2', quadro: 'anuncios', chave: 'aprovacao_x', titulo: 'Aprovação', posicao: 2 },
+    ]
+    bancoFalso().tabelas.campaign_tasks[0].status = 'aprovacao_x'
+    renderizar(<CampanhasPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Lista' }))
+    const tabela = within(await screen.findByRole('table', { name: 'Tarefas de anúncio' }))
+    expect(within(tabela.getByRole('row', { name: /Escrever anúncios/ })).getByText('Aprovação')).toBeInTheDocument()
+    expect(within(tabela.getByRole('row', { name: /De outra campanha/ })).getByText('A fazer')).toBeInTheDocument()
+  })
+
   it('cria a campanha, aceita orçamento com vírgula e registra a atividade', async () => {
     bancoFalso().reiniciar({ clients: [CLIENTE] })
     renderizar(<CampanhasPage />)
@@ -327,6 +341,25 @@ describe('CampanhaPage', () => {
       target: { value: '' },
     })
     await waitFor(() => expect(bancoFalso().tabelas.campaign_tasks[0].responsavel_id).toBeNull())
+  })
+
+  it('o status da tarefa oferece as colunas do quadro de Anúncios, inclusive as criadas', async () => {
+    popular()
+    bancoFalso().tabelas.board_columns = [
+      { id: 'b1', quadro: 'anuncios', chave: 'pendente', titulo: 'Pendente', posicao: 1 },
+      { id: 'b2', quadro: 'anuncios', chave: 'aprovacao_x', titulo: 'Aprovação', posicao: 2 },
+    ]
+    bancoFalso().tabelas.campaign_tasks[0].status = 'aprovacao_x'
+    abrir()
+    await screen.findByText('Escrever anúncios')
+    const status = await screen.findByLabelText('Status de Escrever anúncios')
+    await waitFor(() => expect(status).toHaveDisplayValue('Aprovação'))
+    expect(within(status).getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Pendente',
+      'Aprovação',
+      'Em andamento',
+      'Concluído',
+    ])
   })
 
   it('desfaz e avisa quando o banco recusa a troca de status', async () => {

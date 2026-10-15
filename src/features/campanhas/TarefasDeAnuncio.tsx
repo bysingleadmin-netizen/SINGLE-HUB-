@@ -13,9 +13,10 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useCampanhas, useClientes, usePerfis, useTarefasDeCampanha } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
-import { FUNCOES_CAMPANHA, STATUS_TAREFA_CAMPANHA, opcao } from '@/lib/rotulos'
+import { FUNCOES_CAMPANHA, opcao } from '@/lib/rotulos'
 import type { CampaignTask } from '@/types/database'
 import styles from './campanhas.module.css'
+import { useStatusDeAnuncio } from './statusDeAnuncio'
 
 /** Todas as tarefas de anúncio em uma lista só, sem precisar abrir anúncio por anúncio. */
 export function TarefasDeAnuncio() {
@@ -25,6 +26,7 @@ export function TarefasDeAnuncio() {
   const perfis = usePerfis()
   const criar = useCriar()
   const navigate = useNavigate()
+  const statusDeAnuncio = useStatusDeAnuncio()
   const [responsaveis, setResponsaveis] = useState<string[]>([])
 
   const consultas = juntarConsultas(tarefas, campanhas, clientes, perfis)
@@ -55,10 +57,10 @@ export function TarefasDeAnuncio() {
       chave: 'status',
       titulo: 'Status',
       render: (t) => {
-        const status = opcao(STATUS_TAREFA_CAMPANHA, t.status)
+        const status = opcao(statusDeAnuncio, t.status)
         return <Pill tom={status.tom}>{status.rotulo}</Pill>
       },
-      ordem: (t) => STATUS_TAREFA_CAMPANHA.findIndex((s) => s.valor === t.status),
+      ordem: (t) => statusDeAnuncio.findIndex((s) => s.valor === t.status),
     },
     {
       chave: 'funcao',

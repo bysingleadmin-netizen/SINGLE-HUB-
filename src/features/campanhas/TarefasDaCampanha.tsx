@@ -9,11 +9,11 @@ import { useRegistrarAtividade } from '@/dados/atividade'
 import { porId, useAtualizarOtimista, useRemover, useSalvar } from '@/dados/base'
 import type { Valores } from '@/dados/base'
 import { opcoesDePessoas } from '@/lib/pessoas'
-import { STATUS_TAREFA_CAMPANHA } from '@/lib/rotulos'
 import type { CampaignFuncao, CampaignTask, CampaignTaskStatus, Profile } from '@/types/database'
 import { agruparPorFuncao } from './campanha'
 import type { GrupoDeTarefas } from './campanha'
 import styles from './campanhas.module.css'
+import { useStatusDeAnuncio } from './statusDeAnuncio'
 
 interface GrupoProps {
   grupo: GrupoDeTarefas
@@ -30,6 +30,7 @@ function Grupo({ grupo, campanhaId, perfis }: GrupoProps) {
   const toast = useToast()
   const perfilPorId = porId(perfis)
   const opcoesDePerfil = opcoesDePessoas(perfis)
+  const statusDeAnuncio = useStatusDeAnuncio()
 
   function aoAdicionar(evento: FormEvent) {
     evento.preventDefault()
@@ -105,7 +106,7 @@ function Grupo({ grupo, campanhaId, perfis }: GrupoProps) {
               <Selecao
                 rotulo={`Status de ${tarefa.titulo}`}
                 ocultarRotulo
-                opcoes={STATUS_TAREFA_CAMPANHA}
+                opcoes={statusDeAnuncio}
                 value={tarefa.status}
                 onChange={(evento) =>
                   atualizarTarefa(tarefa, { status: evento.target.value as CampaignTaskStatus })

@@ -261,6 +261,36 @@ export interface CardSubtarefa {
 export type CampoConfiguravel = 'situacao' | 'prioridade' | 'tipo_conteudo'
 
 /** Opção de um dos campos configuráveis dos cards, com o nome que a equipe deu (migration 0003). */
+export type EtapaDoLead = 'leads' | 'reuniao' | 'fechamento'
+
+/** Lead do CRM (migration 0004). Só a liderança lê. */
+export interface Lead {
+  id: string
+  nome: string
+  empresa: string | null
+  telefone: string | null
+  origem: string | null
+  etapa: EtapaDoLead
+  /** Quando o lead entrou na etapa atual */
+  etapa_desde: string
+  posicao: number
+  /** Convertido em cliente: sai do quadro, mas conta na taxa de conversão */
+  convertido_em: string | null
+  client_id: string | null
+  created_by: string | null
+  created_at: string
+}
+
+/** Cada mudança de etapa de um lead, inclusive a conversão ('cliente') */
+export interface LeadHistorico {
+  id: string
+  lead_id: string
+  etapa_de: string | null
+  etapa_para: string
+  user_id: string | null
+  created_at: string
+}
+
 export interface CardOption {
   id: string
   campo: CampoConfiguravel

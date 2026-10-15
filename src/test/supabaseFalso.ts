@@ -30,6 +30,8 @@ export interface BancoFalso {
   erroDaFuncao: (ErroFalso & { context?: { status?: number } }) | null
   /** Corpo devolvido pelas funções; por padrão `{ ok: true }` */
   respostaDaFuncao: unknown
+  /** Funções do banco chamadas por rpc(); sem entrada, devolvem null */
+  rpcs: Record<string, (args: Record<string, unknown>, banco: BancoFalso) => unknown>
   reiniciar: (tabelas?: Record<string, object[]>) => void
 }
 
@@ -44,6 +46,7 @@ export function criarSupabaseFalso() {
     funcoesChamadas: [],
     erroDaFuncao: null,
     respostaDaFuncao: { ok: true },
+    rpcs: {},
     reiniciar(tabelas = {}) {
       banco.tabelasAusentes = []
       banco.tabelas = structuredClone(tabelas) as Record<string, Linha[]>
@@ -53,6 +56,7 @@ export function criarSupabaseFalso() {
       banco.funcoesChamadas = []
       banco.erroDaFuncao = null
       banco.respostaDaFuncao = { ok: true }
+      banco.rpcs = {}
     },
   }
 
@@ -181,6 +185,14 @@ export function criarSupabaseFalso() {
     },
   }
 
+  // Funções do banco: a chamada fica registrada como as Edge Functions
+  const rpc = async (nome: string, args: Record<string, unknown> = {}) => {
+    if (banco.erroDaFuncao) return { data: null, error: banco.erroDaFuncao }
+    banco.funcoesChamadas.push({ nome, body: args })
+    const funcao = banco.rpcs[nome]
+    return { data: funcao ? funcao(args, banco) : null, error: null }
+  }
+
   // Tempo real: o canal abre e não recebe nada; os testes recarregam pelo próprio fluxo da tela
   function channel() {
     const canal = {
@@ -191,7 +203,7 @@ export function criarSupabaseFalso() {
   }
   const removeChannel = async () => 'ok'
 
-  return { from, storage, functions, channel, removeChannel, banco }
+  return { from, storage, functions, channel, removeChannel, rpc, banco }
 }
 
 export type SupabaseFalso = ReturnType<typeof criarSupabaseFalso>

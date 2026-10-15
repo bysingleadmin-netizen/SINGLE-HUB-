@@ -84,3 +84,47 @@ begin
   exception when check_violation then null;
   end;
 end $$;
+
+-- 4. CRM
+do $$
+declare
+  usuario uuid := gen_random_uuid();
+  lead uuid;
+  cliente uuid;
+begin
+  insert into auth.users (id, email) values (usuario, 'ceo@single.com');
+  insert into public.profiles (id, nome, email, cargo) values (usuario, 'CEO', 'ceo@single.com', 'CEO')
+  on conflict (id) do update set cargo = 'CEO';
+  update auth.uid_atual set id = usuario;
+
+  insert into public.leads (nome, empresa, telefone, etapa) values ('Ana', 'Scofield', '27999990000', 'fechamento')
+  returning id into lead;
+  cliente := public.converter_lead(lead, 'Scofield', 2870, 12, '2026-10-01');
+
+  if not exists (select 1 from public.clients where id = cliente and contrato_meses = 12 and mrr = 2870 and status = 'ativo') then
+    raise exception 'cliente da conversão errado';
+  end if;
+  if (select convertido_em from public.leads where id = lead) is null then
+    raise exception 'lead não ficou convertido';
+  end if;
+  if not exists (select 1 from public.lead_historico where lead_id = lead and etapa_para = 'cliente') then
+    raise exception 'conversão sem histórico';
+  end if;
+
+  -- Converter de novo falha e não cria outro cliente
+  begin
+    perform public.converter_lead(lead, 'Scofield', 2870, 12, '2026-10-01');
+    raise exception 'converteu duas vezes';
+  exception when sqlstate 'P0002' then null;
+  end;
+
+  -- Quem não é liderança não converte
+  update public.profiles set cargo = 'Designer' where id = usuario;
+  insert into public.leads (nome) values ('Bia') returning id into lead;
+  begin
+    perform public.converter_lead(lead, 'Bia', 100, 3, '2026-10-01');
+    raise exception 'designer converteu lead';
+  exception when insufficient_privilege then null;
+  end;
+  update auth.uid_atual set id = null;
+end $$;

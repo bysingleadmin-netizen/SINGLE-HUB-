@@ -20,6 +20,8 @@ export type AcaoAtividade =
   | 'tarefa_de_anuncio_editada'
   | 'tarefa_de_anuncio_concluida'
   | 'otimizacao_registrada'
+  | 'lead_criado'
+  | 'lead_convertido'
 
 export interface Registro {
   acao: AcaoAtividade

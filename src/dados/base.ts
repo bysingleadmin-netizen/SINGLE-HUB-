@@ -20,6 +20,8 @@ export type Tabela =
   | 'card_attachments'
   | 'card_subtarefas'
   | 'card_options'
+  | 'leads'
+  | 'lead_historico'
 
 interface ComId {
   id: string

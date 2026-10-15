@@ -100,7 +100,9 @@ export function planoDeCobrancas(
     const futuras = doCliente.filter((p) => emAberto(p) && p.mes_referencia >= mesAtual)
 
     if (cliente.status !== 'ativo') {
-      plano.cancelar.push(...futuras.map((p) => p.id))
+      // A cobrança já paga em parte fica: cancelada (ou apagada, sem a 0003) ela sairia do
+      // Recebido e do DRE do mês. O resto a equipe resolve editando a cobrança.
+      plano.cancelar.push(...futuras.filter((p) => !(Number(p.valor_pago ?? 0) > 0)).map((p) => p.id))
       continue
     }
 

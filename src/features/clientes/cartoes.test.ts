@@ -121,6 +121,16 @@ describe('planoDeCobrancas', () => {
     expect(plano.cancelar).toEqual(['p-2026-11-01', 'p-2026-12-01'])
   })
 
+  it('cliente que sai não perde a cobrança que já recebeu em parte', () => {
+    const plano = planoDeCobrancas(
+      [cliente({ status: 'churn' })],
+      [pagamento('2026-10-01', { valor_pago: 1000, pago_em: '2026-10-05' }), pagamento('2026-11-01')],
+      HOJE,
+    )
+    // O que entrou continua contando no Financeiro; o resto a equipe resolve editando a cobrança
+    expect(plano.cancelar).toEqual(['p-2026-11-01'])
+  })
+
   it('sem dia de vencimento ou sem valor mensal não cobra nada', () => {
     expect(planoVazio(planoDeCobrancas([cliente({ data_inicio_contrato: null })], [], HOJE))).toBe(true)
     expect(planoVazio(planoDeCobrancas([cliente({ mrr: 0 })], [], HOJE))).toBe(true)

@@ -59,7 +59,9 @@ Configurações fica fora do menu de quem não é da Liderança, mas a foto e o 
 
 Em Configurações > Equipe, "Convidar colaborador" chama a função `convidar-colaborador` e a lixeira de cada pessoa chama `remover-colaborador`. As duas usam a chave de serviço do Supabase, que dá acesso total ao banco e não pode ficar no navegador, e só atendem a Liderança.
 
-Como o convite funciona: a função gera um código de 6 caracteres, guarda em `invite_codes` com o cargo escolhido e manda o código por e-mail. A pessoa abre o sistema, escolhe "Criar conta" e usa o e-mail e o código; a função `usar_codigo_convite` aplica o cargo. O código vale por 1 hora e só para a conta do e-mail convidado.
+Como o convite funciona: a função gera um código de 6 caracteres, guarda em `invite_codes` com o cargo escolhido e manda o código por e-mail. A pessoa abre o sistema, escolhe "Criar conta" e usa o e-mail, o código e uma senha. Quem cria a conta é a Edge Function `criar-conta`: ela confere no servidor se o código existe, é daquele e-mail, está no prazo (1 hora) e não foi usado, cria a conta já confirmada e aplica o cargo do convite.
+
+O cadastro público do Supabase fica **desligado** (Authentication > Sign In / Providers > "Allow new users to sign up"): sem convite não há como criar conta, nem chamando a API direto. Se alguém religar essa opção, a porta volta a abrir. As funções antigas `verificar_codigo_convite` e `usar_codigo_convite` continuam no banco, mas só a chave de serviço chama (migration 0011).
 
 O e-mail **não** sai pelo Supabase Auth (o modelo "Invite user" do painel não é usado): sai pela API do Resend, com o domínio `bysingle.com.br`:
 
@@ -77,9 +79,11 @@ Publicar (da pasta do projeto, com a CLI logada na conta do SINGLE):
 ```
 npx supabase functions deploy convidar-colaborador --project-ref natiqbpgprmcppcqmlvq
 npx supabase functions deploy remover-colaborador --project-ref natiqbpgprmcppcqmlvq
+npx supabase functions deploy criar-conta --project-ref natiqbpgprmcppcqmlvq
 ```
 
 - [x] `convidar-colaborador` e `remover-colaborador` publicadas (2026-10-16)
+- [x] `criar-conta` publicada, migration 0011 aplicada e cadastro público desligado (2026-10-16)
 - [x] `site_url` do Auth apontando para `https://singlehubos.vercel.app` (estava em `http://localhost:3000`)
 
 Se os e-mails ainda forem parar no spam, confira no Resend (Domains) se o `bysingle.com.br` tem SPF, DKIM e DMARC verdes.

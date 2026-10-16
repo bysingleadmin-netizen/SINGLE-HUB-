@@ -7,6 +7,8 @@ import { Logotipo } from '@/components/ui/Logotipo'
 import { definirLembrarConta, lembrarConta } from '@/lib/sessao'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './AuthContext'
+import { lerFalha } from '@/dados/funcoes'
+import type { Recusa } from '@/dados/funcoes'
 import { traduzirErroAuth } from './erros'
 import styles from './auth.module.css'
 
@@ -44,48 +46,38 @@ export function LoginPage() {
     }
   }
 
+  // A conta é criada pela função criar-conta, que confere o código no servidor: o cadastro
+  // público do Supabase fica desligado, então não há outro jeito de criar conta
   async function cadastrar(evento: FormEvent<HTMLFormElement>) {
-  evento.preventDefault()
-  setErro(null)
-  if (senha.length < 6) {
-    setErro('A senha precisa ter pelo menos 6 caracteres.')
-    return
-  }
-  if (senha !== senhaConfirm) {
-    setErro('As senhas não coincidem.')
-    return
-  }
-  setEnviando(true)
-  try {
-    const { data: valido, error: erroVerif } = await supabase.rpc('verificar_codigo_convite', {
-      p_email: email.trim().toLowerCase(),
-      p_codigo: codigo.trim().toUpperCase(),
-    })
-    if (erroVerif || !valido) {
-      setErro('Código inválido ou expirado. Peça um novo convite ao CEO.')
+    evento.preventDefault()
+    setErro(null)
+    if (senha.length < 6) {
+      setErro('A senha precisa ter pelo menos 6 caracteres.')
       return
     }
-
-    const auth = await supabase.auth.signUp({ email: email.trim(), password: senha })
-    if (auth.error || !auth.data.user) {
-      setErro(traduzirErroAuth(auth.error?.message))
+    if (senha !== senhaConfirm) {
+      setErro('As senhas não coincidem.')
       return
     }
-
-    const { data: resultado } = await supabase.rpc('usar_codigo_convite', {
-      p_email: email.trim().toLowerCase(),
-      p_codigo: codigo.trim().toUpperCase(),
-      p_user_id: auth.data.user.id,
-    })
-    if (resultado !== 'ok') {
-      setErro('Conta criada, mas o cargo não foi aplicado. Fale com o CEO.')
+    setEnviando(true)
+    definirLembrarConta(lembrar)
+    try {
+      const { data, error } = await supabase.functions.invoke('criar-conta', {
+        body: { email: email.trim().toLowerCase(), codigo: codigo.trim().toUpperCase(), senha },
+      })
+      const recusa = error ? (await lerFalha(error)).corpo?.erro : (data as Recusa | null)?.erro
+      if (error || recusa) {
+        setErro(recusa ?? 'Não foi possível criar a conta. Tente de novo.')
+        return
+      }
+      const entrada = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha })
+      if (entrada.error) setErro(traduzirErroAuth(entrada.error.message))
+    } catch (falha) {
+      setErro(traduzirErroAuth(falha instanceof Error ? falha.message : undefined))
+    } finally {
+      setEnviando(false)
     }
-  } catch (falha) {
-    setErro(traduzirErroAuth(falha instanceof Error ? falha.message : undefined))
-  } finally {
-    setEnviando(false)
   }
-}
 
   function alternarModo() {
     setModo(modo === 'entrar' ? 'cadastrar' : 'entrar')

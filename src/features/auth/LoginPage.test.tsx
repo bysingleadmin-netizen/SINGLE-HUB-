@@ -1,7 +1,15 @@
 const signInWithPassword = vi.fn()
+const invoke = vi.fn()
+const signUp = vi.fn()
 
 vi.mock('@/lib/supabase', () => ({
-  supabase: { auth: { signInWithPassword: (...args: unknown[]) => signInWithPassword(...args) } },
+  supabase: {
+    auth: {
+      signInWithPassword: (...args: unknown[]) => signInWithPassword(...args),
+      signUp: (...args: unknown[]) => signUp(...args),
+    },
+    functions: { invoke: (...args: unknown[]) => invoke(...args) },
+  },
 }))
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
@@ -38,6 +46,8 @@ beforeEach(() => {
   localStorage.clear()
   sessionStorage.clear()
   signInWithPassword.mockReset().mockResolvedValue({ error: null })
+  invoke.mockReset().mockResolvedValue({ data: { ok: true }, error: null })
+  signUp.mockReset()
 })
 
 describe('Lembrar minha conta', () => {
@@ -65,5 +75,40 @@ describe('Lembrar minha conta', () => {
     localStorage.setItem('single:lembrar-conta', '1')
     montar()
     expect(screen.getByLabelText('Lembrar minha conta')).toBeChecked()
+  })
+})
+
+describe('Criar conta', () => {
+  function cadastrar(senhaConfirm = 'segredo1') {
+    montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Primeiro acesso? Criar conta' }))
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: ' Ana@Single.com ' } })
+    fireEvent.change(screen.getByLabelText('Código de convite'), { target: { value: 'abc234' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'segredo1' } })
+    fireEvent.change(screen.getByLabelText('Confirmar senha'), { target: { value: senhaConfirm } })
+    fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
+  }
+
+  it('o servidor confere o código e cria a conta; depois entra com a senha', async () => {
+    cadastrar()
+    await waitFor(() => expect(signInWithPassword).toHaveBeenCalledWith({ email: 'Ana@Single.com', password: 'segredo1' }))
+    expect(invoke).toHaveBeenCalledWith('criar-conta', {
+      body: { email: 'ana@single.com', codigo: 'ABC234', senha: 'segredo1' },
+    })
+    // Nunca pede ao Supabase para criar conta direto do navegador
+    expect(signUp).not.toHaveBeenCalled()
+  })
+
+  it('mostra a recusa do servidor e não entra', async () => {
+    invoke.mockResolvedValue({ data: { erro: 'Código inválido ou expirado. Peça um novo convite à liderança.' }, error: null })
+    cadastrar()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Código inválido ou expirado')
+    expect(signInWithPassword).not.toHaveBeenCalled()
+  })
+
+  it('senhas diferentes nem chegam ao servidor', async () => {
+    cadastrar('outra123')
+    expect(await screen.findByRole('alert')).toHaveTextContent('As senhas não coincidem.')
+    expect(invoke).not.toHaveBeenCalled()
   })
 })

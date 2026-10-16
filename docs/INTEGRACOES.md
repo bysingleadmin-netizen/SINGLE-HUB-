@@ -61,7 +61,7 @@ Em Configurações > Equipe, "Convidar colaborador" chama a função `convidar-c
 
 Como o convite funciona: a função gera um código de 6 caracteres, guarda em `invite_codes` com o cargo escolhido e manda o código por e-mail. A pessoa abre o sistema, escolhe "Criar conta" e usa o e-mail, o código e uma senha. Quem cria a conta é a Edge Function `criar-conta`: ela confere no servidor se o código existe, é daquele e-mail, está no prazo (1 hora) e não foi usado, cria a conta já confirmada e aplica o cargo do convite.
 
-O cadastro público do Supabase fica **desligado** (Authentication > Sign In / Providers > "Allow new users to sign up"): sem convite não há como criar conta, nem chamando a API direto. Se alguém religar essa opção, a porta volta a abrir. As funções antigas `verificar_codigo_convite` e `usar_codigo_convite` continuam no banco, mas só a chave de serviço chama (migration 0011).
+O cadastro público do Supabase fica **desligado** (Authentication > Sign In / Providers > "Allow new users to sign up"): sem convite não há como criar conta, nem chamando a API direto. Se alguém religar essa opção, a porta volta a abrir. **Cuidado:** a opção "Email" em Sign In / Providers (na CLI, `[auth.email] enable_signup`) precisa continuar **ligada**: desligá-la não bloqueia só o cadastro, bloqueia o login por e-mail da equipe inteira ("Email logins are disabled"). Em 2026-10-16 isso aconteceu por alguns minutos e foi revertido. As funções antigas `verificar_codigo_convite` e `usar_codigo_convite` continuam no banco, mas só a chave de serviço chama (migration 0011).
 
 O e-mail **não** sai pelo Supabase Auth (o modelo "Invite user" do painel não é usado): sai pela API do Resend, com o domínio `bysingle.com.br`:
 

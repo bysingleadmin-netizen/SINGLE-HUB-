@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { FormEvent, ReactNode } from 'react'
 import {
   DndContext,
@@ -309,6 +310,8 @@ export function Quadro<T extends ItemQuadro>({
   urgente,
 }: QuadroProps<T>) {
   const [arrastandoId, setArrastandoId] = useState<string | null>(null)
+  // Onde o mouse pegou o card: o card flutuante cresce a partir desse ponto, para não escorregar
+  const [pegada, setPegada] = useState({ x: 0, y: 0 })
   // O card solto já aparece no destino, antes de o banco responder: sem isso ele voltava por um
   // instante à coluna de origem e parecia que o arraste não tinha funcionado
   const [pendente, setPendente] = useState<{ id: string; coluna: string } | null>(null)
@@ -367,7 +370,13 @@ export function Quadro<T extends ItemQuadro>({
   return (
     <DndContext
       sensors={sensores}
-      onDragStart={(evento) => setArrastandoId(String(evento.active.id))}
+      onDragStart={(evento) => {
+        setArrastandoId(String(evento.active.id))
+        const inicio = evento.active.rect.current.initial
+        const ponteiro = evento.activatorEvent as MouseEvent | TouchEvent
+        const ponto = 'touches' in ponteiro ? ponteiro.touches[0] : ponteiro
+        if (inicio && ponto) setPegada({ x: ponto.clientX - inicio.left, y: ponto.clientY - inicio.top })
+      }}
       onDragEnd={aoSoltar}
       onDragCancel={() => setArrastandoId(null)}
       accessibility={{
@@ -423,14 +432,22 @@ export function Quadro<T extends ItemQuadro>({
         })}
         {edicao && <NovaColuna onCriar={edicao.criar} />}
       </div>
-      <DragOverlay dropAnimation={null}>
-        {arrastado && (
-          <div className={`${styles.card} ${styles.cardFlutuante}`}>
-            <div className={styles.cardAbrir}>{renderCard(arrastado)}</div>
-          </div>
-        )}
-        {colunaArrastada && <div className={styles.colunaFlutuante}>{colunaArrastada.titulo}</div>}
-      </DragOverlay>
+      {/* A camada do arraste vai direto para o body: ela é position: fixed, e qualquer ancestral com
+          transform (a animação de entrada da página deixa um) a deslocava do cursor */}
+      {createPortal(
+        <DragOverlay dropAnimation={null}>
+          {arrastado && (
+            <div
+              className={`${styles.card} ${styles.cardFlutuante}`}
+              style={{ transformOrigin: `${pegada.x}px ${pegada.y}px` }}
+            >
+              <div className={styles.cardAbrir}>{renderCard(arrastado)}</div>
+            </div>
+          )}
+          {colunaArrastada && <div className={styles.colunaFlutuante}>{colunaArrastada.titulo}</div>}
+        </DragOverlay>,
+        document.body,
+      )}
     </DndContext>
   )
 }

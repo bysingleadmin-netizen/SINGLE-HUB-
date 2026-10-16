@@ -14,6 +14,10 @@ interface ConfigurarOpcoesProps {
   opcoes: OpcaoDeCampo[]
   /** Sem a tabela de opções no banco, a engrenagem não aparece */
   edicao: EdicaoDeOpcoes | undefined
+  /** Quantos cards usam a opção, para avisar antes de remover */
+  emUso?: (valor: string) => number
+  /** Nome dos cards no aviso: ['demanda', 'demandas'] */
+  unidade?: [string, string]
 }
 
 /**
@@ -41,8 +45,28 @@ function SeletorDeCor({ opcao, onEscolher }: { opcao: OpcaoDeCampo; onEscolher: 
   )
 }
 
-function Linha({ opcao, edicao }: { opcao: OpcaoDeCampo; edicao: EdicaoDeOpcoes }) {
+interface LinhaProps {
+  opcao: OpcaoDeCampo
+  edicao: EdicaoDeOpcoes
+  emUso?: (valor: string) => number
+  unidade: [string, string]
+}
+
+function Linha({ opcao, edicao, emUso, unidade }: LinhaProps) {
   const [nome, setNome] = useState(opcao.rotulo)
+  const [confirmando, setConfirmando] = useState(false)
+  const usos = emUso?.(opcao.valor) ?? 0
+  // De fábrica só sai da lista quando o banco sabe esconder (migration 0010)
+  const removivel = opcao.personalizada || edicao.ocultar
+
+  function remover() {
+    if (usos > 0 && !confirmando) {
+      setConfirmando(true)
+      return
+    }
+    setConfirmando(false)
+    edicao.remover(opcao.valor)
+  }
 
   function salvar() {
     const limpo = nome.trim()
@@ -51,7 +75,7 @@ function Linha({ opcao, edicao }: { opcao: OpcaoDeCampo; edicao: EdicaoDeOpcoes 
   }
 
   return (
-    <li className={styles.linha}>
+    <li className={styles.linha} data-confirmando={confirmando || undefined}>
       {edicao.colorir ? (
         <SeletorDeCor opcao={opcao} onEscolher={(cor) => edicao.colorir?.(opcao.valor, cor)} />
       ) : (
@@ -65,13 +89,13 @@ function Linha({ opcao, edicao }: { opcao: OpcaoDeCampo; edicao: EdicaoDeOpcoes 
         onBlur={salvar}
         onKeyDown={(evento) => evento.key === 'Enter' && evento.currentTarget.blur()}
       />
-      {opcao.personalizada ? (
+      {removivel ? (
         <button
           type="button"
           className={ui.botaoIcone}
           aria-label={`Remover ${opcao.rotulo}`}
           title="Remover"
-          onClick={() => edicao.remover(opcao.valor)}
+          onClick={remover}
         >
           <Icone nome="lixeira" tamanho={16} />
         </button>
@@ -81,6 +105,22 @@ function Linha({ opcao, edicao }: { opcao: OpcaoDeCampo; edicao: EdicaoDeOpcoes 
           padrão
         </span>
       )}
+      {confirmando && (
+        <div className={styles.aviso} role="alert">
+          <p>
+            {usos === 1 ? `1 ${unidade[0]} usa` : `${usos} ${unidade[1]} usam`} {opcao.rotulo}. Ela sai da lista, mas
+            {usos === 1 ? ` essa ${unidade[0]} continua` : ` essas ${unidade[1]} continuam`} mostrando o nome até alguém trocar.
+          </p>
+          <div className={styles.avisoAcoes}>
+            <Button variante="fantasma" className={ui.botaoPequeno} onClick={() => setConfirmando(false)}>
+              Cancelar
+            </Button>
+            <Button className={ui.botaoPequeno} onClick={remover}>
+              Remover mesmo assim
+            </Button>
+          </div>
+        </div>
+      )}
     </li>
   )
 }
@@ -89,7 +129,7 @@ function Linha({ opcao, edicao }: { opcao: OpcaoDeCampo; edicao: EdicaoDeOpcoes 
  * Engrenagem ao lado de um seletor e o modal que ela abre: renomear as opções do campo
  * (salva ao sair do campo) e criar novas.
  */
-export function ConfigurarOpcoes({ campo, opcoes, edicao }: ConfigurarOpcoesProps) {
+export function ConfigurarOpcoes({ campo, opcoes, edicao, emUso, unidade = ['card', 'cards'] }: ConfigurarOpcoesProps) {
   const [aberto, setAberto] = useState(false)
   const [nova, setNova] = useState('')
 
@@ -124,7 +164,7 @@ export function ConfigurarOpcoes({ campo, opcoes, edicao }: ConfigurarOpcoesProp
             </p>
             <ul className={styles.lista}>
               {opcoes.map((opcao) => (
-                <Linha key={opcao.valor} opcao={opcao} edicao={edicao} />
+                <Linha key={opcao.valor} opcao={opcao} edicao={edicao} emUso={emUso} unidade={unidade} />
               ))}
             </ul>
             <form className={styles.nova} onSubmit={criar}>

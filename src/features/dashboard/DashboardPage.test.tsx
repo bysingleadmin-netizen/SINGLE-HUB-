@@ -219,7 +219,7 @@ describe('DashboardPage', () => {
 
   it('não mostra nada do financeiro para quem não é liderança', async () => {
     popular()
-    renderizar(<DashboardPage />, { cargo: 'Designer' })
+    renderizar(<DashboardPage />, { cargo: 'Colaborador' })
     expect(await screen.findByText('Clientes ativos')).toBeInTheDocument()
     expect(screen.queryByText('MRR total')).not.toBeInTheDocument()
     expect(screen.queryByRole('img', { name: /MRR/ })).not.toBeInTheDocument()

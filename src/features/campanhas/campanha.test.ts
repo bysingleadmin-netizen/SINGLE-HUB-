@@ -2,7 +2,6 @@ import type { Campaign, CampaignTask } from '@/types/database'
 import {
   agruparPorFuncao,
   clienteDaDemanda,
-  demandasPorColuna,
   formDaCampanha,
   formNovaCampanha,
   periodoDaCampanha,
@@ -146,16 +145,3 @@ describe('agruparPorFuncao', () => {
   })
 })
 
-describe('demandasPorColuna', () => {
-  it('conta por coluna, filtrando pelo cliente da campanha ou da própria demanda', () => {
-    const campanhas = new Map([['g1', { client_id: 'c1' }]])
-    const tarefas = [
-      { status: 'pendente', campaign_id: 'g1', client_id: null },
-      { status: 'pendente', campaign_id: null, client_id: 'c1' },
-      { status: 'concluido', campaign_id: null, client_id: 'c2' },
-    ]
-    const colunas = [{ id: 'pendente', titulo: 'Pendente' }, { id: 'concluido', titulo: 'Concluído' }]
-    expect(demandasPorColuna(tarefas, colunas, 'c1', campanhas).map((b) => b.valor)).toEqual([2, 0])
-    expect(demandasPorColuna(tarefas, colunas, '', campanhas).map((b) => b.valor)).toEqual([2, 1])
-  })
-})

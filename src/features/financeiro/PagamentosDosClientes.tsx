@@ -13,7 +13,7 @@ import { plural } from '@/lib/regras'
 import { progressoPorCliente, separarReceitas } from './asaas'
 import type { ProgressoAsaas } from './asaas'
 import { ListaDeReceitas, SemTabelaAsaas, SincronizarAsaas, nomeDaReceita } from './ReceitasAsaas'
-import type { Intervalo } from './periodos'
+import type { Intervalo } from '@/lib/periodos'
 import styles from './financeiro.module.css'
 
 const VISOES = [

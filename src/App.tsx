@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from '
 import { ToastProvider } from '@/components/ui/Toast'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { LoginPage } from '@/features/auth/LoginPage'
-import { RotaLideranca } from '@/features/auth/RotaLideranca'
+import { RotaDaArea } from '@/features/auth/RotaLideranca'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
 import { CalendarioPage } from '@/features/calendario/CalendarioPage'
 import { CampanhaPage } from '@/features/campanhas/CampanhaPage'
@@ -48,8 +48,10 @@ export default function App() {
                   <Route path="/app" element={<AppLayout />}>
                     <Route index element={<Navigate to="/app/dashboard" replace />} />
                     <Route path="dashboard" element={<DashboardPage />} />
-                    <Route path="clientes" element={<ClientesPage />} />
-                    <Route path="clientes/:id" element={<ClientePage />} />
+                    <Route element={<RotaDaArea area="clientes" />}>
+                      <Route path="clientes" element={<ClientesPage />} />
+                      <Route path="clientes/:id" element={<ClientePage />} />
+                    </Route>
                     {/* O quadro de Tarefas virou parte de Demandas; links antigos levam para lá */}
                     <Route path="tarefas" element={<RedirecionarTarefas />} />
                     <Route path="demandas" element={<DemandasPage />} />
@@ -57,16 +59,22 @@ export default function App() {
                     {/* O menu se chama Anúncios. No código e no banco a entidade continua
                         "campanha" (tabelas campaigns e campaign_tasks): renomear tabela quebraria
                         as políticas e os dados existentes sem mudar nada para quem usa. */}
-                    <Route path="anuncios" element={<CampanhasPage />} />
-                    <Route path="anuncios/:id" element={<CampanhaPage />} />
+                    <Route element={<RotaDaArea area="anuncios" />}>
+                      <Route path="anuncios" element={<CampanhasPage />} />
+                      <Route path="anuncios/:id" element={<CampanhaPage />} />
+                    </Route>
                     {/* Endereços antigos, ainda presentes em notificações já gravadas */}
                     <Route path="campanhas" element={<Navigate to="/app/anuncios" replace />} />
                     <Route path="campanhas/:id" element={<RedirecionarCampanha />} />
                     <Route path="calendario" element={<CalendarioPage />} />
-                    <Route element={<RotaLideranca />}>
+                    <Route element={<RotaDaArea area="financeiro" />}>
                       <Route path="financeiro/:aba?" element={<FinanceiroPage />} />
+                    </Route>
+                    <Route element={<RotaDaArea area="crm" />}>
                       <Route path="crm" element={<CrmPage />} />
                     </Route>
+                    {/* Fora do menu para quem não é da liderança, mas aberta a todos pelo rodapé do
+                        menu: é onde cada um muda o próprio nome, a foto e o tema */}
                     <Route path="configuracoes" element={<ConfiguracoesPage />} />
                   </Route>
                 </Route>

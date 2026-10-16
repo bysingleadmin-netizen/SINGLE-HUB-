@@ -2,6 +2,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import type { CargaDaPessoa } from '@/lib/regras'
 import type { Profile } from '@/types/database'
 import styles from './dashboard.module.css'
+import { normalizarCargo } from '@/lib/permissoes'
 
 const percentual = new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 0 })
 
@@ -27,7 +28,7 @@ export function Carga({ carga, perfilPorId }: CargaProps) {
             <div className={styles.cargaTexto}>
               <span className={styles.cargaTopo}>
                 <span className={styles.cargaNome}>{perfil?.nome ?? 'Pessoa removida'}</span>
-                <span className={styles.cargaCargo}>{perfil?.cargo}</span>
+                <span className={styles.cargaCargo}>{normalizarCargo(perfil?.cargo)}</span>
                 <strong className={styles.cargaTotal}>{item.total}</strong>
                 <span className={styles.cargaFatia}>{percentual.format(item.fatia)}</span>
               </span>

@@ -82,3 +82,12 @@
 .tema {
   align-self: flex-start;
 }
+
+/* Membro da equipe: a confirmação de remover abre logo abaixo dele, na largura da linha */
+.membro {
+  flex-wrap: wrap;
+}
+
+.confirmarRemocao {
+  flex-basis: 100%;
+}

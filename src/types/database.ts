@@ -1,8 +1,6 @@
 // Espelha supabase/migrations/0001_schema.sql.
 // Datas são strings 'AAAA-MM-DD'; timestamps são ISO 8601.
 
-import type { Cargo } from '@/lib/permissoes'
-
 export type ClientStatus = 'ativo' | 'pausado' | 'churn'
 /** 'cancelado' só é aceito pelo banco depois da migration 0003 */
 export type PaymentStatus = 'pendente' | 'pago' | 'atrasado' | 'cancelado'
@@ -13,7 +11,9 @@ export type Prioridade = string
 /** Como o card está dentro da coluna em que se encontra. Só existe depois da migration 0003 */
 export type SituacaoDoCard = string
 export type FormaDePagamento = 'pix' | 'dinheiro'
-export type TaskTipo = 'conteudo' | 'trafego' | 'estrategia' | 'audiovisual'
+/** Área da demanda: as de fábrica ('conteudo', 'trafego', 'estrategia', 'audiovisual') ou uma criada
+ * pela equipe (migration 0010) */
+export type TaskTipo = string
 export type TaskStatus =
   | 'a_fazer'
   | 'em_andamento'
@@ -36,7 +36,8 @@ export interface Profile {
   id: string
   nome: string
   email: string
-  cargo: Cargo
+  /** Um dos CARGOS (src/lib/permissoes.ts); antes da migration 0010, um dos cargos antigos */
+  cargo: string
   avatar_url: string | null
   created_at: string
 }
@@ -296,7 +297,8 @@ export interface CardSubtarefa {
   created_at: string
 }
 
-export type CampoConfiguravel = 'situacao' | 'prioridade' | 'tipo_conteudo'
+/** 'area' só depois da migration 0010 */
+export type CampoConfiguravel = 'situacao' | 'prioridade' | 'tipo_conteudo' | 'area'
 
 /** Opção de um dos campos configuráveis dos cards, com o nome que a equipe deu (migration 0003). */
 /** Cobrança vinda do Asaas pelo webhook (migration 0006). Só a liderança lê. */
@@ -368,6 +370,8 @@ export interface CardOption {
   posicao: number
   /** #rrggbb escolhida na engrenagem. Migration 0004 */
   cor?: string | null
+  /** Removida da lista, mas os cards que a usam continuam mostrando o nome. Migration 0010 */
+  oculta?: boolean
   created_at: string
 }
 

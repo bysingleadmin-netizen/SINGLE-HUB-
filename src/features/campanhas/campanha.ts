@@ -124,17 +124,3 @@ export function agruparPorFuncao(tarefas: CampaignTask[], campanhaId: string): G
   }))
 }
 
-/** Quantas demandas de anúncio há em cada coluna do quadro, de um cliente ou de todos (''). */
-export function demandasPorColuna(
-  tarefas: Pick<CampaignTask, 'status' | 'campaign_id' | 'client_id'>[],
-  colunas: readonly { id: string; titulo: string }[],
-  clienteId: string,
-  campanhaPorId: Map<string, Pick<Campaign, 'client_id'>>,
-): { chave: string; rotulo: string; valor: number }[] {
-  const doCliente = tarefas.filter((t) => clienteId === '' || clienteDaDemanda(t, campanhaPorId) === clienteId)
-  return colunas.map((coluna) => ({
-    chave: coluna.id,
-    rotulo: coluna.titulo,
-    valor: doCliente.filter((t) => t.status === coluna.id).length,
-  }))
-}

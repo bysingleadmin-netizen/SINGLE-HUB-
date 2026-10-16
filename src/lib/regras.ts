@@ -293,3 +293,25 @@ export function ultimosMeses(hoje: string, meses = 6): Omit<PontoDeMRR, 'valor'>
     }
   })
 }
+
+/**
+ * Prioridade que o card mostra: entrega hoje, ainda em aberto e com prioridade baixa ou média
+ * aparece como alta. Só na tela: o banco continua com a prioridade escolhida pela equipe.
+ */
+export function prioridadeEfetiva(
+  prioridade: string | null | undefined,
+  dataEntrega: string | null,
+  hoje: string,
+  aberto: boolean,
+): { valor: string; automatica: boolean } {
+  const atual = prioridade || 'media'
+  if (aberto && dataEntrega === hoje && (atual === 'baixa' || atual === 'media')) {
+    return { valor: 'alta', automatica: true }
+  }
+  return { valor: atual, automatica: false }
+}
+
+/** Entrega hoje e ainda não foi entregue */
+export function venceHoje(dataEntrega: string | null, hoje: string, aberto: boolean): boolean {
+  return aberto && dataEntrega === hoje
+}

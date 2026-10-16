@@ -54,3 +54,16 @@ describe('cor das opções', () => {
     expect(COR_DO_TOM.verde).toBe('#3ecf8e')
   })
 })
+
+describe('opções ocultas', () => {
+  it('a removida vem marcada, e a de fábrica removida não volta pela lista fixa', () => {
+    const opcoes = montarOpcoes(PADRAO, [
+      { chave: 'travado', titulo: 'Travado', posicao: 1, oculta: true },
+      { chave: 'feito', titulo: 'Feito', posicao: 2 },
+    ])
+    expect(opcoes).toEqual([
+      { valor: 'travado', rotulo: 'Travado', tom: 'vermelho', oculta: true },
+      { valor: 'feito', rotulo: 'Feito', tom: 'verde' },
+    ])
+  })
+})

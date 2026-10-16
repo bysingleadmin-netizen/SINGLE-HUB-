@@ -6,7 +6,8 @@
 
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  /* Seis indicadores cabem numa linha só na tela larga */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 16px;
 }
 
@@ -53,7 +54,8 @@
 
 .inadimplencia > :first-child {
   flex: 1;
-  padding-bottom: 40px;
+  /* Espaço para a legenda de até duas linhas, que fica presa ao pé do card */
+  padding-bottom: 56px;
 }
 
 .inadimplencia[data-alerta] > :first-child {
@@ -423,5 +425,35 @@ li:hover > .acoesDaLinha,
 
   .vencimento > :first-child {
     flex-basis: 100%;
+  }
+}
+
+/* Período do Financeiro: botões rápidos, um mês específico e as datas que valem */
+.periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.periodoMes {
+  width: 190px;
+}
+
+.periodoDatas {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .periodo > .alternar {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .periodoMes {
+    flex: 1;
+    width: auto;
   }
 }

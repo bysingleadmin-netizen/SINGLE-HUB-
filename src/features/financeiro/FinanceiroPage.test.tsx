@@ -130,7 +130,13 @@ describe('Visão Geral', () => {
     expect(screen.getByText('Baseado em 2 clientes ativos')).toBeInTheDocument()
     expect(valorDe('Em atraso')).toHaveTextContent(moeda(2000))
     expect(screen.getByText('1 cobrança vencida de 1 cliente')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: /^Recebimentos dos últimos 6 meses/ })).toBeInTheDocument()
+    // ARR é o MRR do mês vezes 12, ao lado dele
+    expect(valorDe('ARR')).toHaveTextContent(moeda(3550 * 12))
+    // Gráficos de desempenho, com a tabela para leitores de tela, e as empresas por receita
+    expect(screen.getByRole('table', { name: 'Receita e despesas por mês' })).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: /^Receita e lucro líquido/ })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /^Ticket médio dos últimos 6 meses/ })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: /^Total recebido por empresa/ })).toHaveTextContent(moeda(750))
   })
 
   it('pagamentos atrasados levam ao cliente vinculado e mostram os dias', async () => {
@@ -176,9 +182,17 @@ describe('Visão Geral', () => {
     await waitFor(() => expect(valorDe('Recebido no período')).toHaveTextContent(moeda(3000)))
     expect(screen.getByText(/▲ \+R\$\s?1\.000 vs período anterior/)).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'mes_anterior' } })
+    fireEvent.change(screen.getByLabelText('Mês do período'), { target: { value: MES_PASSADO.slice(0, 7) } })
     expect(valorDe('Recebido no período')).toHaveTextContent(moeda(2000))
     expect(valorDe('Ticket médio')).toHaveTextContent(moeda(2000))
+
+    // Botões rápidos: o Anual soma os dois meses; o Quarter fica nos três meses completos antes deste
+    fireEvent.click(screen.getByRole('button', { name: 'Anual' }))
+    expect(screen.getByRole('button', { name: 'Anual' })).toHaveAttribute('aria-pressed', 'true')
+    expect(valorDe('Recebido no período')).toHaveTextContent(moeda(5000))
+    fireEvent.click(screen.getByRole('button', { name: 'Quarter' }))
+    expect(valorDe('Recebido no período')).toHaveTextContent(moeda(2000))
+    expect(screen.getByLabelText('Mês do período')).toHaveValue('')
   })
 
   it('sem nada vencido nem a vencer, diz isso', async () => {
@@ -347,7 +361,7 @@ describe('Despesas', () => {
 
     fireEvent.change(lista.getByLabelText('Categoria do filtro'), { target: { value: '' } })
     // O período do topo do Financeiro vale para as despesas
-    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'mes_anterior' } })
+    fireEvent.change(screen.getByLabelText('Mês do período'), { target: { value: MES_PASSADO.slice(0, 7) } })
     expect(lista.getByText('Antiga')).toBeInTheDocument()
     expect(lista.queryByText('Adobe')).not.toBeInTheDocument()
     expect(lista.getByText('Total do período').parentElement).toHaveTextContent(moeda(50))
@@ -638,7 +652,7 @@ describe('Meta e Tráfego', () => {
     })
     const meta = await painelPronto('Meta de faturamento')
     expect(await meta.findByText('Meta batida.')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('Período'), { target: { value: 'mes_anterior' } })
+    fireEvent.change(screen.getByLabelText('Mês do período'), { target: { value: MES_PASSADO.slice(0, 7) } })
     expect(await meta.findByText(/Nenhuma meta definida para este período/)).toBeInTheDocument()
   })
 

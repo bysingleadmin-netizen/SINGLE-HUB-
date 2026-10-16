@@ -149,6 +149,26 @@ describe('Quadro', () => {
     expect(card('Primeiro')).toHaveAttribute('data-atrasado')
     expect(card('Segundo')).not.toHaveAttribute('data-atrasado')
   })
+
+  it('marca o card que vence hoje, sem repetir a marca no atrasado', () => {
+    render(
+      <Quadro
+        colunas={COLUNAS}
+        itens={ITENS}
+        colunaDe={(item) => item.status}
+        tituloDe={(item) => item.titulo}
+        atrasado={(item) => item.id === 't1'}
+        urgente={() => true}
+        renderCard={(item) => <span>{item.titulo}</span>}
+        onMover={vi.fn()}
+        onCriar={vi.fn()}
+        onAbrir={vi.fn()}
+      />,
+    )
+    const card = (titulo: string) => screen.getByRole('button', { name: `Abrir ${titulo}` }).parentElement
+    expect(card('Segundo')).toHaveAttribute('data-urgente')
+    expect(card('Primeiro')).not.toHaveAttribute('data-urgente')
+  })
 })
 
 describe('useMover', () => {

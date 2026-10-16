@@ -21,7 +21,7 @@ import { formatarData } from '@/lib/formato'
 import { textoOuNull } from '@/lib/formulario'
 import { responsaveisDe, valoresDeResponsaveis } from '@/lib/pessoas'
 import { descreverPrazo, situacaoDoPrazo, tarefaAberta } from '@/lib/regras'
-import { PRIORIDADES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
+import { PRIORIDADES } from '@/lib/rotulos'
 import type {
   CardAttachment,
   CardSubtarefa,
@@ -31,6 +31,7 @@ import type {
   TaskStatus,
   TaskTipo,
 } from '@/types/database'
+import { CampoDeArea, useAreas } from './CampoDeArea'
 import { Comentarios } from './Comentarios'
 
 interface TarefaDrawerProps {
@@ -77,7 +78,8 @@ export function TarefaDrawer({
 
   const hoje = hojeISO()
   const entregue = !tarefaAberta(tarefa)
-  const tipo = tarefa.tipo ? opcao(TIPOS_TAREFA, tarefa.tipo) : undefined
+  const areas = useAreas()
+  const tipo = areas.opcao(tarefa.tipo)
   const prioridade = prioridades.opcao(tarefa.prioridade ?? 'media')
   const criador = perfis.find((p) => p.id === tarefa.created_by)
 
@@ -101,7 +103,7 @@ export function TarefaDrawer({
     <Drawer aberto titulo={tarefa.titulo} onFechar={onFechar}>
       <div className={styles.detalhe}>
         <div className={styles.resumo}>
-          {tipo && <Pill tom={tipo.tom}>{tipo.rotulo}</Pill>}
+          {tipo && <Pill tom={tipo.tom} cor={tipo.cor}>{tipo.rotulo}</Pill>}
           {esquema.prioridadeTarefa && prioridade && (
             <Pill tom={prioridade.tom} cor={prioridade.cor}>Prioridade {prioridade.rotulo}</Pill>
           )}
@@ -132,12 +134,7 @@ export function TarefaDrawer({
               value={tarefa.status}
               onChange={(evento) => onMover(evento.target.value as TaskStatus)}
             />
-            <StatusSelect
-              rotulo="Área"
-              opcoes={TIPOS_TAREFA}
-              value={tarefa.tipo ?? ''}
-              onChange={(valor) => salvar({ tipo: valor as TaskTipo })}
-            />
+            <CampoDeArea value={tarefa.tipo ?? ''} onChange={(valor) => salvar({ tipo: valor as TaskTipo })} />
             <Selecao
               rotulo="Cliente"
               vazio="Sem cliente"

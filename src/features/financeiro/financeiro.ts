@@ -4,8 +4,8 @@ import { textoOuNull } from '@/lib/formulario'
 import type { Erros, Validacao } from '@/lib/formulario'
 import { parseMoeda } from '@/lib/regras'
 import type { Expense, MonthlyGoal, TrafficMetric } from '@/types/database'
-import { intervaloDoMes, mesesDoIntervalo } from './periodos'
-import type { Intervalo } from './periodos'
+import { intervaloDoMes, mesesDoIntervalo } from '@/lib/periodos'
+import type { Intervalo } from '@/lib/periodos'
 
 // Regras do Financeiro. Meses trafegam como 'AAAA-MM'; no banco, `mes` é o primeiro dia ('AAAA-MM-01').
 

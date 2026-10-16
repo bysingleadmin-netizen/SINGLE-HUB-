@@ -102,23 +102,34 @@
   color: var(--text);
 }
 
-/* Cabeçalho de um grupo de itens e o recuo dos itens dele */
+/* Cabeçalho de um grupo de itens. É rótulo, não botão: letra pequena, espaçada e apagada, sem
+   fundo, sem reação ao mouse e alinhada aos ícones dos itens. Os itens do grupo têm o mesmo
+   recuo dos outros, para a coluna de ícones ficar reta. */
 .grupo {
-  /* Rótulo, não botão: menor, mais espaçado e mais apagado que os itens, com folga acima e
-     colado ao primeiro item dele. Não reage ao mouse. */
+  display: block;
   margin-top: 14px;
-  padding: 0 12px 2px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+  padding: 0 12px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-fraco);
+  opacity: 0.75;
+  cursor: default;
   pointer-events: none;
   user-select: none;
 }
 
-.sidebar:not([data-colapsada]) .item[data-agrupado] {
-  margin-left: 10px;
+/* Recolhida, o nome do grupo some e fica um fio separando os itens */
+.sidebar[data-colapsada] .grupo {
+  height: 1px;
+  margin: 10px 12px;
+  padding: 0;
+  overflow: hidden;
+  background: var(--vidro-borda);
+  color: transparent;
+  opacity: 1;
 }
 
 /* Ícones preenchidos: o traço continua e o miolo ganha a mesma cor, mais fraca */
@@ -146,6 +157,29 @@
   display: flex;
   flex-direction: column;
   line-height: 1.3;
+}
+
+/* Foto, nome e cargo levam a Configurações: é onde cada um muda o próprio perfil */
+.usuarioLink {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: -4px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.18s ease;
+}
+
+.usuarioLink:hover {
+  background: var(--vidro-hover);
+}
+
+.sidebar[data-colapsada] .usuarioLink {
+  flex: none;
 }
 
 .usuarioNome {
@@ -236,6 +270,15 @@
   .sidebar[data-aberta] {
     transform: translateX(0);
     box-shadow: 16px 0 48px var(--sombra);
+  }
+
+  .sidebar[data-colapsada] .grupo {
+    height: auto;
+    margin: 14px 0 0;
+    padding: 0 12px 4px;
+    background: none;
+    color: var(--text-fraco);
+    opacity: 0.75;
   }
 
   .sidebar[data-colapsada] .rotulo {

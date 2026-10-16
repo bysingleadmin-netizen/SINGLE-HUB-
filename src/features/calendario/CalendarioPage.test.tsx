@@ -26,8 +26,8 @@ function popular() {
   bancoFalso().reiniciar({
     profiles: [
       perfilDeTeste(),
-      { ...perfilDeTeste('Designer'), id: 'u2', nome: 'Bia Souza', email: 'bia@single.com' },
-      { ...perfilDeTeste('Copywriter'), id: 'u3', nome: 'Caio Lima', email: 'caio@single.com' },
+      { ...perfilDeTeste('Colaborador'), id: 'u2', nome: 'Bia Souza', email: 'bia@single.com' },
+      { ...perfilDeTeste('Colaborador'), id: 'u3', nome: 'Caio Lima', email: 'caio@single.com' },
     ],
     clients: [{ id: 'c1', nome: 'Padaria Sol', status: 'ativo', mrr: 1500, created_at: '2026-01-01' }],
     calendar_events: [

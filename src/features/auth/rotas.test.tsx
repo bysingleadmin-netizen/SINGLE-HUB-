@@ -68,7 +68,7 @@ describe('RotaProtegida', () => {
   })
 
   it('mostra o conteúdo para quem tem sessão e perfil', () => {
-    montar('/app/dashboard', { sessao, perfil: perfil('Designer') })
+    montar('/app/dashboard', { sessao, perfil: perfil('Colaborador') })
     expect(screen.getByText('tela dashboard')).toBeInTheDocument()
   })
 
@@ -89,7 +89,7 @@ describe('RotaProtegida', () => {
 
 describe('RotaLideranca', () => {
   it('redireciona quem não é liderança com um único toast', () => {
-    montar('/app/financeiro', { sessao, perfil: perfil('Designer') })
+    montar('/app/financeiro', { sessao, perfil: perfil('Colaborador') })
     expect(screen.getByText('tela dashboard')).toBeInTheDocument()
     expect(screen.queryByText('tela financeiro')).not.toBeInTheDocument()
 
@@ -99,17 +99,17 @@ describe('RotaLideranca', () => {
   })
 
   it('o CRM também é só da liderança', () => {
-    montar('/app/crm', { sessao, perfil: perfil('Designer') })
+    montar('/app/crm', { sessao, perfil: perfil('Colaborador') })
     expect(screen.getByText('tela dashboard')).toBeInTheDocument()
     expect(screen.queryByText('tela crm')).not.toBeInTheDocument()
   })
 
   it('libera o CRM para a liderança', () => {
-    montar('/app/crm', { sessao, perfil: perfil('CEO') })
+    montar('/app/crm', { sessao, perfil: perfil('Liderança') })
     expect(screen.getByText('tela crm')).toBeInTheDocument()
   })
 
-  it.each(['CEO', 'Founder', 'Co-Founder'] as const)('libera o financeiro para %s', (cargo) => {
+  it.each(['Liderança'] as const)('libera o financeiro para %s', (cargo) => {
     montar('/app/financeiro', { sessao, perfil: perfil(cargo) })
     expect(screen.getByText('tela financeiro')).toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()

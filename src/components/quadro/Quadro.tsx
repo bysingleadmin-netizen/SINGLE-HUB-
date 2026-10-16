@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import {
   DndContext,
@@ -54,6 +54,8 @@ interface QuadroProps<T extends ItemQuadro> {
   edicao?: EdicaoDeColunas
   /** Faixa de baixo do card, fora do botão de abrir: menu de status e anexos */
   renderRodape?: (item: T) => ReactNode
+  /** Vence hoje: o card ganha borda vermelha pulsando */
+  urgente?: (item: T) => boolean
 }
 
 // O arraste de uma coluna usa o mesmo contexto dos cards; o prefixo separa os dois
@@ -63,6 +65,10 @@ interface CardProps {
   id: string
   titulo: string
   atrasado: boolean
+  /** Vence hoje: borda vermelha pulsando */
+  urgente?: boolean
+  /** Acabou de ser solto aqui: entra assentando, sem subir de novo */
+  solto?: boolean
   children: ReactNode
   rodape?: ReactNode
   onAbrir: () => void
@@ -77,6 +83,8 @@ function Card({
   id,
   titulo,
   atrasado,
+  urgente = false,
+  solto = false,
   children,
   rodape,
   onAbrir,
@@ -113,8 +121,15 @@ function Card({
       ref={setNodeRef}
       className={styles.card}
       data-atrasado={atrasado || undefined}
+      data-urgente={(urgente && !atrasado) || undefined}
+      data-solto={solto || undefined}
       data-arrastando={isDragging || undefined}
-      exit={{ opacity: 0, transition: { duration: 0.15 } }}
+      // Ao sair da coluna: o card solto em outra coluna some na hora (ele já aparece no destino);
+      // os outros (excluir, arquivar, mover pelo menu) esmaecem. O id solto vem do AnimatePresence
+      variants={{
+        saida: (soltoId: string | null) => ({ opacity: 0, transition: { duration: soltoId === id ? 0 : 0.15 } }),
+      }}
+      exit="saida"
       {...listeners}
     >
       {/* O botão ocupa o card inteiro: clicar em qualquer ponto abre o detalhe */}
@@ -152,6 +167,8 @@ function Card({
 
 interface ColunaProps {
   coluna: ColunaQuadro
+  /** Coluna de onde saiu o card que está sendo arrastado: soltar nela não move nada */
+  origem?: string
   total: number
   children: ReactNode
   /** Sem ele, a coluna não tem o + de criar */
@@ -159,7 +176,7 @@ interface ColunaProps {
   edicao?: EdicaoDeColunas
 }
 
-function Coluna({ coluna, total, children, onCriar, edicao }: ColunaProps) {
+function Coluna({ coluna, origem, total, children, onCriar, edicao }: ColunaProps) {
   const { setNodeRef, isOver } = useDroppable({ id: coluna.id })
   const alca = useDraggable({ id: `${PREFIXO_COLUNA}${coluna.id}`, disabled: !edicao })
   const [nome, setNome] = useState<string | null>(null)
@@ -175,7 +192,7 @@ function Coluna({ coluna, total, children, onCriar, edicao }: ColunaProps) {
       ref={setNodeRef}
       className={styles.coluna}
       aria-label={coluna.titulo}
-      data-sobre={isOver || undefined}
+      data-sobre={(isOver && origem != null && origem !== coluna.id) || undefined}
       data-arrastando={alca.isDragging || undefined}
     >
       <header className={styles.colunaTopo}>
@@ -289,15 +306,36 @@ export function Quadro<T extends ItemQuadro>({
   podeCriar,
   edicao,
   renderRodape,
+  urgente,
 }: QuadroProps<T>) {
   const [arrastandoId, setArrastandoId] = useState<string | null>(null)
+  // O card solto já aparece no destino, antes de o banco responder: sem isso ele voltava por um
+  // instante à coluna de origem e parecia que o arraste não tinha funcionado
+  const [pendente, setPendente] = useState<{ id: string; coluna: string } | null>(null)
+  // Cards que já foram soltos ficam marcados, para a animação de assentar não repetir a de entrada
+  const soltos = useRef(new Set<string>())
+  const colunaReal = pendente ? itens.find((item) => item.id === pendente.id) : undefined
+  const aplicado = pendente != null && (colunaReal == null || colunaDe(colunaReal) === pendente.coluna)
+
+  useEffect(() => {
+    if (!pendente) return
+    if (aplicado) {
+      setPendente(null)
+      return
+    }
+    // Se o banco recusar, a lista volta ao que era e o card volta junto
+    const espera = setTimeout(() => setPendente(null), 2500)
+    return () => clearTimeout(espera)
+  }, [pendente, aplicado])
+
+  const colunaEfetiva = (item: T) => (pendente && item.id === pendente.id ? pendente.coluna : colunaDe(item))
   const sensores = useSensors(
     // A distância mínima deixa o clique abrir o card sem começar um arraste
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
   )
 
-  const grupos = agrupar(itens, colunas, colunaDe)
+  const grupos = agrupar(itens, colunas, colunaEfetiva)
   const arrastado = itens.find((item) => item.id === arrastandoId)
   const colunaArrastada = arrastandoId?.startsWith(PREFIXO_COLUNA)
     ? colunas.find((coluna) => `${PREFIXO_COLUNA}${coluna.id}` === arrastandoId)
@@ -320,7 +358,10 @@ export function Quadro<T extends ItemQuadro>({
     const item = itens.find((candidato) => candidato.id === ativo)
     if (!item) return
     const destino = destinoDoArraste(colunaDe(item), evento.over?.id, colunas)
-    if (destino) onMover(item, destino)
+    if (!destino) return
+    soltos.current.add(item.id)
+    setPendente({ id: item.id, coluna: destino })
+    onMover(item, destino)
   }
 
   return (
@@ -352,17 +393,20 @@ export function Quadro<T extends ItemQuadro>({
             <Coluna
               key={coluna.id}
               coluna={coluna}
+              origem={arrastado ? colunaDe(arrastado) : undefined}
               total={daColuna.length}
               onCriar={(podeCriar?.(coluna.id) ?? true) ? () => onCriar(coluna.id) : undefined}
               edicao={edicao}
             >
-              <AnimatePresence initial={false}>
+              <AnimatePresence initial={false} custom={pendente?.id ?? null}>
                 {daColuna.map((item) => (
                   <Card
                     key={item.id}
                     id={item.id}
                     titulo={tituloDe(item)}
                     atrasado={atrasado?.(item) ?? false}
+                    urgente={urgente?.(item) ?? false}
+                    solto={soltos.current.has(item.id)}
                     rodape={renderRodape?.(item)}
                     onAbrir={() => onAbrir(item)}
                     onArquivar={onArquivar ? () => onArquivar(item) : undefined}

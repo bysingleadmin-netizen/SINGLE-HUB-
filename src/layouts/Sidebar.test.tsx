@@ -40,16 +40,16 @@ function montar(cargo: Cargo, colapsada = false, avisos?: AvisosDoMenu) {
 }
 
 describe('Sidebar', () => {
-  it('não mostra Financeiro para Social Media e mostra nome e cargo no rodapé', () => {
-    montar('Social Media')
+  it('não mostra Financeiro para Colaborador e mostra nome e cargo no rodapé', () => {
+    montar('Colaborador')
     expect(screen.queryByRole('link', { name: 'Financeiro' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Demandas' })).toBeInTheDocument()
     expect(screen.getByText('Luan Uliana')).toBeInTheDocument()
-    expect(screen.getByText('Social Media')).toBeInTheDocument()
+    expect(screen.getByText('Colaborador')).toBeInTheDocument()
   })
 
-  it('mostra Financeiro para Founder', () => {
-    montar('Founder')
+  it('mostra Financeiro para a Liderança', () => {
+    montar('Liderança')
     expect(screen.getByRole('link', { name: 'Financeiro' })).toHaveAttribute(
       'href',
       '/app/financeiro',
@@ -57,37 +57,55 @@ describe('Sidebar', () => {
   })
 
   it('mostra o logotipo vetorial da marca', () => {
-    montar('Designer')
+    montar('Colaborador')
     expect(screen.getByRole('img', { name: 'SINGLE' }).querySelector('svg')).not.toBeNull()
   })
 
   it('marca a rota atual', () => {
-    montar('Designer')
+    montar('Colaborador')
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('alterna entre recolher e expandir', () => {
-    const { onAlternar } = montar('Designer')
+    const { onAlternar } = montar('Colaborador')
     fireEvent.click(screen.getByRole('button', { name: 'Recolher menu' }))
     expect(onAlternar).toHaveBeenCalledTimes(1)
   })
 
   it('mantém os links acessíveis pelo nome quando colapsada', () => {
-    montar('Designer', true)
-    expect(screen.getByRole('link', { name: 'Clientes' })).toBeInTheDocument()
+    montar('Colaborador', true)
+    expect(screen.getByRole('link', { name: 'Calendário' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Expandir menu' })).toBeInTheDocument()
   })
 
   it('mostra a contagem de pendências só nos itens que têm', () => {
-    montar('Designer', false, {
+    montar('Colaborador', false, {
       '/app/demandas': { total: 3, descricao: '3 demandas atrasadas' },
     })
     expect(screen.getByRole('link', { name: /^Demandas\s*3 demandas atrasadas$/ })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Anúncios' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Conteúdo' })).toBeInTheDocument()
+  })
+
+  it('esconde do colaborador o que não é dele', () => {
+    montar('Colaborador')
+    for (const nome of ['Clientes', 'CRM', 'Anúncios', 'Financeiro', 'Configurações']) {
+      expect(screen.queryByRole('link', { name: nome })).not.toBeInTheDocument()
+    }
+  })
+
+  it('o nome da seção Produção é texto, não link nem botão', () => {
+    montar('Liderança')
+    const grupo = screen.getByText('Produção')
+    expect(grupo.closest('a, button')).toBeNull()
+  })
+
+  it('a foto e o nome levam ao próprio perfil, com o cargo atual', () => {
+    montar('Colaborador')
+    expect(screen.getByRole('link', { name: 'Meu perfil: Luan Uliana' })).toHaveAttribute('href', '/app/configuracoes')
   })
 
   it('sai ao clicar em Sair', () => {
-    const { valor } = montar('Designer')
+    const { valor } = montar('Colaborador')
     fireEvent.click(screen.getByRole('button', { name: 'Sair' }))
     expect(valor.sair).toHaveBeenCalledTimes(1)
   })

@@ -8,6 +8,7 @@ import { formatarData } from '@/lib/formato'
 import type { SituacaoDoPrazo } from '@/lib/regras'
 import type { Client, Profile } from '@/types/database'
 import styles from './quadro.module.css'
+import { normalizarCargo } from '@/lib/permissoes'
 
 interface CardInfoProps {
   titulo: string
@@ -60,7 +61,7 @@ export function CardInfo({
 
       <BlocoDeVinculo
         empresa={cliente ? { nome: cliente.nome, logoUrl: cliente.logo_url } : null}
-        pessoas={responsaveis.map((p) => ({ id: p.id, nome: p.nome, avatarUrl: p.avatar_url, detalhe: p.cargo }))}
+        pessoas={responsaveis.map((p) => ({ id: p.id, nome: p.nome, avatarUrl: p.avatar_url, detalhe: normalizarCargo(p.cargo) ?? undefined }))}
         semPessoa="Sem responsável"
       />
 

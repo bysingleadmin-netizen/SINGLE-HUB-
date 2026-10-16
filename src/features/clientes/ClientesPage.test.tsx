@@ -58,7 +58,7 @@ function popular() {
 }
 
 /** Abre a página do cliente como o app faz, pela rota. */
-async function abrirCliente(cargo: Cargo = 'CEO', id = 'c1') {
+async function abrirCliente(cargo: Cargo = 'Liderança', id = 'c1') {
   popular()
   renderizar(
     <Routes>
@@ -132,7 +132,7 @@ describe('ClientesPage', () => {
 
   it('quem não é liderança edita, mas não exclui clientes', async () => {
     popular()
-    renderizar(<ClientesPage />, { cargo: 'Designer' })
+    renderizar(<ClientesPage />, { cargo: 'Colaborador' })
     const card = within((await screen.findByRole('link', { name: 'Clínica Vita' })).closest('article')!)
     fireEvent.click(card.getByRole('button', { name: 'Ações de Clínica Vita' }))
     expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['Editar'])
@@ -237,7 +237,7 @@ describe('página do cliente: visão geral', () => {
   })
 
   it('quem não é liderança não vê a seção Financeiro', async () => {
-    await abrirCliente('Social Media')
+    await abrirCliente('Colaborador')
     expect(screen.queryByRole('region', { name: 'Financeiro' })).not.toBeInTheDocument()
     expect(screen.queryByText(/1\.500,00/)).not.toBeInTheDocument()
   })
@@ -326,7 +326,7 @@ describe('página do cliente: abas', () => {
   })
 
   it('aba sem itens mostra estado vazio', async () => {
-    await abrirCliente('CEO', 'c2')
+    await abrirCliente('Liderança', 'c2')
     expect(aba('Anúncios').getByText('Nenhum anúncio para este cliente.')).toBeInTheDocument()
     expect(aba('Conteúdos').getByText('Nenhum conteúdo para este cliente.')).toBeInTheDocument()
   })
@@ -375,7 +375,7 @@ describe('página do cliente: pagamentos', () => {
   }
 
   it('a aba não existe para quem não é liderança', async () => {
-    await abrirCliente('Social Media')
+    await abrirCliente('Colaborador')
     expect(screen.queryByRole('tab', { name: 'Pagamentos' })).not.toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Demandas' })).toBeInTheDocument()
   })

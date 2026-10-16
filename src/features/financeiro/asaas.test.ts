@@ -8,9 +8,13 @@ import {
   proximosVencimentos,
   recebidoNoMes,
   recebidoNoPeriodo,
+  receitaPorCliente,
   recebimentosDoPeriodo,
   separarReceitas,
   situacaoDoAsaas,
+  desempenhoMensal,
+  historicoDoTicket,
+  mrrDoMes,
   ticketMedio,
 } from './asaas'
 
@@ -177,6 +181,49 @@ describe('progressoPorCliente', () => {
     expect(linhas).toEqual([
       { chave: 'cus_9', nome: 'Avulso', pago: 0, total: 100, percentual: 0 },
       { chave: 'c1', nome: 'Clínica Aurora', pago: 600, total: 1000, percentual: 60 },
+    ])
+  })
+})
+
+describe('MRR, ARR e gráficos da Visão Geral', () => {
+  it('MRR é de um mês só: o último do período, ou o atual; ARR é 12 vezes', () => {
+    expect(mrrDoMes(RECEITAS, OUTUBRO, HOJE)).toEqual({ mes: '2026-10', mrr: 3800, arr: 45600 })
+    // Período de três meses que termina em setembro: vale setembro (sem cancelada nem estornada)
+    expect(mrrDoMes(RECEITAS, { inicio: '2026-07-01', fim: '2026-09-30' }, HOJE)).toEqual({ mes: '2026-09', mrr: 1400, arr: 16800 })
+    // Período que avança no futuro: vale o mês atual
+    expect(mrrDoMes(RECEITAS, { inicio: '2026-05-01', fim: '2026-12-31' }, HOJE).mes).toBe('2026-10')
+  })
+
+  it('desempenho: receita, despesas e lucro por mês', () => {
+    const despesas = [
+      { valor: 1000, data: '2026-10-03' },
+      { valor: 900, data: '2026-09-20' },
+    ]
+    const meses = desempenhoMensal(RECEITAS, despesas, OUTUBRO)
+    expect(meses).toHaveLength(6)
+    expect(meses.slice(-2)).toEqual([
+      { mes: '2026-09', rotulo: 'set', receita: 700, despesas: 900, lucro: -200 },
+      { mes: '2026-10', rotulo: 'out', receita: 2500, despesas: 1000, lucro: 1500 },
+    ])
+  })
+
+  it('histórico do ticket tem pelo menos seis meses, e doze no anual', () => {
+    expect(historicoDoTicket(RECEITAS, OUTUBRO)).toHaveLength(6)
+    expect(historicoDoTicket(RECEITAS, { inicio: '2025-11-01', fim: '2026-10-31' })).toHaveLength(12)
+    expect(historicoDoTicket(RECEITAS, OUTUBRO).at(-1)?.valor).toBe(1900)
+  })
+
+  it('receita por cliente: o pago no período, do maior para o menor', () => {
+    const cobrancas = [
+      receita({ status: 'RECEIVED', valor: 500, data_pagamento: '2026-10-02', asaas_customer_id: 'a', nome_cliente_asaas: 'A' }),
+      receita({ status: 'RECEIVED', valor: 2000, data_pagamento: '2026-10-03', asaas_customer_id: 'b', nome_cliente_asaas: 'B' }),
+      receita({ status: 'RECEIVED', valor: 700, data_pagamento: '2026-10-09', asaas_customer_id: 'a', nome_cliente_asaas: 'A' }),
+      receita({ status: 'RECEIVED', valor: 9000, data_pagamento: '2026-09-09', asaas_customer_id: 'c', nome_cliente_asaas: 'C' }),
+      receita({ status: 'PENDING', valor: 9000, asaas_customer_id: 'd', nome_cliente_asaas: 'D' }),
+    ]
+    expect(receitaPorCliente(cobrancas, OUTUBRO, (r) => r.nome_cliente_asaas ?? '')).toEqual([
+      { chave: 'b', rotulo: 'B', valor: 2000 },
+      { chave: 'a', rotulo: 'A', valor: 1200 },
     ])
   })
 })

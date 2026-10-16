@@ -1,6 +1,7 @@
 import { responsaveisDe } from '@/lib/pessoas'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { PainelDeVolume } from '@/components/graficos/PainelDeVolume'
 import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
 import { Arquivados } from '@/components/quadro/Arquivados'
 import { AvisoDeMigracao } from '@/components/quadro/AvisoDeMigracao'
@@ -32,9 +33,10 @@ import { resumir, useSubtarefas } from '@/dados/subtarefas'
 import { useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
 import { hojeISO } from '@/lib/datas'
-import { situacaoDoPrazo, tarefaAberta, tarefaAtrasada } from '@/lib/regras'
-import { COLUNAS_TAREFA, PRIORIDADES, TIPOS_TAREFA, opcao } from '@/lib/rotulos'
+import { prioridadeEfetiva, situacaoDoPrazo, tarefaAberta, tarefaAtrasada, venceHoje } from '@/lib/regras'
+import { COLUNAS_TAREFA, PRIORIDADES } from '@/lib/rotulos'
 import type { Task, TaskStatus, TaskTipo } from '@/types/database'
+import { CampoDeArea, useAreas } from './CampoDeArea'
 import { TarefaDrawer } from './TarefaDrawer'
 import { filtrarTarefas } from './tarefa'
 
@@ -58,6 +60,7 @@ export function DemandasPage() {
       onError: () => toast.erro(`Não foi possível excluir a demanda.`),
     })
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
+  const areas = useAreas()
   const [verArquivados, setVerArquivados] = useState(false)
   const {
     colunas,
@@ -117,6 +120,9 @@ export function DemandasPage() {
   const responsavelDa = (tarefa: Task) => responsaveisDa(tarefa)[0]
   const prazoDa = (tarefa: Task) => situacaoDoPrazo(tarefa.data_entrega, hoje, !tarefaAberta(tarefa))
   const abrir = (tarefa: Task) => setParametros({ abrir: tarefa.id }, { replace: true })
+  // Entrega hoje sobe a prioridade para alta na tela, sem gravar: a escolha da equipe fica no banco
+  const prioridadeDa = (tarefa: Task) =>
+    prioridadeEfetiva(tarefa.prioridade, tarefa.data_entrega, hoje, tarefaAberta(tarefa))
 
   const colunasDaLista: ColunaDaTabela<Task>[] = [
     {
@@ -151,12 +157,16 @@ export function DemandasPage() {
             chave: 'prioridade',
             titulo: 'Prioridade',
             render: (t: Task) => {
-              const nivel = prioridades.opcao(t.prioridade ?? 'media')
-              return nivel ? <Pill tom={nivel.tom} cor={nivel.cor}>{nivel.rotulo}</Pill> : null
+              const efetiva = prioridadeDa(t)
+              const nivel = prioridades.opcao(efetiva.valor)
+              return nivel ? (
+                <span title={efetiva.automatica ? 'Vence hoje: prioridade elevada automaticamente' : undefined}>
+                  <Pill tom={nivel.tom} cor={nivel.cor}>{efetiva.automatica ? `${nivel.rotulo} · hoje` : nivel.rotulo}</Pill>
+                </span>
+              ) : null
             },
             // Negativo para a primeira ordenação trazer o que é urgente para cima
-            ordem: (t: Task) =>
-              -prioridades.opcoes.findIndex((p) => p.valor === (t.prioridade ?? 'media')),
+            ordem: (t: Task) => -prioridades.opcoes.findIndex((p) => p.valor === prioridadeDa(t).valor),
           },
         ]
       : []),
@@ -182,15 +192,19 @@ export function DemandasPage() {
 
   return (
     <div className={pagina.pagina}>
+      {todas.length > 0 && (
+        <PainelDeVolume
+          titulo="Demandas por coluna"
+          descricao="Demandas por coluna do quadro"
+          unidade={['demanda', 'demandas']}
+          clientes={clientes.data ?? []}
+          colunas={colunas}
+          itens={todas.map((tarefa) => ({ coluna: tarefa.status, cliente: tarefa.client_id, data: tarefa.created_at }))}
+        />
+      )}
       <div className={pagina.barra}>
         <div className={pagina.filtros}>
-          <StatusSelect
-            rotulo="Área"
-            vazio="Todas as áreas"
-            opcoes={TIPOS_TAREFA}
-            value={tipo}
-            onChange={(valor) => setTipo(valor as TaskTipo | '')}
-          />
+          <CampoDeArea vazio="Todas as áreas" value={tipo} onChange={(valor) => setTipo(valor as TaskTipo | '')} />
           <FiltroDeColaboradores
             perfis={perfis.data ?? []}
             selecionados={responsaveis}
@@ -260,23 +274,22 @@ export function DemandasPage() {
               colunaDe={(tarefa) => tarefa.status}
               tituloDe={(tarefa) => tarefa.titulo}
               atrasado={(tarefa) => tarefaAtrasada(tarefa, hoje)}
+              urgente={(tarefa) => venceHoje(tarefa.data_entrega, hoje, tarefaAberta(tarefa))}
               renderCard={(tarefa) => {
-                const tipoDaTarefa = tarefa.tipo ? opcao(TIPOS_TAREFA, tarefa.tipo) : undefined
+                const efetiva = prioridadeDa(tarefa)
+                const nivel = efetiva.valor !== 'media' ? prioridades.opcao(efetiva.valor) : undefined
+                const tipoDaTarefa = areas.opcao(tarefa.tipo)
                 return (
                   <CardInfo
                     titulo={tarefa.titulo}
                     etiqueta={
-                      tipoDaTarefa && <Pill tom={tipoDaTarefa.tom}>{tipoDaTarefa.rotulo}</Pill>
+                      tipoDaTarefa && <Pill tom={tipoDaTarefa.tom} cor={tipoDaTarefa.cor}>{tipoDaTarefa.rotulo}</Pill>
                     }
                     cliente={clienteDa(tarefa)}
                     responsaveis={responsaveisDa(tarefa)}
                     dataEntrega={tarefa.data_entrega}
                     prazo={prazoDa(tarefa)}
-                    prioridade={
-                      tarefa.prioridade && tarefa.prioridade !== 'media'
-                        ? prioridades.opcao(tarefa.prioridade)
-                        : undefined
-                    }
+                    prioridade={nivel && (efetiva.automatica ? { ...nivel, rotulo: `${nivel.rotulo} · vence hoje` } : nivel)}
                     subtarefas={
                       subtarefas.disponivel
                         ? resumir(subtarefas.porCard.get(tarefa.id) ?? [])

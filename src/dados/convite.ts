@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { lerFalha } from './funcoes'
 import type { Recusa } from './funcoes'
@@ -31,5 +31,31 @@ export function useConvidar() {
       const recusa = (data as Recusa | null)?.erro
       if (recusa) throw new Error(recusa)
     },
+  })
+}
+
+export const REMOCAO_NAO_PUBLICADA =
+  'A função de remoção ainda não foi publicada no Supabase. Veja docs/INTEGRACOES.md.'
+
+/**
+ * Tira a pessoa da equipe: a conta é apagada no Supabase (com ela, o perfil), as demandas dela
+ * ficam sem responsável e ela recebe um e-mail avisando que o acesso foi revogado.
+ */
+export function useRemoverColaborador() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke('remover-colaborador', { body: { id } })
+      if (error) {
+        const { status, corpo } = await lerFalha(error)
+        if (status === 404) throw new Error(REMOCAO_NAO_PUBLICADA)
+        if (corpo?.erro) throw new Error(corpo.erro)
+        throw new Error(`Não foi possível remover o colaborador${status ? ` (a função respondeu com erro ${status})` : ''}.`)
+      }
+      const resposta = data as (Recusa & { emailEnviado?: boolean }) | null
+      if (resposta?.erro) throw new Error(resposta.erro)
+      return { emailEnviado: resposta?.emailEnviado !== false }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['profiles'] }),
   })
 }

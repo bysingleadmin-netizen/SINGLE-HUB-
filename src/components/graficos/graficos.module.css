@@ -175,3 +175,120 @@
     transition: none;
   }
 }
+
+/* Filtros do gráfico de volume dos quadros, com o total ao lado */
+.volumeFiltros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.volumeFiltros > :not(.volumeTotal) {
+  min-width: 190px;
+}
+
+.volumeTotal {
+  margin-left: auto;
+  padding-bottom: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Gráfico mês a mês (Financeiro): barras agrupadas ou linhas, um eixo só em reais */
+.mensal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+.mensalArea {
+  position: relative;
+  height: 260px;
+}
+
+.mensalArea svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.mensalGrade {
+  stroke: var(--realce-forte);
+  stroke-dasharray: 3 5;
+}
+
+.mensalZero {
+  stroke: var(--text-fraco);
+  stroke-opacity: 0.6;
+}
+
+.mensalRotulo {
+  fill: var(--text-fraco);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mensalFaixa {
+  fill: var(--vidro-hover);
+}
+
+.mensalLinha {
+  stroke-width: 2px;
+  stroke-linecap: round;
+}
+
+.mensalPonto {
+  fill: var(--surface);
+  stroke-width: 2px;
+  transition: r 0.15s ease;
+}
+
+.mensalAlvo {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.mensalDica {
+  position: absolute;
+  top: 8px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 170px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 28px var(--sombra);
+  font-size: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.mensalDicaMes {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mensalDicaLinha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mensalDicaLinha strong {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}

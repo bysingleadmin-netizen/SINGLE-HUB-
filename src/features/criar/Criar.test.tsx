@@ -13,7 +13,7 @@ function popular(comCampanha = true) {
   bancoFalso().reiniciar({
     profiles: [
       perfilDeTeste(),
-      { ...perfilDeTeste('Designer'), id: 'u2', nome: 'Bia Souza', email: 'bia@single.com' },
+      { ...perfilDeTeste('Colaborador'), id: 'u2', nome: 'Bia Souza', email: 'bia@single.com' },
     ],
     clients: [{ id: 'c1', nome: 'Padaria Sol', status: 'ativo', mrr: 1500, created_at: '2026-01-01' }],
     tasks: [{ id: 't1', titulo: 'Antiga', status: 'a_fazer', tipo: 'conteudo', posicao: 3, created_at: '2026-01-01' }],

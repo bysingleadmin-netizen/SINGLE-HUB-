@@ -13,9 +13,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { API_ASAAS, FalhaDoAsaas, linhaDoPagamento, listarTudo, vincularClientes } from '../_shared/asaas.ts'
 import type { ClienteAsaas, PagamentoAsaas } from '../_shared/asaas.ts'
+import { CARGOS_LIDERANCA } from '../_shared/acesso.ts'
 import { carregarClientes, gravarCobrancas, gravarIdsDoAsaas } from '../_shared/banco.ts'
-
-const CARGOS_LIDERANCA = ['CEO', 'Founder', 'Co-Founder']
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',

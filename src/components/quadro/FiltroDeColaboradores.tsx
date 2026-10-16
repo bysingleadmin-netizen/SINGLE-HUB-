@@ -1,6 +1,7 @@
 import { Avatar } from '@/components/ui/Avatar'
 import type { Profile } from '@/types/database'
 import styles from './lista.module.css'
+import { normalizarCargo } from '@/lib/permissoes'
 
 interface FiltroDeColaboradoresProps {
   perfis: Profile[]
@@ -25,8 +26,8 @@ export function FiltroDeColaboradores({ perfis, selecionados, onMudar }: FiltroD
           type="button"
           className={styles.colaborador}
           aria-pressed={selecionados.includes(perfil.id)}
-          aria-label={`${perfil.nome}, ${perfil.cargo}`}
-          title={`${perfil.nome} · ${perfil.cargo}`}
+          aria-label={`${perfil.nome}, ${normalizarCargo(perfil.cargo)}`}
+          title={`${perfil.nome} · ${normalizarCargo(perfil.cargo)}`}
           onClick={() => alternar(perfil.id)}
         >
           <Avatar nome={perfil.nome} url={perfil.avatar_url} tamanho={30} />

@@ -1,6 +1,7 @@
 import { responsaveisDe } from '@/lib/pessoas'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { PainelDeVolume } from '@/components/graficos/PainelDeVolume'
 import { AlternarVisao, useVisao } from '@/components/quadro/AlternarVisao'
 import { Arquivados } from '@/components/quadro/Arquivados'
 import { AvisoDeMigracao } from '@/components/quadro/AvisoDeMigracao'
@@ -31,7 +32,7 @@ import { resumir, useSubtarefas } from '@/dados/subtarefas'
 import { useCards, useClientes, usePerfis } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
 import { hojeISO } from '@/lib/datas'
-import { cardAberto, situacaoDoPrazo } from '@/lib/regras'
+import { cardAberto, prioridadeEfetiva, situacaoDoPrazo, venceHoje } from '@/lib/regras'
 import { COLUNAS_CONTEUDO, PRIORIDADES, TIPOS_CONTEUDO } from '@/lib/rotulos'
 import type { ContentCard, ContentEtapa, TipoConteudo } from '@/types/database'
 import { CardDrawer } from './CardDrawer'
@@ -111,6 +112,8 @@ export function ConteudoPage() {
   const responsavelDo = (card: ContentCard) => responsaveisDo(card)[0]
   const prazoDo = (card: ContentCard) => situacaoDoPrazo(card.data_entrega, hoje, !cardAberto(card))
   const abrir = (card: ContentCard) => setParametros({ abrir: card.id }, { replace: true })
+  // Entrega hoje sobe a prioridade para alta na tela, sem gravar: a escolha da equipe fica no banco
+  const prioridadeDo = (card: ContentCard) => prioridadeEfetiva(card.prioridade, card.data_entrega, hoje, cardAberto(card))
 
   const colunasDaLista: ColunaDaTabela<ContentCard>[] = [
     {
@@ -145,11 +148,15 @@ export function ConteudoPage() {
             chave: 'prioridade',
             titulo: 'Prioridade',
             render: (c: ContentCard) => {
-              const nivel = prioridades.opcao(c.prioridade ?? 'media')
-              return nivel ? <Pill tom={nivel.tom} cor={nivel.cor}>{nivel.rotulo}</Pill> : null
+              const efetiva = prioridadeDo(c)
+              const nivel = prioridades.opcao(efetiva.valor)
+              return nivel ? (
+                <span title={efetiva.automatica ? 'Vence hoje: prioridade elevada automaticamente' : undefined}>
+                  <Pill tom={nivel.tom} cor={nivel.cor}>{efetiva.automatica ? `${nivel.rotulo} · hoje` : nivel.rotulo}</Pill>
+                </span>
+              ) : null
             },
-            ordem: (c: ContentCard) =>
-              -prioridades.opcoes.findIndex((p) => p.valor === (c.prioridade ?? 'media')),
+            ordem: (c: ContentCard) => -prioridades.opcoes.findIndex((p) => p.valor === prioridadeDo(c).valor),
           },
         ]
       : []),
@@ -175,6 +182,17 @@ export function ConteudoPage() {
 
   return (
     <div className={quadro.pagina}>
+      {todos.length > 0 && (
+        <PainelDeVolume
+          titulo="Entregas por etapa"
+          descricao="Conteúdos por etapa do quadro, pela data de entrega"
+          unidade={['conteúdo', 'conteúdos']}
+          clientes={clientes.data ?? []}
+          colunas={colunas}
+          // Volume de entregas: o card entra no período pela data de entrega; sem ela, pela criação
+          itens={todos.map((card) => ({ coluna: card.etapa, cliente: card.client_id, data: card.data_entrega ?? card.created_at }))}
+        />
+      )}
       <div className={quadro.barra}>
         <div className={quadro.filtros}>
           <StatusSelect
@@ -253,8 +271,11 @@ export function ConteudoPage() {
               colunaDe={(card) => card.etapa}
               tituloDe={(card) => card.titulo}
               atrasado={(card) => cardAtrasado(card, hoje)}
+              urgente={(card) => venceHoje(card.data_entrega, hoje, cardAberto(card))}
               renderCard={(card) => {
                 const tipoDoCard = tipos.opcao(card.tipo_conteudo)
+                const efetiva = prioridadeDo(card)
+                const nivel = efetiva.valor !== 'media' ? prioridades.opcao(efetiva.valor) : undefined
                 return (
                   <CardInfo
                     titulo={card.titulo}
@@ -263,11 +284,7 @@ export function ConteudoPage() {
                     responsaveis={responsaveisDo(card)}
                     dataEntrega={card.data_entrega}
                     prazo={prazoDo(card)}
-                    prioridade={
-                      card.prioridade && card.prioridade !== 'media'
-                        ? prioridades.opcao(card.prioridade)
-                        : undefined
-                    }
+                    prioridade={nivel && (efetiva.automatica ? { ...nivel, rotulo: `${nivel.rotulo} · vence hoje` } : nivel)}
                     subtarefas={
                       subtarefas.disponivel ? resumir(subtarefas.porCard.get(card.id) ?? []) : undefined
                     }

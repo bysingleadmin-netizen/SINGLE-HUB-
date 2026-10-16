@@ -21,7 +21,8 @@ import { formNovaTarefa, rotaDaTarefa, validarTarefa } from '@/features/demandas
 import type { FormTarefa } from '@/features/demandas/tarefa'
 import type { Erros } from '@/lib/formulario'
 import { responsaveisDe } from '@/lib/pessoas'
-import { COLUNAS_TAREFA, PRIORIDADES, TIPOS_TAREFA } from '@/lib/rotulos'
+import { CampoDeArea } from '@/features/demandas/CampoDeArea'
+import { COLUNAS_TAREFA, PRIORIDADES } from '@/lib/rotulos'
 import type { Task, TaskStatus, TaskTipo } from '@/types/database'
 
 interface FormDemandaProps {
@@ -134,12 +135,7 @@ export function FormDemanda({ statusInicial, onFechar }: FormDemandaProps) {
         />
       </div>
       <div className={ui.duasColunas}>
-        <StatusSelect
-          rotulo="Área"
-          opcoes={TIPOS_TAREFA}
-          value={form.tipo}
-          onChange={(valor) => mudar('tipo', valor as TaskTipo)}
-        />
+        <CampoDeArea value={form.tipo} onChange={(valor) => mudar('tipo', valor as TaskTipo)} />
         <Selecao
           rotulo="Status"
           opcoes={colunas.map((coluna) => ({ valor: coluna.id, rotulo: coluna.titulo }))}

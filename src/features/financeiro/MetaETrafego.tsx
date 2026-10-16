@@ -31,7 +31,7 @@ import {
 } from './financeiro'
 import type { FormMetricas } from './financeiro'
 import { recebidoNoPeriodo } from './asaas'
-import type { Intervalo } from './periodos'
+import type { Intervalo } from '@/lib/periodos'
 import styles from './financeiro.module.css'
 
 const SEM_DADOS = 'sem dados'

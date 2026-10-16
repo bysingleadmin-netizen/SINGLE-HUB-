@@ -38,7 +38,7 @@ import {
   validarParcelas,
 } from './financeiro'
 import type { FormDespesa, Frequencia, ValoresDespesa } from './financeiro'
-import type { Intervalo } from './periodos'
+import type { Intervalo } from '@/lib/periodos'
 import styles from './financeiro.module.css'
 
 const OPCOES_CATEGORIA = CATEGORIAS.map((valor) => ({ valor, rotulo: valor }))

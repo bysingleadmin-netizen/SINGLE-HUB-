@@ -30,7 +30,7 @@ function popular() {
   bancoFalso().reiniciar({
     profiles: [
       perfilDeTeste(),
-      { ...perfilDeTeste('Designer'), id: 'u2', nome: 'Bia Souza', email: 'bia@single.com' },
+      { ...perfilDeTeste('Colaborador'), id: 'u2', nome: 'Bia Souza', email: 'bia@single.com' },
     ],
     clients: [{ id: 'c1', nome: 'Padaria Sol', status: 'ativo', mrr: 1500, created_at: '2026-01-01' }],
     tasks: [
@@ -184,7 +184,7 @@ describe('DemandasPage', () => {
     expect(screen.queryByText('Roteiro de reels')).not.toBeInTheDocument()
     expect(screen.getByText('Subir campanha')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Luan Uliana, CEO' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Luan Uliana, Liderança' }))
     expect(screen.queryByText('Subir campanha')).not.toBeInTheDocument()
     expect(screen.getByText('Nenhuma demanda com esses filtros.')).toBeInTheDocument()
   })
@@ -217,7 +217,7 @@ describe('DemandasPage', () => {
     bancoFalso().tabelas.tasks[0].responsaveis = ['u1', 'u2']
     renderizar(<DemandasPage />)
     await screen.findByText('Roteiro de reels')
-    fireEvent.click(screen.getByRole('button', { name: 'Bia Souza, Designer' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bia Souza, Colaborador' }))
     expect(screen.getByText('Roteiro de reels')).toBeInTheDocument()
   })
 
@@ -242,13 +242,13 @@ describe('DemandasPage', () => {
     renderizar(<DemandasPage />)
     await screen.findByText('Roteiro de reels')
 
-    const bia = screen.getByRole('button', { name: 'Bia Souza, Designer' })
+    const bia = screen.getByRole('button', { name: 'Bia Souza, Colaborador' })
     fireEvent.click(bia)
     expect(bia).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByText('Roteiro de reels')).not.toBeInTheDocument()
     expect(screen.getByText('Subir campanha')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Luan Uliana, CEO' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Luan Uliana, Liderança' }))
     expect(screen.getByText('Roteiro de reels')).toBeInTheDocument()
     expect(screen.getByText('Subir campanha')).toBeInTheDocument()
 
@@ -262,7 +262,7 @@ describe('DemandasPage', () => {
     const card = within(await screen.findByRole('button', { name: 'Abrir Roteiro de reels' }))
     expect(card.getByText('Padaria Sol')).toBeInTheDocument()
     expect(card.getByText('Luan Uliana')).toBeInTheDocument()
-    expect(card.getByText('CEO')).toBeInTheDocument()
+    expect(card.getByText('Liderança')).toBeInTheDocument()
   })
 
   it('a visão em lista mostra status, responsável, entrega e cliente, e abre a demanda', async () => {
@@ -276,7 +276,7 @@ describe('DemandasPage', () => {
     const linha = within(tabela.getByRole('row', { name: /Roteiro de reels/ }))
     expect(linha.getByText('A Fazer')).toBeInTheDocument()
     expect(linha.getByText('Padaria Sol')).toBeInTheDocument()
-    expect(linha.getByText('CEO')).toBeInTheDocument()
+    expect(linha.getByText('Liderança')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'A Fazer' })).not.toBeInTheDocument()
 
     fireEvent.click(linha.getByRole('button', { name: 'Abrir Roteiro de reels' }))
@@ -666,7 +666,7 @@ describe('anexos do card', () => {
   it('quem não é da liderança não vê o aviso da migration', async () => {
     popular()
     bancoFalso().tabelasAusentes = ['board_columns', 'card_attachments']
-    renderizar(<DemandasPage />, { cargo: 'Designer' })
+    renderizar(<DemandasPage />, { cargo: 'Colaborador' })
     await screen.findByText('Roteiro de reels')
     expect(screen.queryByRole('note')).not.toBeInTheDocument()
   })

@@ -31,7 +31,7 @@ function popular() {
   bancoFalso().reiniciar({
     profiles: [
       perfilDeTeste(),
-      { ...perfilDeTeste('Copywriter'), id: 'u2', nome: 'Bia Souza', email: 'bia@single.com' },
+      { ...perfilDeTeste('Colaborador'), id: 'u2', nome: 'Bia Souza', email: 'bia@single.com' },
     ],
     clients: [CLIENTE],
     campaigns: [
@@ -146,11 +146,11 @@ describe('CampanhasPage', () => {
     expect(linha.getByText('Black Friday')).toBeInTheDocument()
     expect(linha.getByText('Padaria Sol')).toBeInTheDocument()
     expect(linha.getByText('Bia Souza')).toBeInTheDocument()
-    expect(linha.getByText('Copywriter')).toBeInTheDocument()
+    expect(linha.getByText('Colaborador')).toBeInTheDocument()
     expect(linha.getByText('Pendente')).toBeInTheDocument()
     expect(tabela.getByRole('row', { name: /De outra campanha/ })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Bia Souza, Copywriter' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bia Souza, Colaborador' }))
     expect(tabela.queryByRole('row', { name: /De outra campanha/ })).not.toBeInTheDocument()
   })
 

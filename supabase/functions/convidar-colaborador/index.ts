@@ -1,123 +1,89 @@
 // Edge Function: convida um colaborador por e-mail.
 //
-// Existe porque o convite (auth.admin.inviteUserByEmail) exige a chave de serviço,
-// que dá acesso total ao banco e por isso nunca pode ir para o navegador.
-// Aqui ela fica no servidor, e a função só convida se quem pediu for da liderança.
+// Gera um código de 6 caracteres, guarda em invite_codes com o cargo escolhido e manda o código
+// por e-mail pelo Resend. A pessoa cria a conta na tela de login ("Criar conta") com o e-mail e
+// o código; a função usar_codigo_convite aplica o cargo. Só a liderança convida.
 //
 // Publicar: supabase functions deploy convidar-colaborador --project-ref <ref do projeto>
 // O nome precisa ser exatamente `convidar-colaborador`: é por ele que o app chama.
-//
-// O Supabase já entrega SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY às
-// Edge Functions. Se alguma faltar (projeto com as chaves novas, por exemplo), a função
-// responde dizendo qual, em vez de cair com um erro 500 sem explicação. Nesse caso,
-// cadastre o segredo em Edge Functions > Secrets.
+// Segredos: RESEND_API_KEY (obrigatório). EMAIL_REMETENTE, EMPRESA_NOME e APP_URL são opcionais
+// (ver _shared/emails.ts).
 
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { exigirLideranca, responder, servir } from '../_shared/acesso.ts'
+import { APP_PADRAO, EMPRESA_PADRAO, REMETENTE_PADRAO, emailDeConvite, enviarEmail } from '../_shared/emails.ts'
 
-const CARGOS_LIDERANCA = ['CEO', 'Founder', 'Co-Founder']
+const CARGOS = ['Liderança', 'Gestor de Tráfego', 'SDR', 'Closer', 'Estrategista & Analista', 'Colaborador']
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// Sem letras e números que se confundem (O e 0, I e 1)
+const CARACTERES = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+function gerarCodigo(): string {
+  const sorteio = crypto.getRandomValues(new Uint32Array(6))
+  return Array.from(sorteio, (n) => CARACTERES[n % CARACTERES.length]).join('')
 }
 
-function responder(corpo: unknown, status = 200): Response {
-  return new Response(JSON.stringify(corpo), {
-    status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
-  })
-}
+servir('convidar-colaborador', async (req) => {
+  const acesso = await exigirLideranca(req, 'convidar-colaborador', 'convidar colaboradores')
+  if (acesso instanceof Response) return acesso
+  const { admin, usuarioId } = acesso
 
-// Recusas esperadas voltam com status 200 e o campo `erro`, que o app mostra à pessoa.
-// `detalhe` leva a mensagem técnica original e também vai para o log da função.
-async function convidar(req: Request): Promise<Response> {
-  if (req.method !== 'POST') return responder({ erro: 'Método não permitido.' }, 405)
-
-  const autorizacao = req.headers.get('Authorization')
-  if (!autorizacao) return responder({ erro: 'Entre no sistema para convidar.' }, 401)
-
-  const url = Deno.env.get('SUPABASE_URL')
-  const chaveAnonima = Deno.env.get('SUPABASE_ANON_KEY')
-  const chaveDeServico = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  const faltando = [
-    !url && 'SUPABASE_URL',
-    !chaveAnonima && 'SUPABASE_ANON_KEY',
-    !chaveDeServico && 'SUPABASE_SERVICE_ROLE_KEY',
-  ].filter(Boolean)
-  if (!url || !chaveAnonima || !chaveDeServico) {
-    console.error('convidar-colaborador: variáveis ausentes', faltando)
-    return responder({
-      erro: `A função de convite está sem configuração: falta ${faltando.join(', ')} em Edge Functions > Secrets no Supabase.`,
-    })
-  }
-
-  const comoUsuario = createClient(url, chaveAnonima, {
-    global: { headers: { Authorization: autorizacao } },
-  })
-
-  const { data: sessao, error: erroSessao } = await comoUsuario.auth.getUser(
-    autorizacao.replace(/^Bearer\s+/i, ''),
-  )
-  if (erroSessao || !sessao.user) {
-    return responder({ erro: 'Sessão inválida. Entre de novo.', detalhe: erroSessao?.message }, 401)
-  }
-
-  const { data: perfil, error: erroPerfil } = await comoUsuario
-    .from('profiles')
-    .select('cargo')
-    .eq('id', sessao.user.id)
-    .maybeSingle()
-  if (erroPerfil) {
-    console.error('convidar-colaborador: leitura do perfil', erroPerfil)
-    return responder({ erro: 'Não foi possível conferir o seu cargo.', detalhe: erroPerfil.message })
-  }
-  if (!perfil || !CARGOS_LIDERANCA.includes(perfil.cargo)) {
-    return responder({ erro: 'Apenas a liderança pode convidar colaboradores.' })
-  }
-
-  let email = ''
+  let corpo: { email?: unknown; nome?: unknown; cargo?: unknown } = {}
   try {
-    email = String((await req.json()).email ?? '').trim().toLowerCase()
+    corpo = await req.json()
   } catch {
     // corpo ausente ou inválido cai na validação abaixo
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return responder({ erro: 'Informe um e-mail válido.' })
+  const email = String(corpo.email ?? '').trim().toLowerCase()
+  const nome = String(corpo.nome ?? '').trim().slice(0, 80)
+  const cargo = String(corpo.cargo ?? '')
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return responder({ erro: 'Informe um e-mail válido.' })
+  if (!CARGOS.includes(cargo)) return responder({ erro: 'Escolha um cargo da lista.' })
+
+  const chaveResend = Deno.env.get('RESEND_API_KEY')
+  if (!chaveResend) {
+    return responder({ erro: 'Falta RESEND_API_KEY em Edge Functions > Secrets no Supabase.' })
   }
 
-  const admin = createClient(url, chaveDeServico, {
-    auth: { autoRefreshToken: false, persistSession: false },
+  const { data: jaExiste, error: erroBusca } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle()
+  if (erroBusca) throw erroBusca
+  if (jaExiste) return responder({ erro: 'Este e-mail já tem acesso ao sistema.' })
+
+  // Um convite novo invalida os anteriores do mesmo e-mail
+  const { error: erroAntigos } = await admin
+    .from('invite_codes')
+    .update({ used: true, used_at: new Date().toISOString() })
+    .eq('email', email)
+    .eq('used', false)
+  if (erroAntigos) throw erroAntigos
+
+  const codigo = gerarCodigo()
+  const { error: erroConvite } = await admin.from('invite_codes').insert({
+    email,
+    cargo,
+    code: codigo,
+    created_by: usuarioId,
+    expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   })
-  const { error } = await admin.auth.admin.inviteUserByEmail(email)
-  if (error) {
-    console.error('convidar-colaborador: inviteUserByEmail', error.status, error.message)
-    if (error.status === 422 || /already/i.test(error.message)) {
-      return responder({ erro: 'Este e-mail já tem acesso ao sistema.' })
-    }
-    if (error.status === 429 || /rate limit/i.test(error.message)) {
-      return responder({
-        erro: 'O Supabase atingiu o limite de e-mails por hora. Tente mais tarde ou configure um SMTP próprio.',
-        detalhe: error.message,
-      })
-    }
-    return responder({
-      erro: `O Supabase não conseguiu enviar o convite: ${error.message}`,
-      detalhe: error.message,
-    })
+  if (erroConvite) throw erroConvite
+
+  const mensagem = emailDeConvite({
+    nome,
+    cargo,
+    codigo,
+    empresa: Deno.env.get('EMPRESA_NOME') ?? EMPRESA_PADRAO,
+    app: Deno.env.get('APP_URL') ?? APP_PADRAO,
+  })
+  try {
+    await enviarEmail(chaveResend, Deno.env.get('EMAIL_REMETENTE') ?? REMETENTE_PADRAO, email, mensagem)
+  } catch (falha) {
+    const detalhe = falha instanceof Error ? falha.message : String(falha)
+    console.error('convidar-colaborador: envio', detalhe)
+    return responder({ erro: 'O convite foi criado, mas o e-mail não saiu. Tente de novo em instantes.', detalhe })
   }
 
   return responder({ ok: true })
-}
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
-  try {
-    return await convidar(req)
-  } catch (falha) {
-    // Qualquer erro inesperado volta com o motivo, para não virar um 500 mudo no app
-    const detalhe = falha instanceof Error ? falha.message : String(falha)
-    console.error('convidar-colaborador: erro inesperado', falha)
-    return responder({ erro: `A função de convite falhou: ${detalhe}`, detalhe }, 500)
-  }
 })

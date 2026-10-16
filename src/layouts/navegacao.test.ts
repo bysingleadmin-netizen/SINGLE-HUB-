@@ -1,20 +1,10 @@
 import { avisosDoMenu, itensVisiveis, mostraCriar, tituloDaRota } from './navegacao'
 
 describe('itensVisiveis', () => {
-  it('esconde Financeiro de quem não é liderança', () => {
-    expect(itensVisiveis('Designer').map((i) => i.rotulo)).toEqual([
-      'Dashboard',
-      'Clientes',
-      'Demandas',
-      'Conteúdo',
-      'Anúncios',
-      'Calendário',
-      'Configurações',
-    ])
-  })
+  const rotulos = (cargo: string | null) => itensVisiveis(cargo).map((i) => i.rotulo)
 
-  it('mostra Financeiro para a liderança, antes de Configurações', () => {
-    expect(itensVisiveis('CEO').map((i) => i.rotulo)).toEqual([
+  it('mostra tudo para a liderança, na ordem do menu', () => {
+    expect(rotulos('Liderança')).toEqual([
       'Dashboard',
       'Clientes',
       'CRM',
@@ -27,8 +17,29 @@ describe('itensVisiveis', () => {
     ])
   })
 
-  it('esconde Financeiro sem cargo', () => {
-    expect(itensVisiveis(null).some((i) => i.rotulo === 'Financeiro')).toBe(false)
+  it('o colaborador vê só a produção', () => {
+    expect(rotulos('Colaborador')).toEqual(['Dashboard', 'Demandas', 'Conteúdo', 'Calendário'])
+  })
+
+  it('SDR e Closer veem o CRM e não os anúncios', () => {
+    for (const cargo of ['SDR', 'Closer']) {
+      expect(rotulos(cargo)).toEqual(['Dashboard', 'CRM', 'Demandas', 'Conteúdo', 'Calendário'])
+    }
+  })
+
+  it('tráfego e estratégia veem os anúncios', () => {
+    for (const cargo of ['Gestor de Tráfego', 'Estrategista & Analista']) {
+      expect(rotulos(cargo)).toEqual(['Dashboard', 'Demandas', 'Conteúdo', 'Anúncios', 'Calendário'])
+    }
+  })
+
+  it('cargo antigo vale como o novo', () => {
+    expect(rotulos('CEO')).toEqual(rotulos('Liderança'))
+    expect(rotulos('Designer')).toEqual(rotulos('Colaborador'))
+  })
+
+  it('sem cargo não mostra o Financeiro', () => {
+    expect(rotulos(null).some((r) => r === 'Financeiro')).toBe(false)
   })
 })
 

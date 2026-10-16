@@ -17,7 +17,7 @@ export function bancoFalso(): BancoFalso {
   return (supabase as unknown as SupabaseFalso).banco
 }
 
-export function perfilDeTeste(cargo: Cargo = 'CEO'): Profile {
+export function perfilDeTeste(cargo: Cargo = 'Liderança'): Profile {
   return {
     id: 'u1',
     nome: 'Luan Uliana',
@@ -33,7 +33,7 @@ interface Opcoes {
   rota?: string
 }
 
-export function criarEnvolucro({ cargo = 'CEO', rota = '/' }: Opcoes = {}) {
+export function criarEnvolucro({ cargo = 'Liderança', rota = '/' }: Opcoes = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })

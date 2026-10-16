@@ -4,6 +4,7 @@ import type { Profile } from '@/types/database'
 import { Avatar } from './Avatar'
 import { Icone } from './Icone'
 import styles from './ui.module.css'
+import { normalizarCargo } from '@/lib/permissoes'
 
 interface SeletorDePessoasProps {
   rotulo: string
@@ -89,7 +90,7 @@ export function SeletorDePessoas({ rotulo, pessoas, escolhidas, onMudar }: Selet
               >
                 <Avatar nome={pessoa.nome} url={pessoa.avatar_url} tamanho={24} />
                 <span>{pessoa.nome}</span>
-                <span className={styles.mudo}>{pessoa.cargo}</span>
+                <span className={styles.mudo}>{normalizarCargo(pessoa.cargo)}</span>
               </li>
             ))
           )}

@@ -1,9 +1,10 @@
 import { Fragment } from 'react'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Icone } from '@/components/ui/Icone'
 import { Logotipo } from '@/components/ui/Logotipo'
 import { useAuth } from '@/features/auth/AuthContext'
+import { normalizarCargo } from '@/lib/permissoes'
 import { itensVisiveis } from './navegacao'
 import type { AvisosDoMenu } from './navegacao'
 import styles from './layout.module.css'
@@ -53,11 +54,10 @@ export function Sidebar({
           <Fragment key={item.rota}>
             {/* O cabeçalho do grupo aparece uma vez, antes do primeiro item dele */}
             {item.grupo && itens[i - 1]?.grupo !== item.grupo && (
-              <span className={`${styles.grupo} ${styles.rotulo}`}>{item.grupo}</span>
+              <span className={styles.grupo}>{item.grupo}</span>
             )}
           <NavLink
             to={item.rota}
-            data-agrupado={item.grupo ? true : undefined}
             className={({ isActive }) =>
               isActive ? `${styles.item} ${styles.itemAtivo}` : styles.item
             }
@@ -78,11 +78,19 @@ export function Sidebar({
       </nav>
 
       <div className={styles.rodape}>
-        <Avatar nome={perfil?.nome ?? null} url={perfil?.avatar_url} tamanho={36} />
-        <div className={`${styles.usuario} ${styles.rotulo}`}>
-          <span className={styles.usuarioNome}>{perfil?.nome}</span>
-          <span className={styles.usuarioCargo}>{perfil?.cargo}</span>
-        </div>
+        <Link
+          to="/app/configuracoes"
+          className={styles.usuarioLink}
+          title={colapsada ? 'Meu perfil' : undefined}
+          aria-label={`Meu perfil: ${perfil?.nome ?? ''}`}
+          onClick={onFecharMobile}
+        >
+          <Avatar nome={perfil?.nome ?? null} url={perfil?.avatar_url} tamanho={36} />
+          <div className={`${styles.usuario} ${styles.rotulo}`}>
+            <span className={styles.usuarioNome}>{perfil?.nome}</span>
+            <span className={styles.usuarioCargo}>{normalizarCargo(perfil?.cargo)}</span>
+          </div>
+        </Link>
         <button
           type="button"
           className={`${styles.botaoIcone} ${styles.botaoSair}`}

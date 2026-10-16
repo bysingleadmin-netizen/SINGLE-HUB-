@@ -3,8 +3,8 @@ import type { Tom } from '@/lib/rotulos'
 import { ultimosMeses } from '@/lib/regras'
 import type { PontoDeMRR } from '@/lib/regras'
 import type { ReceitaAsaas } from '@/types/database'
-import { dentro, intervaloDoMes, mesesDoIntervalo } from './periodos'
-import type { Intervalo } from './periodos'
+import { dentro, intervaloDoMes, mesesDoIntervalo } from '@/lib/periodos'
+import type { Intervalo } from '@/lib/periodos'
 
 // Receitas dos clientes, como o Asaas manda (tabela receitas_asaas). O Asaas é a fonte: o que
 // está lá aparece aqui, e as contas do Financeiro saem destas linhas.
@@ -127,13 +127,81 @@ export function ticketMedio(receitas: Receita[], intervalo: Intervalo): TicketMe
 }
 
 /**
- * Recebimentos mês a mês para o gráfico: os meses do período quando ele passa de um mês; senão,
- * os seis últimos até o mês dele.
+ * Os meses de um gráfico mês a mês, terminando no último mês do período: os do período quando
+ * ele passa de um mês, senão os seis últimos. Com `minimo`, nunca menos que esse número.
  */
-export function recebimentosDoPeriodo(receitas: Receita[], intervalo: Intervalo): PontoDeMRR[] {
+export function mesesDoGrafico(intervalo: Intervalo, minimo?: number): Omit<PontoDeMRR, 'valor'>[] {
   const doPeriodo = mesesDoIntervalo(intervalo).length
-  const meses = doPeriodo > 1 ? doPeriodo : 6
-  return ultimosMeses(intervalo.fim, meses).map((ponto) => ({ ...ponto, valor: recebidoNoMes(receitas, ponto.mes) }))
+  const quantos = minimo != null ? Math.max(doPeriodo, minimo) : doPeriodo > 1 ? doPeriodo : 6
+  return ultimosMeses(intervalo.fim, quantos)
+}
+
+/** Recebimentos mês a mês para o gráfico */
+export function recebimentosDoPeriodo(receitas: Receita[], intervalo: Intervalo): PontoDeMRR[] {
+  return mesesDoGrafico(intervalo).map((ponto) => ({ ...ponto, valor: recebidoNoMes(receitas, ponto.mes) }))
+}
+
+/**
+ * MRR: o faturamento recorrente de um mês só, o último do período (ou o atual, se o período
+ * avança no futuro). ARR é ele vezes 12.
+ */
+export function mrrDoMes(receitas: Receita[], intervalo: Intervalo, hoje: string): { mes: string; mrr: number; arr: number } {
+  const ultimo = intervalo.fim.slice(0, 7)
+  const atual = hoje.slice(0, 7)
+  const mes = ultimo < atual ? ultimo : atual < intervalo.inicio.slice(0, 7) ? ultimo : atual
+  const mrr = mrrDoPeriodo(receitas, intervaloDoMes(mes))
+  return { mes, mrr, arr: mrr * 12 }
+}
+
+export interface DesempenhoDoMes {
+  /** 'AAAA-MM' */
+  mes: string
+  rotulo: string
+  receita: number
+  despesas: number
+  /** Receita menos despesas */
+  lucro: number
+}
+
+/** Receita (o recebido no Asaas), despesas lançadas e lucro líquido, mês a mês. */
+export function desempenhoMensal(
+  receitas: Receita[],
+  despesas: { valor: number; data: string }[],
+  intervalo: Intervalo,
+): DesempenhoDoMes[] {
+  return mesesDoGrafico(intervalo).map(({ mes, rotulo }) => {
+    const receita = recebidoNoMes(receitas, mes)
+    const gasto = despesas.filter((d) => d.data.slice(0, 7) === mes).reduce((soma, d) => soma + Number(d.valor), 0)
+    return { mes, rotulo, receita, despesas: gasto, lucro: receita - gasto }
+  })
+}
+
+/** Ticket médio de cada mês (MRR do mês dividido pelos clientes com cobrança nele), no mínimo 6 meses */
+export function historicoDoTicket(receitas: Receita[], intervalo: Intervalo): PontoDeMRR[] {
+  return mesesDoGrafico(intervalo, 6).map((ponto) => ({
+    ...ponto,
+    valor: ticketMedio(receitas, intervaloDoMes(ponto.mes)).valor ?? 0,
+  }))
+}
+
+/** Quanto cada cliente pagou no período (pela data do pagamento), do que mais pagou ao que menos. */
+export function receitaPorCliente<T extends Receita>(
+  receitas: T[],
+  intervalo: Intervalo,
+  nomeDe: (receita: T) => string,
+): { chave: string; rotulo: string; valor: number }[] {
+  const grupos = new Map<string, { rotulo: string; valor: number }>()
+  for (const receita of receitas) {
+    if (!foiPaga(receita) || !dentro(receita.data_pagamento, intervalo)) continue
+    const chave = chaveDoCliente(receita)
+    const grupo = grupos.get(chave) ?? { rotulo: nomeDe(receita), valor: 0 }
+    grupo.valor += valorDe(receita)
+    grupos.set(chave, grupo)
+  }
+  return [...grupos]
+    .map(([chave, grupo]) => ({ chave, ...grupo }))
+    .filter((linha) => linha.valor > 0)
+    .sort((a, b) => b.valor - a.valor || a.rotulo.localeCompare(b.rotulo))
 }
 
 export interface VencimentoAsaas<T> {

@@ -2,7 +2,7 @@
 
 Estado de cada sistema externo e o que falta fazer. Atualize as caixas conforme for concluindo.
 
-Última atualização: 2026-10-09
+Última atualização: 2026-10-16
 
 ## Supabase (banco, login, arquivos)
 
@@ -42,17 +42,61 @@ set cargo = 'CEO', nome = 'Seu Nome'
 where email = 'seu@email.com';
 ```
 
-Depois disso, os cargos dos demais membros poderão ser ajustados pela tela Configurações (etapa 2). Até lá, use o mesmo comando trocando o cargo por um destes: `CEO`, `Founder`, `Co-Founder`, `Gestor de Tráfego`, `Social Media`, `Designer`, `Editor de Vídeo`, `Copywriter`.
+Depois disso, os cargos dos demais membros são ajustados em Configurações > Equipe. Desde a migration 0010 (2026-10-16), os cargos são: `Liderança`, `Gestor de Tráfego`, `SDR`, `Closer`, `Estrategista & Analista` e `Colaborador` (no comando acima, use `'Liderança'` no lugar de `'CEO'`).
 
-### Convite de colaboradores (Edge Function)
+O que cada cargo vê no menu (a regra está em `src/lib/permissoes.ts`; as rotas seguem a mesma regra):
 
-O botão "Convidar colaborador", em Configurações > Equipe, chama a função `convidar-colaborador`. Ela existe porque o convite exige a chave de serviço do Supabase, que dá acesso total ao banco e não pode ficar no navegador.
+| Menu | Liderança | Gestor de Tráfego | SDR | Closer | Estrategista & Analista | Colaborador |
+|---|---|---|---|---|---|---|
+| Dashboard, Demandas, Conteúdo, Calendário | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Clientes, Financeiro, Configurações | ✓ | | | | | |
+| CRM | ✓ | | ✓ | ✓ | | |
+| Anúncios | ✓ | ✓ | | | ✓ | |
 
-- [ ] Função publicada com o nome exato `convidar-colaborador`. Em 2026-10-09 o projeto do Supabase que o app usa respondia "Requested function was not found" para esse nome: ou a função não foi publicada neste projeto, ou foi publicada com outro nome. O código está em `supabase/functions/convidar-colaborador/index.ts`. Para publicar, com a CLI do Supabase logada na conta do SINGLE: `supabase functions deploy convidar-colaborador --project-ref <ref do projeto>`. Também dá para criar pelo painel, em Edge Functions > Deploy a new function: o nome da função precisa ser `convidar-colaborador` e o conteúdo é o do arquivo
-- [ ] Conferir em Edge Functions > Secrets que existem `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY`. O Supabase costuma criar as três sozinho; se alguma faltar, a função responde dizendo qual
-- [ ] Modelo do e-mail de convite revisado (Authentication > Emails > Invite user)
+Configurações fica fora do menu de quem não é da Liderança, mas a foto e o nome no rodapé do menu levam para lá: é onde cada um muda o próprio nome, a foto e o tema. No banco, só a Liderança lê dinheiro e muda cargos; leads e a conversão de lead em cliente são da Liderança, SDR e Closer.
 
-O botão sempre mostra o motivo da falha: função inexistente, variável ausente, limite de e-mails do Supabase atingido ou e-mail que já tem acesso. O limite de e-mails do Supabase sem SMTP próprio é baixo; se os convites passarem a falhar por isso, configure o Resend (fim deste arquivo).
+### Convite e remoção de colaboradores (Edge Functions)
+
+Em Configurações > Equipe, "Convidar colaborador" chama a função `convidar-colaborador` e a lixeira de cada pessoa chama `remover-colaborador`. As duas usam a chave de serviço do Supabase, que dá acesso total ao banco e não pode ficar no navegador, e só atendem a Liderança.
+
+Como o convite funciona: a função gera um código de 6 caracteres, guarda em `invite_codes` com o cargo escolhido e manda o código por e-mail. A pessoa abre o sistema, escolhe "Criar conta" e usa o e-mail e o código; a função `usar_codigo_convite` aplica o cargo. O código vale por 1 hora e só para a conta do e-mail convidado.
+
+O e-mail **não** sai pelo Supabase Auth (o modelo "Invite user" do painel não é usado): sai pela API do Resend, com o domínio `bysingle.com.br`:
+
+- Remetente: `SINGLE OS <noreply@bysingle.com.br>`
+- Assunto: `Você foi convidado para o SINGLE OS — SINGLE`
+- Prévia na caixa de entrada: `Olá, [nome], você recebeu acesso ao sistema de gestão da SINGLE...`
+- Versão em texto puro junto da HTML, fundo claro e botão para o sistema (ajuda a não cair em spam ou Promoções)
+
+Remover alguém apaga a conta no Auth (o perfil vai junto), tira a pessoa dos responsáveis dos cards, invalida convites pendentes do e-mail dela e manda o e-mail "Seu acesso ao SINGLE OS foi revogado". Ninguém remove a si mesmo.
+
+Segredos em Edge Functions > Secrets: `RESEND_API_KEY` (já cadastrado). Opcionais: `EMAIL_REMETENTE` (outro endereço, ex. `SINGLE OS <contato@bysingle.com.br>`), `EMPRESA_NOME` (padrão `SINGLE`), `APP_URL` (padrão `https://singlehubos.vercel.app`). Os modelos dos dois e-mails estão em `supabase/functions/_shared/emails.ts`.
+
+Publicar (da pasta do projeto, com a CLI logada na conta do SINGLE):
+
+```
+npx supabase functions deploy convidar-colaborador --project-ref natiqbpgprmcppcqmlvq
+npx supabase functions deploy remover-colaborador --project-ref natiqbpgprmcppcqmlvq
+```
+
+- [x] `convidar-colaborador` e `remover-colaborador` publicadas (2026-10-16)
+- [x] `site_url` do Auth apontando para `https://singlehubos.vercel.app` (estava em `http://localhost:3000`)
+
+Se os e-mails ainda forem parar no spam, confira no Resend (Domains) se o `bysingle.com.br` tem SPF, DKIM e DMARC verdes.
+
+### Migration 0010 (cargos, CRM do comercial, Áreas e convites, 2026-10-16)
+
+- [x] Aplicada em 2026-10-16 (testada antes no próprio banco, dentro de uma transação desfeita)
+
+Pode rodar mais de uma vez e não apaga nada. Verificações em `supabase/tests/0010_verificacoes.sql`.
+
+| Recurso | Sem a migration | Com a migration |
+|---|---|---|
+| Cargos | o app trata CEO, Founder e Co-Founder como Liderança e as funções de produção como Colaborador, mas o banco só grava os cargos antigos | os seis cargos novos; os antigos foram convertidos |
+| CRM | só a Liderança lê leads | Liderança, SDR e Closer leem e convertem leads |
+| Áreas das demandas | lista fixa (Conteúdo, Tráfego, Estratégia, Audiovisual) | engrenagem ao lado do campo Área para criar, renomear, colorir e remover; remover avisa quantas demandas usam a área e só a esconde da lista (`card_options.oculta`) |
+| Convites | qualquer visitante lia os códigos em `invite_codes` | a tabela só é lida pela função; o código só vale para a conta do e-mail convidado |
+| Remover colaborador | o convite criado pela pessoa travava a exclusão | `invite_codes.created_by` vira nulo e a pessoa sai das listas de responsáveis |
 
 ### Migration 0003 (revisão de 2026-10-09)
 

@@ -1,5 +1,7 @@
 import type { Campaign, CampaignTask, Client, ContentCard, Task } from '@/types/database'
 import {
+  prioridadeEfetiva,
+  venceHoje,
   agruparPorDia,
   calcularMetricas,
   cargaPorPessoa,
@@ -335,5 +337,27 @@ describe('descreverPrazo', () => {
     expect(descreverPrazo('2026-10-09', HOJE)).toBe('Vence amanhã')
     expect(descreverPrazo('2026-10-18', HOJE)).toBe('Vence em 10 dias')
     expect(descreverPrazo('2026-10-01', HOJE, true)).toBe('Entregue')
+  })
+})
+
+describe('prioridadeEfetiva', () => {
+  const HOJE = '2026-10-16'
+
+  it('entrega hoje sobe baixa e média para alta, só na tela', () => {
+    expect(prioridadeEfetiva('baixa', HOJE, HOJE, true)).toEqual({ valor: 'alta', automatica: true })
+    expect(prioridadeEfetiva('media', HOJE, HOJE, true)).toEqual({ valor: 'alta', automatica: true })
+    expect(prioridadeEfetiva(null, HOJE, HOJE, true)).toEqual({ valor: 'alta', automatica: true })
+  })
+
+  it('não mexe em alta, urgente, outro dia ou card já entregue', () => {
+    expect(prioridadeEfetiva('urgente', HOJE, HOJE, true)).toEqual({ valor: 'urgente', automatica: false })
+    expect(prioridadeEfetiva('baixa', '2026-10-17', HOJE, true)).toEqual({ valor: 'baixa', automatica: false })
+    expect(prioridadeEfetiva('baixa', HOJE, HOJE, false)).toEqual({ valor: 'baixa', automatica: false })
+  })
+
+  it('venceHoje só para card em aberto', () => {
+    expect(venceHoje(HOJE, HOJE, true)).toBe(true)
+    expect(venceHoje(HOJE, HOJE, false)).toBe(false)
+    expect(venceHoje(null, HOJE, true)).toBe(false)
   })
 })

@@ -101,7 +101,7 @@ describe('ConteudoPage', () => {
     expect(screen.queryByText('Reels de lançamento')).not.toBeInTheDocument()
     expect(screen.getByText('Carrossel de dicas')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Luan Uliana, CEO' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Luan Uliana, Liderança' }))
     expect(screen.getByText('Nenhum conteúdo com esses filtros.')).toBeInTheDocument()
   })
 

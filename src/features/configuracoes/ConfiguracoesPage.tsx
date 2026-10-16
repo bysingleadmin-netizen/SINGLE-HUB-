@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
 import { EstadoErro } from '@/components/ui/Estado'
 import { Icone } from '@/components/ui/Icone'
+import { ConfirmarExclusao } from '@/components/ui/MenuDeAcoes'
 import { Modal } from '@/components/ui/Modal'
 import { Painel } from '@/components/ui/Painel'
 import { Pill } from '@/components/ui/Pill'
@@ -16,11 +17,11 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { ACEITA_IMAGENS, enviarImagem, validarImagem } from '@/dados/arquivos'
 import { useAtualizarOtimista, useSalvar } from '@/dados/base'
-import { useConvidar } from '@/dados/convite'
+import { useConvidar, useRemoverColaborador } from '@/dados/convite'
 import { usePerfis } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
 import { emailValido } from '@/lib/formulario'
-import { CARGOS, isLideranca } from '@/lib/permissoes'
+import { CARGOS, isLideranca, normalizarCargo } from '@/lib/permissoes'
 import type { Cargo } from '@/lib/permissoes'
 import { lerTema, salvarTema } from '@/lib/tema'
 import type { Tema } from '@/lib/tema'
@@ -97,7 +98,7 @@ function MeuPerfil({ perfil }: { perfil: Profile }) {
         <Avatar nome={perfil.nome} url={perfil.avatar_url} tamanho={72} />
         <div className={styles.identidadeTexto}>
           <span className={ui.mudo}>{perfil.email}</span>
-          <Pill tom="cinza">{perfil.cargo}</Pill>
+          <Pill tom="cinza">{normalizarCargo(perfil.cargo)}</Pill>
         </div>
         <label className={styles.enviar} aria-busy={enviandoFoto || undefined}>
           <Icone nome="enviar" tamanho={16} />
@@ -128,7 +129,8 @@ function MeuPerfil({ perfil }: { perfil: Profile }) {
 
 function ConviteModal({ onFechar }: { onFechar: () => void }) {
   const [email, setEmail] = useState('')
-  const [cargo, setCargo] = useState<Cargo>('Social Media')
+  const [nome, setNome] = useState('')
+  const [cargo, setCargo] = useState<Cargo>('Colaborador')
   const [erroEmail, setErroEmail] = useState<string>()
   const convidar = useConvidar()
   const toast = useToast()
@@ -141,7 +143,7 @@ function ConviteModal({ onFechar }: { onFechar: () => void }) {
       return
     }
     setErroEmail(undefined)
-    convidar.mutate({ email: limpo, cargo }, {
+    convidar.mutate({ email: limpo, nome: nome.trim() || undefined, cargo }, {
       onSuccess: () => {
         toast.sucesso(`Convite enviado para ${limpo}.`)
         onFechar()
@@ -157,9 +159,15 @@ function ConviteModal({ onFechar }: { onFechar: () => void }) {
           A pessoa receberá um código de 6 dígitos por e-mail para criar a conta. O código expira em 1 hora.
         </p>
         <Campo
+          rotulo="Nome"
+          autoFocus
+          autoComplete="off"
+          value={nome}
+          onChange={(evento) => setNome(evento.target.value)}
+        />
+        <Campo
           rotulo="E-mail"
           type="email"
-          autoFocus
           value={email}
           erro={erroEmail}
           onChange={(evento) => setEmail(evento.target.value)}
@@ -187,17 +195,39 @@ function ConviteModal({ onFechar }: { onFechar: () => void }) {
 function Equipe({ eu }: { eu: Profile }) {
   const perfis = usePerfis()
   const atualizar = useAtualizarOtimista<Profile>('profiles')
+  const remover = useRemoverColaborador()
   const toast = useToast()
   const [convidando, setConvidando] = useState(false)
+  const [removendo, setRemovendo] = useState<string>()
 
   function trocarCargo(id: string, cargo: Cargo) {
     atualizar.mutate(
       { id, valores: { cargo } },
       {
         onSuccess: () => toast.sucesso('Cargo atualizado.'),
-        onError: () => toast.erro('Não foi possível atualizar o cargo.'),
+        // Antes da migration 0010 o banco só aceita os cargos antigos
+        onError: (falha) =>
+          toast.erro(
+            /check|cargo_check/i.test(falha.message)
+              ? 'O banco ainda não aceita este cargo: rode a migration 0010 no Supabase.'
+              : 'Não foi possível atualizar o cargo.',
+          ),
       },
     )
+  }
+
+  function removerMembro(membro: Profile) {
+    remover.mutate(membro.id, {
+      onSuccess: ({ emailEnviado }) => {
+        setRemovendo(undefined)
+        toast.sucesso(
+          emailEnviado
+            ? `${membro.nome} foi removido da equipe e avisado por e-mail.`
+            : `${membro.nome} foi removido da equipe, mas o e-mail de aviso não foi enviado.`,
+        )
+      },
+      onError: (falha) => toast.erro(falha.message),
+    })
   }
 
   return (
@@ -217,24 +247,46 @@ function Equipe({ eu }: { eu: Profile }) {
       ) : (
         <ul className={`${ui.lista} stagger`}>
           {(perfis.data ?? []).map((membro) => (
-            <li key={membro.id} className={ui.linha}>
+            <li key={membro.id} className={`${ui.linha} ${styles.membro}`}>
               <Avatar nome={membro.nome} url={membro.avatar_url} tamanho={36} />
               <div className={ui.linhaTexto}>
                 <span className={ui.linhaTitulo}>{membro.nome}</span>
                 <span className={ui.mudo}>{membro.email}</span>
               </div>
-              {/* Ninguém muda o próprio cargo, para a equipe nunca ficar sem liderança por engano */}
+              {/* Ninguém muda o próprio cargo nem se remove, para a equipe nunca ficar sem liderança por engano */}
               {membro.id !== eu.id ? (
-                <Selecao
-                  className={styles.cargo}
-                  rotulo={`Cargo de ${membro.nome}`}
-                  ocultarRotulo
-                  opcoes={OPCOES_CARGO}
-                  value={membro.cargo}
-                  onChange={(evento) => trocarCargo(membro.id, evento.target.value as Cargo)}
-                />
+                <>
+                  <Selecao
+                    className={styles.cargo}
+                    rotulo={`Cargo de ${membro.nome}`}
+                    ocultarRotulo
+                    opcoes={OPCOES_CARGO}
+                    value={normalizarCargo(membro.cargo) ?? ''}
+                    onChange={(evento) => trocarCargo(membro.id, evento.target.value as Cargo)}
+                  />
+                  <button
+                    type="button"
+                    className={ui.botaoIcone}
+                    aria-label={`Remover ${membro.nome}`}
+                    title="Remover da equipe"
+                    onClick={() => setRemovendo(membro.id)}
+                  >
+                    <Icone nome="lixeira" tamanho={16} />
+                  </button>
+                </>
               ) : (
-                <Pill tom="cinza">{membro.cargo}</Pill>
+                <Pill tom="cinza">{normalizarCargo(membro.cargo)}</Pill>
+              )}
+              {removendo === membro.id && (
+                <div className={styles.confirmarRemocao}>
+                  <ConfirmarExclusao
+                    nome={membro.nome}
+                    aviso="A pessoa perde o acesso ao sistema na hora e recebe um e-mail avisando. As demandas dela ficam sem responsável."
+                    carregando={remover.isPending}
+                    onCancelar={() => setRemovendo(undefined)}
+                    onConfirmar={() => removerMembro(membro)}
+                  />
+                </div>
               )}
             </li>
           ))}

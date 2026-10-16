@@ -23,9 +23,17 @@
     background-color 0.18s ease;
 }
 
+.coluna {
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+/* Coluna que vai receber o card: fundo sutil e borda tracejada, só quando soltar ali move o card */
 .coluna[data-sobre] {
-  border-color: rgba(230, 48, 48, 0.4);
-  background: var(--accent-soft);
+  border-color: rgba(230, 48, 48, 0.45);
+  border-style: dashed;
+  background: rgba(230, 48, 48, 0.06);
 }
 
 @keyframes entrarCard {
@@ -204,14 +212,53 @@
     pulse 2.4s ease-in-out 0.3s infinite;
 }
 
+/* Vence hoje: borda vermelha pulsando, para chamar atenção antes de atrasar */
+.card[data-urgente] {
+  border-color: var(--perigo);
+  animation:
+    entrarCard 0.2s ease-out both,
+    pulse 2s ease-in-out 0.2s infinite;
+}
+
+/* Card solto em outra coluna: assenta em 150ms, de onde a sobreposição estava, sem subir de novo */
+@keyframes assentar {
+  from {
+    transform: scale(1.03);
+    box-shadow: 0 22px 48px var(--sombra);
+  }
+  to {
+    transform: scale(1);
+    box-shadow: 0 0 0 transparent;
+  }
+}
+
+.card[data-solto] {
+  animation: assentar 0.15s ease-out both;
+}
+
+.card[data-solto][data-urgente],
+.card[data-solto][data-atrasado] {
+  animation:
+    assentar 0.15s ease-out both,
+    pulse 2s ease-in-out 0.15s infinite;
+}
+
+/* O lugar que o card deixou enquanto é arrastado: apagado e com borda pontilhada */
 .card[data-arrastando] {
-  opacity: 0.35;
+  opacity: 0.4;
+  border-style: dashed;
+  border-color: var(--text-fraco);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  animation: none;
 }
 
 .cardFlutuante {
   background: var(--surface-2);
   cursor: grabbing;
   animation: none;
+  transition: none;
   box-shadow:
     0 22px 48px var(--sombra),
     0 0 0 1px rgba(230, 48, 48, 0.25);

@@ -3,6 +3,7 @@ import { formatarData } from '@/lib/formato'
 import type { SituacaoDoPrazo } from '@/lib/regras'
 import type { Client, Profile } from '@/types/database'
 import styles from './lista.module.css'
+import { normalizarCargo } from '@/lib/permissoes'
 
 // Células compartilhadas pelas listas de Demandas, Conteúdo e Anúncios.
 
@@ -30,7 +31,7 @@ export function CelulaPessoa({ perfil, outros = 0 }: { perfil: Profile | undefin
       <span className={styles.celulaPessoaTexto}>
         {perfil.nome}
         <span className={styles.celulaLegenda}>
-          {perfil.cargo}
+          {normalizarCargo(perfil.cargo)}
           {outros > 0 && ` · +${outros}`}
         </span>
       </span>

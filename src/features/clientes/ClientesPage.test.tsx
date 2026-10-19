@@ -518,3 +518,186 @@ describe('contrato de fidelidade', () => {
     expect(modal.queryByLabelText('Duração do contrato')).not.toBeInTheDocument()
   })
 })
+
+describe('base de clientes: busca, filtro e tabela', () => {
+  const ISADORA = { nome: 'Isadora', funcao: 'Co-Founder', email: 'isa@conecta.com', telefone: '(27) 99999-0000' }
+
+  function popularBase() {
+    bancoFalso().reiniciar({
+      profiles: [perfilDeTeste(), { ...perfilDeTeste('Gestor de Tráfego'), id: 'u2', nome: 'Bia Souza' }],
+      clients: [
+        { ...PADARIA, area_atuacao: 'Alimentação', responsaveis: ['u2'], contatos: [] },
+        {
+          ...PADARIA,
+          id: 'c2',
+          nome: 'Conecta',
+          status: 'pausado',
+          mrr: 4000,
+          data_inicio_contrato: '2026-01-10',
+          contrato_meses: 12,
+          cnpj: '12.345.678/0001-90',
+          area_atuacao: 'Tecnologia',
+          responsaveis: ['u1', 'u2'],
+          contatos: [ISADORA, { nome: 'Bruno' }],
+        },
+        { ...PADARIA, id: 'c3', nome: 'Clínica Vita', status: 'churn', mrr: 900, data_inicio_contrato: null },
+      ],
+    })
+  }
+
+  async function abrirTabela() {
+    popularBase()
+    renderizar(<ClientesPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Tabela' }))
+    return screen.getByRole('table', { name: 'Base de clientes' })
+  }
+
+  const nomesNaTabela = () =>
+    within(screen.getByRole('table', { name: 'Base de clientes' }))
+      .getAllByRole('button', { name: /^Abrir / })
+      .map((b) => b.getAttribute('aria-label')?.replace('Abrir ', ''))
+
+  it('busca pelo nome nas duas visões, sem diferenciar acentos', async () => {
+    popularBase()
+    renderizar(<ClientesPage />)
+    fireEvent.change(await screen.findByLabelText('Buscar cliente'), { target: { value: 'clinica' } })
+    expect(screen.getByRole('link', { name: 'Clínica Vita' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Conecta' })).not.toBeInTheDocument()
+    expect(screen.getByText('1 de 3 clientes')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tabela' }))
+    expect(nomesNaTabela()).toEqual(['Clínica Vita'])
+    fireEvent.change(screen.getByLabelText('Buscar cliente'), { target: { value: 'xyz' } })
+    expect(screen.getByText('Nenhum cliente com essa busca.')).toBeInTheDocument()
+  })
+
+  it('filtra ativos e inativos (pausados e churn)', async () => {
+    await abrirTabela()
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'ativos' } })
+    expect(nomesNaTabela()).toEqual(['Padaria Sol'])
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'inativos' } })
+    expect(nomesNaTabela()).toEqual(['Clínica Vita', 'Conecta'])
+  })
+
+  it('mostra as colunas da base e ordena ao clicar no cabeçalho', async () => {
+    const tabela = within(await abrirTabela())
+    for (const coluna of ['Nome', 'Área de atuação', 'Responsável SINGLE', 'MRR', 'Status', 'Meses de casa', 'Início']) {
+      expect(tabela.getByRole('columnheader', { name: new RegExp(coluna) })).toBeInTheDocument()
+    }
+    expect(await tabela.findByText('Tecnologia')).toBeInTheDocument()
+    expect(await tabela.findByText('Bia Souza')).toBeInTheDocument()
+    expect(nomesNaTabela()).toEqual(['Clínica Vita', 'Conecta', 'Padaria Sol'])
+    fireEvent.click(tabela.getByRole('button', { name: /MRR/ }))
+    expect(nomesNaTabela()).toEqual(['Clínica Vita', 'Padaria Sol', 'Conecta'])
+    fireEvent.click(tabela.getByRole('button', { name: /MRR/ }))
+    expect(nomesNaTabela()).toEqual(['Conecta', 'Padaria Sol', 'Clínica Vita'])
+    // Sem data de início fica no fim
+    fireEvent.click(tabela.getByRole('button', { name: /Meses de casa/ }))
+    expect(nomesNaTabela()).toEqual(['Conecta', 'Padaria Sol', 'Clínica Vita'])
+  })
+
+  it('a tabela fica escolhida ao voltar para a tela', async () => {
+    await abrirTabela()
+    expect(localStorage.getItem('single:visao:clientes')).toBe('lista')
+  })
+
+  it('clicar na linha abre a ficha completa, e Editar abre o formulário', async () => {
+    await abrirTabela()
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir Conecta' }))
+    const ficha = within(screen.getByRole('dialog', { name: 'Conecta' }))
+    expect(ficha.getByText('12.345.678/0001-90')).toBeInTheDocument()
+    expect((await ficha.findAllByText('Tecnologia')).length).toBeGreaterThan(0)
+    expect(ficha.getByText(/4\.000,00/)).toBeInTheDocument()
+    expect(ficha.getByText('10/01/2026')).toBeInTheDocument()
+    // 12 meses a partir de 10/01/2026 terminam na véspera de 10/01/2027
+    expect(ficha.getByText('09/01/2027')).toBeInTheDocument()
+    const responsaveis = within(ficha.getByRole('region', { name: 'Responsáveis da SINGLE' }))
+    expect(responsaveis.getByText('Luan Uliana')).toBeInTheDocument()
+    expect(responsaveis.getByText('Bia Souza')).toBeInTheDocument()
+    const contatos = within(ficha.getByRole('region', { name: 'Contatos' }))
+    expect(contatos.getByText('Isadora')).toBeInTheDocument()
+    expect(contatos.getByText('Co-Founder')).toBeInTheDocument()
+    expect(contatos.getByRole('link', { name: 'isa@conecta.com' })).toHaveAttribute('href', 'mailto:isa@conecta.com')
+    expect(contatos.getByRole('link', { name: 'Abrir WhatsApp de Isadora' })).toBeInTheDocument()
+    expect(contatos.getByText('Bruno')).toBeInTheDocument()
+    expect(ficha.getByRole('link', { name: 'Abrir página do cliente' })).toHaveAttribute('href', '/app/clientes/c2')
+
+    fireEvent.click(ficha.getByRole('button', { name: 'Editar' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Editar cliente' }))
+    expect(modal.getByLabelText('Nome')).toHaveValue('Conecta')
+    expect(modal.getByLabelText('Área de atuação')).toHaveValue('Tecnologia')
+    expect(modal.getAllByLabelText('Nome do contato').map((c) => (c as HTMLInputElement).value)).toEqual([
+      'Isadora',
+      'Bruno',
+    ])
+  })
+
+  it('cliente que só tem o contato antigo mostra esse contato na ficha', async () => {
+    await abrirTabela()
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir Padaria Sol' }))
+    const contatos = within(screen.getByRole('region', { name: 'Contatos' }))
+    expect(contatos.getByText('Ana')).toBeInTheDocument()
+    expect(contatos.getByRole('link', { name: 'ana@padaria.com' })).toBeInTheDocument()
+  })
+
+  it('salva área, responsáveis e vários contatos, com o primeiro nas colunas antigas', async () => {
+    await abrirTabela()
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Padaria Sol' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Editar cliente' }))
+    fireEvent.change(await modal.findByLabelText('Área de atuação'), { target: { value: 'Padaria' } })
+    fireEvent.change(modal.getByLabelText('Responsáveis da SINGLE'), { target: { value: 'Luan' } })
+    fireEvent.click(modal.getByRole('option', { name: /Luan Uliana/ }))
+    fireEvent.change(modal.getByLabelText('Função'), { target: { value: 'Dona' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Adicionar contato' }))
+    fireEvent.change(modal.getAllByLabelText('Nome do contato')[1], { target: { value: 'Carlos' } })
+    fireEvent.change(modal.getAllByLabelText('Telefone do contato')[1], { target: { value: '27 98888-7777' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    expect(await screen.findByText('Cliente atualizado.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.clients[0]).toMatchObject({
+      area_atuacao: 'Padaria',
+      responsaveis: ['u2', 'u1'],
+      contatos: [
+        { nome: 'Ana', funcao: 'Dona', email: 'ana@padaria.com' },
+        { nome: 'Carlos', telefone: '27 98888-7777' },
+      ],
+      contato_nome: 'Ana',
+      contato_email: 'ana@padaria.com',
+    })
+  })
+
+  it('remove um contato e avisa contato sem nome', async () => {
+    await abrirTabela()
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Conecta' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Editar cliente' }))
+    fireEvent.click(await modal.findByRole('button', { name: 'Remover contato 1' }))
+    expect(modal.getAllByLabelText('Nome do contato').map((c) => (c as HTMLInputElement).value)).toEqual(['Bruno'])
+    fireEvent.change(modal.getByLabelText('Nome do contato'), { target: { value: '' } })
+    fireEvent.change(modal.getByLabelText('Função'), { target: { value: 'CEO' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    expect(await modal.findByText('Informe o nome de cada contato.')).toBeInTheDocument()
+  })
+
+  it('sem a migration 0012, a tabela não tem área nem responsável e o formulário tem um contato só', async () => {
+    popularBase()
+    bancoFalso().colunasAusentes = ['clients.contatos']
+    renderizar(<ClientesPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Tabela' }))
+    const tabela = within(screen.getByRole('table', { name: 'Base de clientes' }))
+    await tabela.findByRole('columnheader', { name: /MRR/ })
+    expect(tabela.queryByRole('columnheader', { name: /Área de atuação/ })).not.toBeInTheDocument()
+    expect(tabela.queryByRole('columnheader', { name: /Responsável SINGLE/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Ações de Padaria Sol' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Editar cliente' }))
+    await modal.findByLabelText('CNPJ ou CPF')
+    expect(modal.queryByLabelText('Área de atuação')).not.toBeInTheDocument()
+    expect(modal.queryByRole('button', { name: 'Adicionar contato' })).not.toBeInTheDocument()
+    fireEvent.change(modal.getByLabelText('Nome do contato'), { target: { value: 'Ana Paula' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar' }))
+    expect(await screen.findByText('Cliente atualizado.')).toBeInTheDocument()
+    expect(bancoFalso().tabelas.clients[0].contato_nome).toBe('Ana Paula')
+    // O que já estava gravado fica como estava; o formulário não manda as colunas novas
+    expect(bancoFalso().tabelas.clients[0].area_atuacao).toBe('Alimentação')
+  })
+})

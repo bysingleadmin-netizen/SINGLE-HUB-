@@ -53,6 +53,8 @@ const SONDAS = {
   metaAnual: ['monthly_goals', 'tipo'],
   // migration 0010: opções removidas ficam ocultas, e a área das demandas vira configurável
   opcaoOculta: ['card_options', 'oculta'],
+  // migration 0012: área de atuação, responsáveis e lista de contatos do cliente
+  baseDeClientes: ['clients', 'contatos'],
 } as const satisfies Record<string, readonly [Tabela, string]>
 
 export type ColunaOpcional = keyof typeof SONDAS

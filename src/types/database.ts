@@ -63,7 +63,21 @@ export interface Client {
   contato_email: string | null
   contato_telefone: string | null
   observacoes: string | null
+  /** Migration 0012: segmento do cliente, como "Odontologia" */
+  area_atuacao?: string | null
+  /** Migration 0012: quem da SINGLE cuida do cliente, o principal primeiro */
+  responsaveis?: string[] | null
+  /** Migration 0012: todos os contatos; o primeiro também fica em contato_nome/email/telefone */
+  contatos?: ContatoDoCliente[] | null
   created_at: string
+}
+
+export interface ContatoDoCliente {
+  nome: string
+  /** Papel na empresa do cliente, como "Co-Founder" */
+  funcao?: string | null
+  email?: string | null
+  telefone?: string | null
 }
 
 export interface ClientPayment {

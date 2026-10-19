@@ -18,7 +18,8 @@ import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { ACEITA_IMAGENS, enviarImagem, validarImagem } from '@/dados/arquivos'
 import { juntarConsultas, useAtualizarOtimista } from '@/dados/base'
-import { useCampanhas, useCards, useClientes, useTarefas } from '@/dados/tabelas'
+import { useColunasOpcionais } from '@/dados/esquema'
+import { useCampanhas, useCards, useClientes, usePerfis, useTarefas } from '@/dados/tabelas'
 import { useAuth } from '@/features/auth/AuthContext'
 import { hojeISO } from '@/lib/datas'
 import { formatarData, formatarMoeda } from '@/lib/formato'
@@ -36,7 +37,7 @@ import { linkDoWhatsapp } from '@/features/crm/crm'
 import { rotaDaTarefa } from '@/features/demandas/tarefa'
 import { ClienteModal } from './ClienteModal'
 import { Pagamentos } from './Pagamentos'
-import { fidelidadeDoCliente, linkInstagram, plataformaDoLink } from './cliente'
+import { contatosDe, fidelidadeDoCliente, linkInstagram, plataformaDoLink } from './cliente'
 import { fimDoContrato, seloDoContrato } from './contrato'
 import styles from './clientes.module.css'
 
@@ -68,7 +69,7 @@ function Canal({ icone, rotulo, children }: { icone: NomeIcone; rotulo: string; 
 }
 
 /** Dados com rótulo, numa grade de duas colunas */
-function Dados({ itens }: { itens: [string, ReactNode][] }) {
+export function Dados({ itens }: { itens: [string, ReactNode][] }) {
   return (
     <dl className={styles.dados}>
       {itens.map(([rotulo, valor]) => (
@@ -84,6 +85,12 @@ function Dados({ itens }: { itens: [string, ReactNode][] }) {
 function VisaoGeral({ cliente, lideranca }: { cliente: Client; lideranca: boolean }) {
   const atualizar = useAtualizarOtimista<Client>('clients')
   const toast = useToast()
+  const colunas = useColunasOpcionais()
+  const perfis = usePerfis()
+  const contatos = contatosDe(cliente)
+  const responsaveis = (cliente.responsaveis ?? [])
+    .map((id) => perfis.data?.find((p) => p.id === id)?.nome)
+    .filter((nome) => nome != null)
   const [observacoes, setObservacoes] = useState(cliente.observacoes ?? '')
   const instagram = linkInstagram(cliente.instagram)
   const whatsapp = linkDoWhatsapp(cliente.contato_telefone)
@@ -130,6 +137,12 @@ function VisaoGeral({ cliente, lideranca }: { cliente: Client; lideranca: boolea
             itens={[
               ['Tempo de casa', cliente.data_inicio_contrato ? fidelidadeDoCliente(cliente) : 'Sem data de início'],
               ['CNPJ ou CPF', cliente.cnpj ?? 'Não informado'],
+              ...(colunas.baseDeClientes
+                ? ([
+                    ['Área de atuação', cliente.area_atuacao ?? 'Não informada'],
+                    ['Responsáveis da SINGLE', responsaveis.length > 0 ? responsaveis.join(', ') : 'Ninguém definido'],
+                  ] as [string, string][])
+                : []),
             ]}
           />
           <AreaTexto
@@ -144,12 +157,14 @@ function VisaoGeral({ cliente, lideranca }: { cliente: Client; lideranca: boolea
 
       <Painel titulo="Canais">
         <div className={styles.secao}>
-          {cliente.contato_nome && (
+          {/* Um bloco por contato: com várias pessoas o bloco as resume como responsáveis */}
+          {contatos.map((c, i) => (
             <BlocoDeVinculo
-              empresa={{ nome: cliente.nome, logoUrl: cliente.logo_url }}
-              pessoas={[{ nome: cliente.contato_nome, detalhe: 'Contato' }]}
+              key={i}
+              empresa={i === 0 ? { nome: cliente.nome, logoUrl: cliente.logo_url } : undefined}
+              pessoas={[{ nome: c.nome || 'Sem nome', detalhe: c.funcao ?? 'Contato' }]}
             />
-          )}
+          ))}
           <ul className={styles.canais}>
             <Canal icone="instagram" rotulo="Instagram">
               {instagram ? (

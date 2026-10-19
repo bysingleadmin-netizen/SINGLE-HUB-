@@ -3,20 +3,24 @@ import type { FormEvent } from 'react'
 import { AreaTexto } from '@/components/ui/AreaTexto'
 import { Button } from '@/components/ui/Button'
 import { Campo } from '@/components/ui/Campo'
+import { Icone } from '@/components/ui/Icone'
 import { Modal } from '@/components/ui/Modal'
 import { Selecao } from '@/components/ui/Selecao'
+import { SeletorDePessoas } from '@/components/ui/SeletorDePessoas'
 import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
 import { useRegistrarAtividade } from '@/dados/atividade'
 import { useSalvar } from '@/dados/base'
 import { useColunasOpcionais } from '@/dados/esquema'
+import { usePerfis } from '@/dados/tabelas'
 import type { Erros } from '@/lib/formulario'
 import { STATUS_CLIENTE } from '@/lib/rotulos'
 import type { Client, ClientStatus } from '@/types/database'
-import { formDoCliente, formVazio, validarCliente } from './cliente'
+import { contatoVazio, formDoCliente, formVazio, validarCliente } from './cliente'
 import { DURACOES } from './contrato'
-import type { FormCliente } from './cliente'
+import type { FormCliente, FormContato } from './cliente'
+import styles from './clientes.module.css'
 
 interface ClienteModalProps {
   /** Cliente em edição; sem ele, o modal cadastra um novo */
@@ -31,10 +35,11 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
   const [erros, setErros] = useState<Erros<FormCliente>>({})
   const salvar = useSalvar<Client>('clients')
   const colunas = useColunasOpcionais()
+  const perfis = usePerfis()
   const registrarAtividade = useRegistrarAtividade()
   const toast = useToast()
 
-  function campo(nome: keyof FormCliente) {
+  function campo(nome: Exclude<keyof FormCliente, 'responsaveis' | 'contatos'>) {
     return {
       value: form[nome],
       erro: erros[nome],
@@ -49,6 +54,7 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
       comVencimento: colunas.diaVencimento,
       comContrato: colunas.contratoMeses,
       comCnpj: colunas.cnpj,
+      comBase: colunas.baseDeClientes,
     })
     if ('erros' in resultado) {
       setErros(resultado.erros)
@@ -81,6 +87,17 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
         <Campo rotulo="Nome" autoFocus {...campo('nome')} />
         {colunas.cnpj && (
           <Campo rotulo="CNPJ ou CPF" inputMode="numeric" placeholder="00.000.000/0000-00" {...campo('cnpj')} />
+        )}
+        {colunas.baseDeClientes && (
+          <>
+            <Campo rotulo="Área de atuação" placeholder="Odontologia, varejo..." {...campo('area_atuacao')} />
+            <SeletorDePessoas
+              rotulo="Responsáveis da SINGLE"
+              pessoas={perfis.data ?? []}
+              escolhidas={form.responsaveis}
+              onMudar={(responsaveis) => setForm((atual) => ({ ...atual, responsaveis }))}
+            />
+          </>
         )}
         <div className={ui.duasColunas}>
           <StatusSelect
@@ -135,11 +152,12 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
           placeholder="business.facebook.com/..."
           {...campo('link_conta_anuncios')}
         />
-        <div className={ui.duasColunas}>
-          <Campo rotulo="Nome do contato" {...campo('contato_nome')} />
-          <Campo rotulo="Telefone do contato" type="tel" {...campo('contato_telefone')} />
-        </div>
-        <Campo rotulo="E-mail do contato" type="email" {...campo('contato_email')} />
+        <CamposDeContatos
+          contatos={form.contatos}
+          varios={colunas.baseDeClientes}
+          erro={erros.contatos}
+          onMudar={(contatos) => setForm((atual) => ({ ...atual, contatos }))}
+        />
         <AreaTexto
           rotulo="Observações"
           value={form.observacoes}
@@ -155,5 +173,95 @@ export function ClienteModal({ cliente, onFechar }: ClienteModalProps) {
         </div>
       </form>
     </Modal>
+  )
+}
+
+interface CamposDeContatosProps {
+  contatos: FormContato[]
+  /** O banco guarda a lista (migration 0012); sem ela, um contato só, sem função */
+  varios: boolean
+  erro?: string
+  onMudar: (contatos: FormContato[]) => void
+}
+
+function CamposDeContatos({ contatos, varios, erro, onMudar }: CamposDeContatosProps) {
+  const lista = varios ? contatos : contatos.slice(0, 1)
+
+  function mudar(indice: number, campo: keyof FormContato, valor: string) {
+    onMudar(contatos.map((c, i) => (i === indice ? { ...c, [campo]: valor } : c)))
+  }
+
+  return (
+    <div className={styles.contatosForm}>
+      {lista.map((contato, i) => (
+        <fieldset key={i} className={styles.contatoForm}>
+          <legend className={styles.contatoLegenda}>
+            {varios ? `Contato ${i + 1}` : 'Contato'}
+          </legend>
+          {varios && lista.length > 1 && (
+            <button
+              type="button"
+              className={styles.contatoRemover}
+              aria-label={`Remover contato ${i + 1}`}
+              onClick={() => onMudar(contatos.filter((_, j) => j !== i))}
+            >
+              <Icone nome="lixeira" tamanho={15} />
+            </button>
+          )}
+          <div className={ui.duasColunas}>
+            <Campo
+              rotulo="Nome do contato"
+              value={contato.nome}
+              onChange={(evento) => mudar(i, 'nome', evento.target.value)}
+            />
+            {varios ? (
+              <Campo
+                rotulo="Função"
+                placeholder="Co-Founder, gerente..."
+                value={contato.funcao}
+                onChange={(evento) => mudar(i, 'funcao', evento.target.value)}
+              />
+            ) : (
+              <Campo
+                rotulo="Telefone do contato"
+                type="tel"
+                value={contato.telefone}
+                onChange={(evento) => mudar(i, 'telefone', evento.target.value)}
+              />
+            )}
+          </div>
+          {varios ? (
+            <div className={ui.duasColunas}>
+              <Campo
+                rotulo="Telefone do contato"
+                type="tel"
+                value={contato.telefone}
+                onChange={(evento) => mudar(i, 'telefone', evento.target.value)}
+              />
+              <Campo
+                rotulo="E-mail do contato"
+                type="email"
+                value={contato.email}
+                onChange={(evento) => mudar(i, 'email', evento.target.value)}
+              />
+            </div>
+          ) : (
+            <Campo
+              rotulo="E-mail do contato"
+              type="email"
+              value={contato.email}
+              onChange={(evento) => mudar(i, 'email', evento.target.value)}
+            />
+          )}
+        </fieldset>
+      ))}
+      {erro && <p className={ui.campoErro}>{erro}</p>}
+      {varios && (
+        <Button variante="fantasma" onClick={() => onMudar([...contatos, contatoVazio()])}>
+          <Icone nome="mais" tamanho={16} />
+          Adicionar contato
+        </Button>
+      )}
+    </div>
   )
 }

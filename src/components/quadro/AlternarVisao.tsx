@@ -32,9 +32,18 @@ export function useVisao(chave: string): [Visao, (visao: Visao) => void] {
   ]
 }
 
-export function AlternarVisao({ visao, onMudar }: { visao: Visao; onMudar: (visao: Visao) => void }) {
+interface AlternarVisaoProps {
+  visao: Visao
+  onMudar: (visao: Visao) => void
+  /** Nome do grupo para leitores de tela */
+  rotulo?: string
+  /** Outros nomes para as duas visões, como Cards e Tabela */
+  nomes?: Record<Visao, string>
+}
+
+export function AlternarVisao({ visao, onMudar, rotulo = 'Forma de ver as tarefas', nomes }: AlternarVisaoProps) {
   return (
-    <div className={styles.alternar} role="group" aria-label="Forma de ver as tarefas">
+    <div className={styles.alternar} role="group" aria-label={rotulo}>
       {OPCOES.map((opcao) => (
         <button
           key={opcao.valor}
@@ -44,7 +53,7 @@ export function AlternarVisao({ visao, onMudar }: { visao: Visao; onMudar: (visa
           onClick={() => onMudar(opcao.valor)}
         >
           <Icone nome={opcao.icone} tamanho={15} />
-          {opcao.rotulo}
+          {nomes?.[opcao.valor] ?? opcao.rotulo}
         </button>
       ))}
     </div>

@@ -88,6 +88,18 @@ npx supabase functions deploy criar-conta --project-ref natiqbpgprmcppcqmlvq
 
 Se os e-mails ainda forem parar no spam, confira no Resend (Domains) se o `bysingle.com.br` tem SPF, DKIM e DMARC verdes.
 
+### Migration 0012 (Base de Clientes, 2026-10-19)
+
+- [ ] Aplicar (já testada no próprio banco, dentro de uma transação desfeita)
+
+Pode rodar mais de uma vez e não apaga nada. Verificações em `supabase/tests/0012_verificacoes.sql`.
+
+| Recurso | Sem a migration | Com a migration |
+|---|---|---|
+| Área de atuação | não existe | campo no cadastro, coluna na tabela de Clientes e na ficha |
+| Responsáveis da SINGLE | não existe | várias pessoas da equipe por cliente (`clients.responsaveis`); quem é removido da equipe sai da lista |
+| Contatos | um contato só (`contato_nome`, `contato_email`, `contato_telefone`) | lista com nome, função, e-mail e telefone (`clients.contatos`); o primeiro continua gravado nas colunas antigas. O contato que já existia vira o primeiro da lista |
+
 ### Migration 0010 (cargos, CRM do comercial, Áreas e convites, 2026-10-16)
 
 - [x] Aplicada em 2026-10-16 (testada antes no próprio banco, dentro de uma transação desfeita)

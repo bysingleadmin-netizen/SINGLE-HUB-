@@ -1,9 +1,13 @@
 import type { Client } from '@/types/database'
 import {
+  contatoVazio,
+  contatosDe,
+  filtrarClientes,
   formDoCliente,
   formVazio,
   formatarMes,
   linkInstagram,
+  mesesDeCasa,
   moedaParaCampo,
   validarCliente,
 } from './cliente'
@@ -22,7 +26,7 @@ describe('validarCliente', () => {
       mrr: '1.500,50',
       data_inicio_contrato: '2026-01-15',
       instagram: ' @padariasol ',
-      contato_email: 'ana@padaria.com',
+      contatos: [{ ...contatoVazio(), email: 'ana@padaria.com' }],
     })
     expect(resultado).toEqual({
       valores: {
@@ -59,9 +63,90 @@ describe('validarCliente', () => {
   })
 
   it('recusa e-mail sem formato de e-mail', () => {
-    expect(validarCliente({ ...formVazio(), nome: 'A', contato_email: 'ana' })).toEqual({
-      erros: { contato_email: 'Informe um e-mail válido.' },
+    expect(
+      validarCliente({ ...formVazio(), nome: 'A', contatos: [{ ...contatoVazio(), email: 'ana' }] }),
+    ).toEqual({ erros: { contatos: 'Informe um e-mail válido.' } })
+  })
+})
+
+describe('base de clientes: área, responsáveis e contatos (migration 0012)', () => {
+  const base = { ...formVazio(), nome: 'Conecta' }
+  const isadora = { nome: ' Isadora ', funcao: 'Co-Founder', email: 'isa@conecta.com', telefone: '' }
+  const bruno = { nome: 'Bruno', funcao: '', email: '', telefone: '(27) 99999-0000' }
+
+  it('com a migration, grava a lista e repete o primeiro contato nas colunas antigas', () => {
+    const resultado = validarCliente(
+      { ...base, area_atuacao: ' Odontologia ', responsaveis: ['u1', 'u2'], contatos: [isadora, bruno, contatoVazio()] },
+      { comBase: true },
+    )
+    expect(resultado).toMatchObject({
+      valores: {
+        area_atuacao: 'Odontologia',
+        responsaveis: ['u1', 'u2'],
+        contatos: [
+          { nome: 'Isadora', funcao: 'Co-Founder', email: 'isa@conecta.com' },
+          { nome: 'Bruno', telefone: '(27) 99999-0000' },
+        ],
+        contato_nome: 'Isadora',
+        contato_email: 'isa@conecta.com',
+        contato_telefone: null,
+      },
     })
+  })
+
+  it('sem a migration, salva só o primeiro contato e nada das colunas novas', () => {
+    const resultado = validarCliente({ ...base, area_atuacao: 'Varejo', contatos: [isadora, bruno] })
+    expect(resultado).toMatchObject({ valores: { contato_nome: 'Isadora', contato_telefone: null } })
+    expect(resultado).not.toHaveProperty('valores.contatos')
+    expect(resultado).not.toHaveProperty('valores.area_atuacao')
+    expect(resultado).not.toHaveProperty('valores.responsaveis')
+  })
+
+  it('recusa contato sem nome e e-mail inválido, dizendo de quem', () => {
+    expect(
+      validarCliente({ ...base, contatos: [{ ...contatoVazio(), funcao: 'CEO' }] }, { comBase: true }),
+    ).toEqual({ erros: { contatos: 'Informe o nome de cada contato.' } })
+    expect(
+      validarCliente({ ...base, contatos: [{ ...isadora, email: 'isa' }] }, { comBase: true }),
+    ).toEqual({ erros: { contatos: 'Informe um e-mail válido para Isadora.' } })
+  })
+
+  it('contatosDe usa a lista e, sem ela, o contato único', () => {
+    const antigo = { contato_nome: 'Ana', contato_email: null, contato_telefone: '27 9999', contatos: [] }
+    expect(contatosDe(antigo)).toEqual([{ nome: 'Ana', email: null, telefone: '27 9999' }])
+    expect(contatosDe({ ...antigo, contatos: [{ nome: 'Isadora' }] })).toEqual([{ nome: 'Isadora' }])
+    expect(contatosDe({ contato_nome: null, contato_email: null, contato_telefone: null })).toEqual([])
+  })
+
+  it('formDoCliente traz os contatos e sempre ao menos uma linha', () => {
+    const cliente = { nome: 'A', mrr: 0, contatos: [{ nome: 'Isadora', funcao: 'Co-Founder' }] } as Client
+    expect(formDoCliente(cliente).contatos).toEqual([
+      { nome: 'Isadora', funcao: 'Co-Founder', email: '', telefone: '' },
+    ])
+    expect(formDoCliente({ nome: 'A', mrr: 0 } as Client).contatos).toEqual([contatoVazio()])
+  })
+})
+
+describe('listagem da base de clientes', () => {
+  const clientes = [
+    { nome: 'Clínica Vita', status: 'ativo' as const },
+    { nome: 'Conecta', status: 'pausado' as const },
+    { nome: 'Padaria Sol', status: 'churn' as const },
+  ]
+
+  it('busca pelo nome sem diferenciar acentos nem maiúsculas', () => {
+    expect(filtrarClientes(clientes, ' CLINICA', 'todos').map((c) => c.nome)).toEqual(['Clínica Vita'])
+    expect(filtrarClientes(clientes, '', 'todos')).toHaveLength(3)
+  })
+
+  it('inativos são os pausados e os que saíram', () => {
+    expect(filtrarClientes(clientes, '', 'ativos').map((c) => c.nome)).toEqual(['Clínica Vita'])
+    expect(filtrarClientes(clientes, '', 'inativos').map((c) => c.nome)).toEqual(['Conecta', 'Padaria Sol'])
+  })
+
+  it('meses de casa contam meses completos desde o início', () => {
+    expect(mesesDeCasa({ data_inicio_contrato: '2025-10-20' }, '2026-10-19')).toBe(11)
+    expect(mesesDeCasa({ data_inicio_contrato: null }, '2026-10-19')).toBeNull()
   })
 })
 

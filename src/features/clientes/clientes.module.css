@@ -484,3 +484,108 @@
   background: rgba(62, 207, 142, 0.12);
   border-color: rgba(62, 207, 142, 0.5);
 }
+
+/* Base de Clientes: tabela e ficha lateral */
+.celulaValor {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ficha {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fichaTopo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.fichaTitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.fichaSelo {
+  margin-top: -10px;
+}
+
+.fichaLista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fichaContato {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--vidro);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius-sm);
+}
+
+/* No pé da ficha, o link fica à esquerda e o Editar à direita */
+.fichaLink {
+  align-self: center;
+  margin-right: auto;
+}
+
+/* Contatos no formulário do cliente */
+.contatosForm {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.contatoForm {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius-sm);
+}
+
+.contatoLegenda {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.contatoRemover {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.contatoRemover:hover {
+  background: var(--surface-2);
+  color: var(--perigo);
+}

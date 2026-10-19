@@ -24,7 +24,9 @@ const PEDIDO: PedidoPublico = {
   ],
   comentario: null,
   respondido_em: null,
-  expira_em: '2099-01-01T00:00:00Z',
+  cliente: 'Conecta',
+  expirado: false,
+  respondido: false,
 }
 
 function abrirPortal(pedido: PedidoPublico | null = PEDIDO, resposta = 'ok', token = TOKEN) {
@@ -117,8 +119,31 @@ describe('portal de aprovação', () => {
     expect(bancoFalso().funcoesChamadas).toEqual([])
   })
 
+  it('link vencido (24 horas) diz que expirou, sem mostrar o material', async () => {
+    abrirPortal({ ...PEDIDO, conteudo: [], expirado: true, respondido: false, cliente: 'Conecta' })
+    expect(await screen.findByRole('heading', { name: 'Este link expirou' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Aprovar' })).not.toBeInTheDocument()
+  })
+
+  it('quem já respondeu e abre depois do prazo vê a resposta dada, não o aviso de expirado', async () => {
+    abrirPortal({ ...PEDIDO, status: 'aprovado', conteudo: [], expirado: true, respondido: true })
+    expect(await screen.findByRole('heading', { name: 'Você já respondeu esta aprovação' })).toBeInTheDocument()
+  })
+
+  it('mostra o nome do cliente', async () => {
+    abrirPortal({ ...PEDIDO, cliente: 'Conecta', expirado: false, respondido: false })
+    expect(await screen.findByText('Aprovação de material · Conecta')).toBeInTheDocument()
+  })
+
+  it('se o link venceu enquanto estava aberto, a resposta leva ao aviso de expirado', async () => {
+    abrirPortal(PEDIDO, 'expirado')
+    fireEvent.click(await screen.findByRole('button', { name: 'Aprovar' }))
+    bancoFalso().rpcs.aprovacao_por_token = () => ({ ...PEDIDO, conteudo: [], expirado: true, respondido: false })
+    expect(await screen.findByRole('heading', { name: 'Este link expirou' })).toBeInTheDocument()
+  })
+
   it('pedido já respondido mostra a resposta e não deixa responder de novo', async () => {
-    abrirPortal({ ...PEDIDO, status: 'revisao', comentario: 'Trocar a cor' })
+    abrirPortal({ ...PEDIDO, status: 'revisao', comentario: 'Trocar a cor', respondido: true, conteudo: [] })
     expect(await screen.findByRole('heading', { name: 'Você já respondeu esta aprovação' })).toBeInTheDocument()
     expect(screen.getByText('Trocar a cor')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Aprovar' })).not.toBeInTheDocument()
@@ -192,7 +217,8 @@ describe('aprovação no card de Conteúdo', () => {
         { tipo: 'copy', valor: 'Chegou a coleção!' },
       ],
     })
-    expect(pronto.getByLabelText('Link de aprovação')).toHaveValue(`${window.location.origin}/aprovar/${linha.token}`)
+    // Sempre o endereço oficial, nunca o endereço em que a equipe está (os de deploy pedem login da Vercel)
+    expect(pronto.getByLabelText('Link de aprovação')).toHaveValue(`https://singlehubos.vercel.app/aprovar/${linha.token}`)
     const whatsapp = pronto.getByRole('link', { name: 'Enviar no WhatsApp' }).getAttribute('href')!
     expect(whatsapp).toMatch(/^https:\/\/wa\.me\/5527999990000\?text=/)
     expect(decodeURIComponent(whatsapp)).toContain(`/aprovar/${linha.token}`)
@@ -231,6 +257,7 @@ describe('aprovação no card de Conteúdo', () => {
           created_at: '2026-10-18T10:00:00Z',
           respondido_em: '2026-10-18T12:00:00Z',
           expira_em: '2099-01-01T00:00:00Z',
+          link_expira_em: '2099-01-01T00:00:00Z',
         },
       ],
     })

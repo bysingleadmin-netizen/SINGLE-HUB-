@@ -63,8 +63,9 @@ describe('apoio', () => {
   })
 
   it('link e mensagem do WhatsApp', () => {
-    const link = linkDaAprovacao('abc', 'https://singlehubos.vercel.app')
+    const link = linkDaAprovacao('abc')
     expect(link).toBe('https://singlehubos.vercel.app/aprovar/abc')
+    expect(linkDaAprovacao('abc', 'https://outro.com/')).toBe('https://outro.com/aprovar/abc')
     expect(mensagemDoWhatsapp('Post de Natal', link)).toContain('"Post de Natal"')
     expect(mensagemDoWhatsapp('Post de Natal', link)).toContain(link)
   })
@@ -84,5 +85,7 @@ describe('apoio', () => {
     const agora = new Date('2026-10-19T12:00:00Z')
     expect(expirou({ expira_em: '2026-10-19T11:59:00Z' }, agora)).toBe(true)
     expect(expirou({ expira_em: '2026-11-18T12:00:00Z' }, agora)).toBe(false)
+    // Com a migration 0014, vale o prazo do link (24 horas), não o do pedido
+    expect(expirou({ expira_em: '2026-11-18T12:00:00Z', link_expira_em: '2026-10-19T11:00:00Z' }, agora)).toBe(true)
   })
 })

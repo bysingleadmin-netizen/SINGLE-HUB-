@@ -90,7 +90,7 @@ Se os e-mails ainda forem parar no spam, confira no Resend (Domains) se o `bysin
 
 ### Migration 0012 (Base de Clientes, 2026-10-19)
 
-- [ ] Aplicar (já testada no próprio banco, dentro de uma transação desfeita)
+- [x] Aplicada em 2026-10-19 (testada antes no próprio banco, dentro de uma transação desfeita)
 
 Pode rodar mais de uma vez e não apaga nada. Verificações em `supabase/tests/0012_verificacoes.sql`.
 

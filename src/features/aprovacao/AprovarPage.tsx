@@ -74,7 +74,7 @@ export function AprovarPage() {
     )
   } else if (respondido) {
     corpo = <Confirmacao status={respondido} />
-  } else if (pedido.data.status !== 'pendente') {
+  } else if (pedido.data.respondido ?? pedido.data.status !== 'pendente') {
     corpo = (
       <Aviso icone="confirmar" titulo="Você já respondeu esta aprovação">
         {pedido.data.status === 'aprovado'
@@ -83,6 +83,13 @@ export function AprovarPage() {
             ? 'Você pediu uma revisão. A equipe já está ajustando.'
             : 'Você reprovou este material. A equipe vai entrar em contato.'}
         {pedido.data.comentario && <blockquote className={styles.citacao}>{pedido.data.comentario}</blockquote>}
+      </Aviso>
+    )
+  } else if (pedido.data.expirado) {
+    // Depois de "já respondeu": quem respondeu e abre de novo no dia seguinte vê a resposta dada
+    corpo = (
+      <Aviso icone="alerta" titulo="Este link expirou">
+        O link de aprovação vale 24 horas. Peça um novo link para a equipe da SINGLE.
       </Aviso>
     )
   } else {
@@ -185,7 +192,9 @@ function Materiais({ token, pedido, onRespondido, onExpirado }: MateriaisProps) 
   return (
     <>
       <div className={styles.cabecalho}>
-        <p className={styles.sobretitulo}>Aprovação de material</p>
+        <p className={styles.sobretitulo}>
+          Aprovação de material{pedido.cliente ? ` · ${pedido.cliente}` : ''}
+        </p>
         <h1 className={styles.titulo}>{pedido.titulo}</h1>
         <p className={styles.instrucao}>Confira cada item e responda no fim da página.</p>
       </div>

@@ -90,7 +90,7 @@ Se os e-mails ainda forem parar no spam, confira no Resend (Domains) se o `bysin
 
 ### Migration 0013 (portal de aprovação, 2026-10-19)
 
-- [ ] Aplicar (já testada no próprio banco, dentro de uma transação desfeita)
+- [x] Aplicada em 2026-10-19 (testada antes no próprio banco, dentro de uma transação desfeita, e de ponta a ponta no site publicado)
 
 Pode rodar mais de uma vez e não apaga nada. Verificações em `supabase/tests/0013_verificacoes.sql`.
 
@@ -100,7 +100,7 @@ Pode rodar mais de uma vez e não apaga nada. Verificações em `supabase/tests/
 | Portal `/aprovar/<token>` | mostra "Não foi possível abrir o material" | o cliente vê os materiais sem login e aprova, pede revisão (com comentário obrigatório) ou reprova; uma resposta só por link |
 | Segurança | — | visitante sem login não lê a tabela `aprovacoes`: só as funções `aprovacao_por_token` e `responder_aprovacao`, que acham o pedido pelo token e não devolvem nada de outras tabelas |
 | Avisos | — | a resposta chega no sino dos responsáveis do card e de quem gerou o link; o selo do card no quadro muda em tempo real |
-| Limpeza | — | pg_cron apaga todo dia, às 03:30 UTC, os pedidos com mais de 30 dias (os respondidos também) |
+| Limpeza | — | pg_cron apaga todo dia, às 03:30 UTC, os pedidos que venceram (30 dias) sem resposta; os respondidos ficam como registro |
 
 ### Migration 0012 (Base de Clientes, 2026-10-19)
 

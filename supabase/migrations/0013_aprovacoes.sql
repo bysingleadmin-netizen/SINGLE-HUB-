@@ -120,14 +120,15 @@ revoke all on function public.responder_aprovacao(uuid, text, text) from public;
 grant execute on function public.aprovacao_por_token(uuid) to anon, authenticated;
 grant execute on function public.responder_aprovacao(uuid, text, text) to anon, authenticated;
 
--- Limpeza diária dos pedidos expirados, às 03:30 (UTC), com pg_cron (ligado desde a 0003)
+-- Limpeza diária, às 03:30 (UTC), com pg_cron (ligado desde a 0003): só os pedidos que venceram
+-- sem resposta. Os respondidos ficam como registro de quem aprovou o quê.
 do $$
 begin
   create extension if not exists pg_cron;
   perform cron.schedule(
     'limpar-aprovacoes',
     '30 3 * * *',
-    'delete from public.aprovacoes where expira_em < now()'
+    $q$delete from public.aprovacoes where expira_em < now() and status = 'pendente'$q$
   );
 exception when others then
   raise notice 'pg_cron indisponível (%): a limpeza das aprovações não foi agendada.', sqlerrm;

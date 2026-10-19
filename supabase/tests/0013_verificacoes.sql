@@ -91,7 +91,9 @@ begin
      or not has_function_privilege('anon', 'public.responder_aprovacao(uuid, text, text)', 'execute') then
     raise exception 'visitante não chama as funções do portal';
   end if;
-  if not exists (select 1 from cron.job where jobname = 'limpar-aprovacoes') then
-    raise exception 'limpeza não foi agendada';
+  if not exists (
+    select 1 from cron.job where jobname = 'limpar-aprovacoes' and command like '%status = ''pendente''%'
+  ) then
+    raise exception 'limpeza não foi agendada (ou apagaria os respondidos)';
   end if;
 end $$;

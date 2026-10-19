@@ -16,6 +16,7 @@ import { StatusSelect } from '@/components/ui/StatusSelect'
 import type { ColunaDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
 import { useOpcoes } from '@/dados/opcoes'
+import { AprovacaoDoCard } from '@/features/aprovacao/AprovacaoDoCard'
 import { hojeISO } from '@/lib/datas'
 import { formatarData } from '@/lib/formato'
 import { textoOuNull } from '@/lib/formulario'
@@ -23,6 +24,7 @@ import { responsaveisDe, valoresDeResponsaveis } from '@/lib/pessoas'
 import { cardAberto, descreverPrazo, situacaoDoPrazo } from '@/lib/regras'
 import { PRIORIDADES, TIPOS_CONTEUDO } from '@/lib/rotulos'
 import type {
+  Aprovacao,
   CardAttachment,
   CardSubtarefa,
   Client,
@@ -41,6 +43,8 @@ interface CardDrawerProps {
   anexos?: CardAttachment[]
   /** undefined quando o banco ainda não tem a tabela de subtarefas */
   subtarefas?: CardSubtarefa[]
+  /** Pedidos de aprovação do card, o mais novo primeiro; undefined sem a migration 0013 */
+  aprovacoes?: Aprovacao[]
   /** Trocar a etapa é mover o card: quem sabe a posição e registra a atividade é a página */
   onMover: (destino: ContentEtapa) => void
   onFechar: () => void
@@ -54,6 +58,7 @@ export function CardDrawer({
   colunas,
   anexos,
   subtarefas,
+  aprovacoes,
   onMover,
   onFechar,
 }: CardDrawerProps) {
@@ -185,6 +190,15 @@ export function CardDrawer({
             onBlur={salvarObservacoes}
           />
         </section>
+
+        {aprovacoes && (
+          <AprovacaoDoCard
+            card={card}
+            aprovacoes={aprovacoes}
+            anexos={anexos ?? []}
+            telefone={clientes.find((c) => c.id === card.client_id)?.contato_telefone ?? null}
+          />
+        )}
 
         {subtarefas && (
           <section className={styles.bloco} aria-label="Subtarefas">

@@ -1,0 +1,602 @@
+/* Portal de aprovação do cliente: tela própria, sem o menu do sistema, pensada para o celular */
+.portal {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.topo {
+  display: flex;
+  justify-content: center;
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--vidro-borda);
+}
+
+.conteudo {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cabecalho {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: entrar 0.4s ease both;
+}
+
+.sobretitulo {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-fraco);
+}
+
+.titulo {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.instrucao {
+  color: var(--text-muted);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Pedir revisão chama atenção para os materiais com um tremor curto */
+.lista[data-tremendo] {
+  animation: tremer 0.45s ease;
+}
+
+@keyframes tremer {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.item {
+  animation: entrar 0.45s ease both;
+}
+
+.item:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.item:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.item:nth-child(n + 4) {
+  animation-delay: 180ms;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius);
+}
+
+.cardTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardRotulo {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.copiar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--vidro-borda);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.copy {
+  padding: 14px;
+  background: var(--realce);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.imagem {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  background: var(--afundado);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: zoom-in;
+}
+
+.imagem img {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+.ampliar {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 999px;
+  color: #fff;
+}
+
+.video {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  background: #000;
+  border-radius: var(--radius-sm);
+}
+
+.linkExterno {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  background: var(--realce);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+/* Rodapé fixo com a resposta: fica sempre ao alcance do polegar */
+.acoes {
+  position: sticky;
+  bottom: 0;
+  margin: 8px -16px 0;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--fundo-cabecalho);
+  border-top: 1px solid var(--vidro-borda);
+  backdrop-filter: blur(16px);
+}
+
+.acoesBotoes,
+.comentarioCaixa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comentarioCaixa .acoesSecundarias {
+  grid-template-columns: auto 1fr;
+}
+
+.comentarioCaixa {
+  animation: entrar 0.25s ease both;
+}
+
+.acoesSecundarias {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.aprovar,
+.revisar,
+.reprovar,
+.voltar,
+.enviarRevisao,
+.confirmarReprovacao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    opacity 0.18s ease;
+}
+
+.aprovar:active,
+.revisar:active,
+.reprovar:active,
+.enviarRevisao:active,
+.confirmarReprovacao:active {
+  transform: scale(0.97);
+}
+
+.aprovar:disabled,
+.enviarRevisao:disabled,
+.confirmarReprovacao:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Os dois botões de baixo cabem numa linha cada, mesmo num celular estreito */
+.revisar,
+.reprovar,
+.voltar,
+.enviarRevisao,
+.confirmarReprovacao {
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+@media (max-width: 380px) {
+  .revisar svg,
+  .reprovar svg {
+    display: none;
+  }
+}
+
+.aprovar {
+  min-height: 56px;
+  background: var(--verde);
+  border: none;
+  color: #06231a;
+  font-size: 17px;
+}
+
+.revisar,
+.voltar {
+  background: var(--surface-2);
+  border: 1px solid var(--vidro-borda);
+  color: var(--text);
+}
+
+.reprovar {
+  background: transparent;
+  border: 1px solid var(--vidro-borda);
+  color: var(--perigo);
+}
+
+.enviarRevisao {
+  background: var(--laranja);
+  border: none;
+  color: #2a1404;
+}
+
+.confirmarReprovacao {
+  background: var(--perigo);
+  border: none;
+  color: #fff;
+}
+
+.comentarioRotulo {
+  font-weight: 600;
+}
+
+.comentarioCampo {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--campo-borda);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
+
+.comentarioCampo:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.erro {
+  color: var(--accent-hover);
+  font-size: 14px;
+}
+
+/* Telas de aviso: link inválido, já respondido, resposta enviada */
+.aviso,
+.aprovado {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: auto 0;
+  padding: 48px 8px;
+  text-align: center;
+  animation: entrar 0.4s ease both;
+}
+
+.avisoIcone {
+  display: inline-flex;
+  padding: 14px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  color: var(--text-muted);
+}
+
+.avisoIcone[data-icone='confirmar'] {
+  color: var(--verde);
+}
+
+.avisoTitulo {
+  font-family: var(--font-display);
+  font-size: 22px;
+}
+
+.avisoTexto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 420px;
+  color: var(--text-muted);
+}
+
+.citacao {
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--realce);
+  border-left: 3px solid var(--realce-borda);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+.botaoTexto {
+  min-height: 44px;
+  padding: 0 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Aprovado: o círculo se desenha, o check entra e o confete se espalha */
+.check {
+  width: 96px;
+  height: 96px;
+  fill: none;
+  stroke: var(--verde);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.check circle {
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  animation: desenhar 0.6s ease-out forwards;
+}
+
+.check path {
+  stroke-width: 4;
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: desenhar 0.35s 0.5s ease-out forwards;
+}
+
+@keyframes desenhar {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.confete {
+  position: absolute;
+  top: 96px;
+  left: 50%;
+  pointer-events: none;
+}
+
+.confete span {
+  position: absolute;
+  width: 8px;
+  height: 12px;
+  background: var(--cor);
+  border-radius: 2px;
+  opacity: 0;
+  animation: confete 1.2s var(--atraso) cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+@keyframes confete {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0) scale(0.6);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--x), calc(var(--y) + 60px)) rotate(var(--giro)) scale(1);
+  }
+}
+
+/* Imagem em tela cheia */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  color: #fff;
+  animation: surgirLightbox 0.2s ease both;
+}
+
+@keyframes surgirLightbox {
+  from {
+    opacity: 0;
+  }
+}
+
+.lightboxTopo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 12px 18px;
+}
+
+.lightboxContagem {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.lightboxPalco {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.lightboxImagem {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Soltou o dedo: a imagem volta ao lugar com uma transição; durante o gesto, segue o dedo */
+.lightboxImagem[data-solta] {
+  transition: transform 0.2s ease;
+}
+
+.lightboxBotao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.lightboxAnterior,
+.lightboxProxima {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.lightboxAnterior {
+  left: 12px;
+}
+
+.lightboxProxima {
+  right: 12px;
+}
+
+.lightboxLegenda {
+  padding: 12px 18px calc(16px + env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+/* No celular, as setas somem: troca-se de imagem arrastando */
+@media (hover: none) {
+  .lightboxAnterior,
+  .lightboxProxima {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .conteudo {
+    padding-top: 40px;
+  }
+
+  .acoes {
+    margin: 8px 0 0;
+    border: 1px solid var(--vidro-borda);
+    border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lista[data-tremendo],
+  .confete span {
+    animation: none;
+  }
+
+  .confete {
+    display: none;
+  }
+}

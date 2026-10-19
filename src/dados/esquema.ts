@@ -55,6 +55,8 @@ const SONDAS = {
   opcaoOculta: ['card_options', 'oculta'],
   // migration 0012: área de atuação, responsáveis e lista de contatos do cliente
   baseDeClientes: ['clients', 'contatos'],
+  // migration 0013: pedidos de aprovação dos materiais pelo cliente
+  aprovacoes: ['aprovacoes', 'token'],
 } as const satisfies Record<string, readonly [Tabela, string]>
 
 export type ColunaOpcional = keyof typeof SONDAS

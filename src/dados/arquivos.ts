@@ -18,7 +18,19 @@ export function validarImagem(
   return null
 }
 
-/** Envia a imagem para `bucket/pasta/` e devolve a URL pública. */
+const VIDEOS_ACEITOS = ['video/mp4', 'video/webm', 'video/quicktime']
+const VIDEO_MAXIMO_MB = 50
+
+export const ACEITA_VIDEOS = VIDEOS_ACEITOS.join(',')
+
+/** Como validarImagem, para os vídeos que vão ao cliente aprovar. */
+export function validarVideo(arquivo: Pick<File, 'type' | 'size'>): string | null {
+  if (!VIDEOS_ACEITOS.includes(arquivo.type)) return 'Envie um vídeo MP4, WEBM ou MOV.'
+  if (arquivo.size > VIDEO_MAXIMO_MB * 1024 * 1024) return `O vídeo deve ter no máximo ${VIDEO_MAXIMO_MB} MB.`
+  return null
+}
+
+/** Envia o arquivo (imagem ou vídeo) para `bucket/pasta/` e devolve a URL pública. */
 export async function enviarImagem(
   bucket: 'logos' | 'avatars' | 'anexos',
   pasta: string,

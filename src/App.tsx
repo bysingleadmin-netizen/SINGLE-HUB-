@@ -2,6 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { MotionConfig } from 'framer-motion'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { ToastProvider } from '@/components/ui/Toast'
+import { AprovarPage } from '@/features/aprovacao/AprovarPage'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RotaDaArea } from '@/features/auth/RotaLideranca'
@@ -44,6 +45,8 @@ export default function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                {/* Portal do cliente: aberto pelo link mágico, sem login e sem o menu */}
+                <Route path="/aprovar/:token" element={<AprovarPage />} />
                 <Route element={<RotaProtegida />}>
                   <Route path="/app" element={<AppLayout />}>
                     <Route index element={<Navigate to="/app/dashboard" replace />} />

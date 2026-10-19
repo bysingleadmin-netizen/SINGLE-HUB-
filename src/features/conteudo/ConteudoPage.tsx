@@ -23,6 +23,9 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { StatusSelect } from '@/components/ui/StatusSelect'
 import { useToast } from '@/components/ui/Toast'
 import { useAnexos } from '@/dados/anexos'
+import { useAprovacoes } from '@/dados/aprovacoes'
+import { useTempoReal } from '@/dados/tempoReal'
+import { STATUS_APROVACAO, ultimaPorCard } from '@/features/aprovacao/aprovacao'
 import { juntarConsultas, porId } from '@/dados/base'
 import { useColunasDoQuadro } from '@/dados/colunas'
 import { useColunasOpcionais } from '@/dados/esquema'
@@ -33,14 +36,21 @@ import { useCards, useClientes, usePerfis } from '@/dados/tabelas'
 import { useCriar } from '@/features/criar/CriacaoContext'
 import { hojeISO } from '@/lib/datas'
 import { cardAberto, prioridadeEfetiva, situacaoDoPrazo, venceHoje } from '@/lib/regras'
-import { COLUNAS_CONTEUDO, PRIORIDADES, TIPOS_CONTEUDO } from '@/lib/rotulos'
-import type { ContentCard, ContentEtapa, TipoConteudo } from '@/types/database'
+import { COLUNAS_CONTEUDO, PRIORIDADES, TIPOS_CONTEUDO, opcao } from '@/lib/rotulos'
+import type { Aprovacao, ContentCard, ContentEtapa, TipoConteudo } from '@/types/database'
 import { CardDrawer } from './CardDrawer'
 import { atividadeDoMovimento } from './card'
 
 /** Passou do prazo sem ter sido publicado. */
 function cardAtrasado(card: ContentCard, hoje: string): boolean {
   return card.etapa !== 'publicado' && card.data_entrega != null && card.data_entrega < hoje
+}
+
+/** Status do pedido de aprovação mais recente do card, quando há um */
+function SeloDeAprovacao({ aprovacao }: { aprovacao: Aprovacao | undefined }) {
+  if (!aprovacao) return null
+  const status = opcao(STATUS_APROVACAO, aprovacao.status)
+  return <Pill tom={status.tom}>{status.rotulo}</Pill>
 }
 
 export function ConteudoPage() {
@@ -57,6 +67,10 @@ export function ConteudoPage() {
   const criar = useCriar()
   const esquema = useColunasOpcionais()
   const anexos = useAnexos('conteudo')
+  const aprovacoes = useAprovacoes()
+  // O selo muda assim que o cliente responde
+  useTempoReal(['aprovacoes'])
+  const ultimaAprovacao = ultimaPorCard(aprovacoes.data ?? [])
   const subtarefas = useSubtarefas('conteudo')
   const prioridades = useOpcoes('prioridade', PRIORIDADES)
   const tipos = useOpcoes('tipo_conteudo', TIPOS_CONTEUDO)
@@ -279,7 +293,12 @@ export function ConteudoPage() {
                 return (
                   <CardInfo
                     titulo={card.titulo}
-                    etiqueta={tipoDoCard && <Pill tom={tipoDoCard.tom} cor={tipoDoCard.cor}>{tipoDoCard.rotulo}</Pill>}
+                    etiqueta={
+                      <>
+                        {tipoDoCard && <Pill tom={tipoDoCard.tom} cor={tipoDoCard.cor}>{tipoDoCard.rotulo}</Pill>}
+                        <SeloDeAprovacao aprovacao={ultimaAprovacao.get(card.id)} />
+                      </>
+                    }
                     cliente={clienteDo(card)}
                     responsaveis={responsaveisDo(card)}
                     dataEntrega={card.data_entrega}
@@ -342,6 +361,13 @@ export function ConteudoPage() {
           colunas={colunas}
           anexos={anexos.disponivel ? (anexos.porCard.get(aberto.id) ?? []) : undefined}
           subtarefas={subtarefas.disponivel ? (subtarefas.porCard.get(aberto.id) ?? []) : undefined}
+          aprovacoes={
+            aprovacoes.disponivel
+              ? (aprovacoes.data ?? [])
+                  .filter((a) => a.card_id === aberto.id)
+                  .sort((a, b) => b.created_at.localeCompare(a.created_at))
+              : undefined
+          }
           onMover={(destino) => mover(aberto, destino, todos)}
           onFechar={() => setParametros({}, { replace: true })}
         />

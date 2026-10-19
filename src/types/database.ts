@@ -262,7 +262,36 @@ export interface EventParticipant {
   profile_id: string
 }
 
-export type TipoNotificacao = 'tarefa' | 'evento' | 'prazo'
+export type TipoNotificacao = 'tarefa' | 'evento' | 'prazo' | 'aprovacao'
+
+export type StatusAprovacao = 'pendente' | 'aprovado' | 'revisao' | 'reprovado'
+
+export type TipoDeItem = 'copy' | 'imagem' | 'video' | 'link'
+
+/** Um material do pedido de aprovação: um texto, uma imagem, um vídeo ou um link */
+export interface ItemDeAprovacao {
+  tipo: TipoDeItem
+  /** O texto (copy) ou o endereço do arquivo ou do link */
+  valor: string
+  /** Nome que o cliente vê, como "Legenda — opção 1" */
+  label?: string
+}
+
+/** Linha de `aprovacoes` (migration 0013): o link mágico que o cliente abre para aprovar */
+export interface Aprovacao {
+  id: string
+  card_id: string
+  client_id: string | null
+  token: string
+  titulo: string
+  status: StatusAprovacao
+  conteudo: ItemDeAprovacao[]
+  comentario: string | null
+  created_by: string | null
+  created_at: string
+  respondido_em: string | null
+  expira_em: string
+}
 
 /** Linha de `notifications`. O nome evita confusão com a Notification do navegador. */
 export interface Notificacao {

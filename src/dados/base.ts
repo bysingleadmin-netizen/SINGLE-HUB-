@@ -24,6 +24,7 @@ export type Tabela =
   | 'campaign_historico'
   | 'lead_historico'
   | 'receitas_asaas'
+  | 'aprovacoes'
 
 interface ComId {
   id: string

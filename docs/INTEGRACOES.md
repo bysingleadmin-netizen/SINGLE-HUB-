@@ -88,6 +88,14 @@ npx supabase functions deploy criar-conta --project-ref natiqbpgprmcppcqmlvq
 
 Se os e-mails ainda forem parar no spam, confira no Resend (Domains) se o `bysingle.com.br` tem SPF, DKIM e DMARC verdes.
 
+### Migration 0014 (link de aprovação de 24 horas, 2026-10-19)
+
+- [x] Aplicada em 2026-10-19 (testada antes no próprio banco, dentro de uma transação desfeita, e de ponta a ponta no site publicado)
+
+O link vale 24 horas (`aprovacoes.link_expira_em`); o pedido sem resposta continua sendo apagado 30 dias depois (`expira_em`) e o respondido fica guardado. Depois das 24 horas o portal mostra "Este link expirou", não envia o material e recusa a resposta. O portal mostra o nome do cliente (só o nome). Para mandar de novo, gere outro link no card.
+
+O link sai sempre com o endereço oficial (`https://singlehubos.vercel.app`, ou `VITE_URL_PUBLICA` se estiver definida na Vercel). Os endereços de cada deploy (`singlehub-xxxx-single-hub.vercel.app`) pedem login da Vercel: o cliente não consegue abrir um link com eles.
+
 ### Migration 0013 (portal de aprovação, 2026-10-19)
 
 - [x] Aplicada em 2026-10-19 (testada antes no próprio banco, dentro de uma transação desfeita, e de ponta a ponta no site publicado)

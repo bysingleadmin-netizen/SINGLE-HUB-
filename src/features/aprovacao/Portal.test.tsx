@@ -24,7 +24,9 @@ const PEDIDO: PedidoPublico = {
   ],
   comentario: null,
   respondido_em: null,
-  expira_em: '2099-01-01T00:00:00Z',
+  cliente: 'Conecta',
+  expirado: false,
+  respondido: false,
 }
 
 function abrirPortal(pedido: PedidoPublico | null = PEDIDO, resposta = 'ok', token = TOKEN) {
@@ -141,7 +143,7 @@ describe('portal de aprovação', () => {
   })
 
   it('pedido já respondido mostra a resposta e não deixa responder de novo', async () => {
-    abrirPortal({ ...PEDIDO, status: 'revisao', comentario: 'Trocar a cor' })
+    abrirPortal({ ...PEDIDO, status: 'revisao', comentario: 'Trocar a cor', respondido: true, conteudo: [] })
     expect(await screen.findByRole('heading', { name: 'Você já respondeu esta aprovação' })).toBeInTheDocument()
     expect(screen.getByText('Trocar a cor')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Aprovar' })).not.toBeInTheDocument()

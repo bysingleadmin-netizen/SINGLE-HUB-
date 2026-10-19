@@ -290,7 +290,10 @@ export interface Aprovacao {
   created_by: string | null
   created_at: string
   respondido_em: string | null
+  /** Quando o pedido sem resposta é apagado (30 dias) */
   expira_em: string
+  /** Migration 0014: até quando o cliente pode abrir e responder (24 horas) */
+  link_expira_em?: string
 }
 
 /** Linha de `notifications`. O nome evita confusão com a Notification do navegador. */

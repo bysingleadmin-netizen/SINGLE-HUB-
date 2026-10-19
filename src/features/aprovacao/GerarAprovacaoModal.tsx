@@ -73,7 +73,7 @@ export function GerarAprovacaoModal({ card, anexos, telefone, onFechar }: GerarA
       <Modal aberto titulo="Link de aprovação pronto" onFechar={onFechar}>
         <div className={ui.formulario}>
           <p className={ui.mudo}>
-            Envie para o cliente. O link abre sem login, vale por 24 horas e aceita uma resposta só.
+            Envie para o cliente. O link abre sem login, vale por 30 dias e aceita uma resposta só.
           </p>
           <LinkGerado aprovacao={gerada} telefone={telefone} />
           <div className={ui.acoes}>

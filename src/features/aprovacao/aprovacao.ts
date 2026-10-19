@@ -70,15 +70,8 @@ export function itemParaSalvar(item: ItemDoForm, enderecoDoArquivo?: string): It
   return { tipo: item.tipo, valor, ...(label ? { label } : {}) }
 }
 
-/**
- * Endereço oficial do sistema. O link vai sempre com ele, nunca com o endereço em que a equipe
- * está: os endereços de cada deploy da Vercel (singlehub-xxxx-single-hub.vercel.app) pedem login
- * da Vercel, e o cliente caía nessa tela.
- */
-export const ENDERECO_PUBLICO = import.meta.env.VITE_URL_PUBLICA || 'https://singlehubos.vercel.app'
-
-export function linkDaAprovacao(token: string, origem: string = ENDERECO_PUBLICO): string {
-  return `${origem.replace(/\/+$/, '')}/aprovar/${token}`
+export function linkDaAprovacao(token: string, origem: string = window.location.origin): string {
+  return `${origem}/aprovar/${token}`
 }
 
 export function mensagemDoWhatsapp(titulo: string, link: string): string {
@@ -95,26 +88,18 @@ export function ultimaPorCard(aprovacoes: Aprovacao[]): Map<string, Aprovacao> {
   return porCard
 }
 
-/** O link já não abre. Antes da migration 0014 não há prazo do link: vale o do pedido. */
-export function expirou(
-  aprovacao: Pick<Aprovacao, 'expira_em' | 'link_expira_em'>,
-  agora: Date = new Date(),
-): boolean {
-  return new Date(aprovacao.link_expira_em ?? aprovacao.expira_em).getTime() <= agora.getTime()
+export function expirou(aprovacao: Pick<Aprovacao, 'expira_em'>, agora: Date = new Date()): boolean {
+  return new Date(aprovacao.expira_em).getTime() <= agora.getTime()
 }
 
 /** O que o portal recebe de aprovacao_por_token: só o que é do pedido. */
 export interface PedidoPublico {
   titulo: string
   status: StatusAprovacao
-  /** Vazio quando o link venceu ou já foi respondido */
   conteudo: ItemDeAprovacao[]
   comentario: string | null
   respondido_em: string | null
-  /** Migration 0014: nome do cliente, o link venceu (24 horas), já foi respondido */
-  cliente?: string | null
-  expirado?: boolean
-  respondido?: boolean
+  expira_em: string
 }
 
-export type RespostaDoPortal = 'ok' | 'invalido' | 'expirado' | 'ja_respondido' | 'comentario_obrigatorio'
+export type RespostaDoPortal = 'ok' | 'invalido' | 'ja_respondido' | 'comentario_obrigatorio'

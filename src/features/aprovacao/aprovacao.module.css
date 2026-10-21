@@ -29,6 +29,10 @@
   gap: 8px;
 }
 
+.pedidoAcoes {
+  margin-left: auto;
+}
+
 .comentario {
   margin: 0;
   padding: 8px 12px;

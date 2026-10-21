@@ -2,8 +2,11 @@ import { useState } from 'react'
 import detalhe from '@/components/quadro/detalhe.module.css'
 import { Button } from '@/components/ui/Button'
 import { Icone } from '@/components/ui/Icone'
+import { MenuAcoes } from '@/components/ui/MenuDeAcoes'
 import { Pill } from '@/components/ui/Pill'
+import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
+import { useExcluirAprovacao } from '@/dados/aprovacoes'
 import { formatarData } from '@/lib/formato'
 import { tempoRelativo } from '@/lib/regras'
 import { opcao } from '@/lib/rotulos'
@@ -27,6 +30,9 @@ interface AprovacaoDoCardProps {
 /** Seção do card de Conteúdo: gerar o link para o cliente e acompanhar as respostas. */
 export function AprovacaoDoCard({ card, aprovacoes, anexos, telefone }: AprovacaoDoCardProps) {
   const [gerando, setGerando] = useState(false)
+  const [editando, setEditando] = useState<Aprovacao>()
+  const excluir = useExcluirAprovacao()
+  const toast = useToast()
   const naEtapa = card.etapa === ETAPA_DE_APROVACAO
 
   return (
@@ -59,6 +65,16 @@ export function AprovacaoDoCard({ card, aprovacoes, anexos, telefone }: Aprovaca
                           a.conteudo.length === 1 ? 'item' : 'itens'
                         }`}
                   </span>
+                  {/* Depois da resposta o material fica como o cliente viu: só dá para excluir */}
+                  <MenuAcoes
+                    nome="pedido de aprovação"
+                    className={styles.pedidoAcoes}
+                    onEditar={a.status === 'pendente' && !vencido ? () => setEditando(a) : undefined}
+                    onExcluir={() =>
+                      excluir.mutate(a.id, { onError: () => toast.erro('Não foi possível excluir. Tente de novo.') })
+                    }
+                    aviso={a.status === 'pendente' && !vencido ? 'O link enviado ao cliente para de funcionar.' : undefined}
+                  />
                 </div>
                 {a.comentario && <blockquote className={styles.comentario}>{a.comentario}</blockquote>}
                 {a.status === 'pendente' && !vencido && <LinkGerado aprovacao={a} telefone={telefone} />}
@@ -74,6 +90,15 @@ export function AprovacaoDoCard({ card, aprovacoes, anexos, telefone }: Aprovaca
           anexos={anexos}
           telefone={telefone}
           onFechar={() => setGerando(false)}
+        />
+      )}
+      {editando && (
+        <GerarAprovacaoModal
+          card={card}
+          anexos={anexos}
+          telefone={telefone}
+          editando={editando}
+          onFechar={() => setEditando(undefined)}
         />
       )}
     </section>

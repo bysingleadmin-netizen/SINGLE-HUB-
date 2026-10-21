@@ -9,11 +9,11 @@ import { Modal } from '@/components/ui/Modal'
 import { Selecao } from '@/components/ui/Selecao'
 import { useToast } from '@/components/ui/Toast'
 import ui from '@/components/ui/ui.module.css'
-import { useCriarAprovacao } from '@/dados/aprovacoes'
+import { useCriarAprovacao, useEditarAprovacao } from '@/dados/aprovacoes'
 import { ACEITA_IMAGENS, ACEITA_VIDEOS, validarImagem, validarVideo } from '@/dados/arquivos'
 import type { Aprovacao, CardAttachment, ContentCard, TipoDeItem } from '@/types/database'
 import { LinkGerado } from './LinkGerado'
-import { TIPOS_DE_ITEM, itemVazio, itensDosAnexos, problemaDosItens } from './aprovacao'
+import { TIPOS_DE_ITEM, itemVazio, itensDoPedido, itensDosAnexos, problemaDosItens } from './aprovacao'
 import type { ItemDoForm } from './aprovacao'
 import styles from './aprovacao.module.css'
 
@@ -25,17 +25,21 @@ interface GerarAprovacaoModalProps {
   anexos: Pick<CardAttachment, 'tipo' | 'url' | 'nome'>[]
   /** Telefone do contato do cliente, para o botão do WhatsApp */
   telefone: string | null
+  /** Pedido já enviado: o formulário abre com o material dele e salva no mesmo link */
+  editando?: Aprovacao
   onFechar: () => void
 }
 
 /** Monta o pedido de aprovação (textos, imagens, vídeos e links) e mostra o link para enviar. */
-export function GerarAprovacaoModal({ card, anexos, telefone, onFechar }: GerarAprovacaoModalProps) {
-  const [itens, setItens] = useState<ItemDoForm[]>(() =>
-    anexos.length > 0 ? itensDosAnexos(anexos) : [itemVazio('copy')],
-  )
+export function GerarAprovacaoModal({ card, anexos, telefone, editando, onFechar }: GerarAprovacaoModalProps) {
+  const [itens, setItens] = useState<ItemDoForm[]>(() => {
+    if (editando) return itensDoPedido(editando.conteudo)
+    return anexos.length > 0 ? itensDosAnexos(anexos) : [itemVazio('copy')]
+  })
   const [erro, setErro] = useState<string>()
   const [gerada, setGerada] = useState<Aprovacao>()
   const criar = useCriarAprovacao(card)
+  const editar = useEditarAprovacao(editando ?? { id: '', card_id: card.id })
   const toast = useToast()
 
   function mudar(indice: number, mudanca: Partial<ItemDoForm>) {
@@ -62,6 +66,16 @@ export function GerarAprovacaoModal({ card, anexos, telefone, onFechar }: GerarA
       return
     }
     setErro(undefined)
+    if (editando) {
+      editar.mutate(itens, {
+        onSuccess: () => {
+          toast.sucesso('Pedido atualizado. O cliente vê o material novo no mesmo link.')
+          onFechar()
+        },
+        onError: () => toast.erro('Não foi possível salvar. Tente de novo.'),
+      })
+      return
+    }
     criar.mutate(itens, {
       onSuccess: (aprovacao) => setGerada(aprovacao),
       onError: () => toast.erro('Não foi possível gerar o link. Tente de novo.'),
@@ -85,7 +99,7 @@ export function GerarAprovacaoModal({ card, anexos, telefone, onFechar }: GerarA
   }
 
   return (
-    <Modal aberto titulo="Gerar link de aprovação" onFechar={onFechar}>
+    <Modal aberto titulo={editando ? 'Editar pedido de aprovação' : 'Gerar link de aprovação'} onFechar={onFechar}>
       <form className={ui.formulario} onSubmit={aoEnviar} noValidate>
         <p className={ui.mudo}>
           O cliente vê cada item num card e aprova, pede revisão ou reprova tudo de uma vez.
@@ -197,8 +211,8 @@ export function GerarAprovacaoModal({ card, anexos, telefone, onFechar }: GerarA
           <Button variante="fantasma" onClick={onFechar}>
             Cancelar
           </Button>
-          <Button type="submit" carregando={criar.isPending}>
-            Gerar link
+          <Button type="submit" carregando={criar.isPending || editar.isPending}>
+            {editando ? 'Salvar alterações' : 'Gerar link'}
           </Button>
         </div>
       </form>

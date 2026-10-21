@@ -41,6 +41,11 @@ export function itensDosAnexos(anexos: Pick<CardAttachment, 'tipo' | 'url' | 'no
   }))
 }
 
+/** Itens de um pedido já enviado, para editar no mesmo formulário. */
+export function itensDoPedido(conteudo: ItemDeAprovacao[]): ItemDoForm[] {
+  return conteudo.map((item) => ({ tipo: item.tipo, label: item.label ?? '', valor: item.valor }))
+}
+
 /**
  * Confere os itens antes de enviar. Devolve a mensagem do primeiro problema, ou null.
  * Imagem e vídeo valem com arquivo escolhido ou com endereço colado.

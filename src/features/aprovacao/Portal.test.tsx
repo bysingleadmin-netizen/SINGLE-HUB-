@@ -278,6 +278,63 @@ describe('aprovação no card de Conteúdo', () => {
     expect(coluna.getByText('Revisão pedida')).toBeInTheDocument()
   })
 
+  const PENDENTE = {
+    id: 'p1',
+    card_id: 'k1',
+    client_id: 'c1',
+    token: 't1',
+    titulo: 'Post de lançamento',
+    status: 'pendente',
+    conteudo: [
+      { tipo: 'copy', label: 'Legenda', valor: 'Oi' },
+      { tipo: 'video', valor: 'https://drive.google.com/file/d/abc/view' },
+    ],
+    comentario: null,
+    created_by: 'u1',
+    created_at: '2026-10-18T10:00:00Z',
+    respondido_em: null,
+    expira_em: '2099-01-01T00:00:00Z',
+    link_expira_em: '2099-01-01T00:00:00Z',
+  }
+
+  it('edita o pedido enviado: o mesmo link passa a mostrar o material novo', async () => {
+    popular({ aprovacoes: [PENDENTE] })
+    const secao = await abrirCard()
+    fireEvent.click(secao.getByRole('button', { name: 'Ações de pedido de aprovação' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Editar' }))
+    const modal = within(screen.getByRole('dialog', { name: 'Editar pedido de aprovação' }))
+    // Abre com o que foi enviado
+    expect(modal.getByLabelText('Texto')).toHaveValue('Oi')
+    expect(modal.getByLabelText('ou cole o endereço')).toHaveValue('https://drive.google.com/file/d/abc/view')
+    fireEvent.change(modal.getByLabelText('Texto'), { target: { value: 'Oi, versão 2' } })
+    fireEvent.click(modal.getByRole('button', { name: 'Remover item 2' }))
+    fireEvent.click(modal.getByRole('button', { name: 'Salvar alterações' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Editar pedido de aprovação' })).not.toBeInTheDocument())
+    const [linha] = bancoFalso().tabelas.aprovacoes
+    expect(linha).toMatchObject({ id: 'p1', token: 't1', conteudo: [{ tipo: 'copy', label: 'Legenda', valor: 'Oi, versão 2' }] })
+    expect(bancoFalso().tabelas.aprovacoes).toHaveLength(1)
+  })
+
+  it('exclui o pedido depois de confirmar', async () => {
+    popular({ aprovacoes: [PENDENTE] })
+    const secao = await abrirCard()
+    fireEvent.click(secao.getByRole('button', { name: 'Ações de pedido de aprovação' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Excluir' }))
+    const confirmar = within(screen.getByRole('group', { name: 'Confirmar exclusão de pedido de aprovação' }))
+    fireEvent.click(confirmar.getByRole('button', { name: 'Excluir' }))
+    await waitFor(() => expect(bancoFalso().tabelas.aprovacoes).toHaveLength(0))
+    await waitFor(() => expect(secao.queryByLabelText('Link de aprovação')).not.toBeInTheDocument())
+  })
+
+  it('pedido respondido só pode ser excluído', async () => {
+    popular({ aprovacoes: [{ ...PENDENTE, status: 'aprovado', respondido_em: '2026-10-18T12:00:00Z' }] })
+    const secao = await abrirCard()
+    fireEvent.click(secao.getByRole('button', { name: 'Ações de pedido de aprovação' }))
+    expect(screen.queryByRole('menuitem', { name: 'Editar' })).not.toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Excluir' })).toBeInTheDocument()
+  })
+
   it('fora de Aguardando Aprovação, explica onde gerar o link', async () => {
     popular()
     bancoFalso().tabelas.content_cards[0].etapa = 'editar'

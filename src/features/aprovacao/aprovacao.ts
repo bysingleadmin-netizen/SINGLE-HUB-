@@ -71,6 +71,36 @@ export function itemParaSalvar(item: ItemDoForm, enderecoDoArquivo?: string): It
 }
 
 /**
+ * Player para pôr no card quando o vídeo é um link do Google Drive, YouTube ou Vimeo: esses
+ * endereços abrem uma página, não o arquivo, e a tag <video> ficava vazia. null para arquivo direto.
+ */
+export function videoIncorporado(endereco: string): string | null {
+  let url: URL
+  try {
+    url = new URL(endereco)
+  } catch {
+    return null
+  }
+  const host = url.hostname.replace(/^(www|m)\./, '')
+  if (host === 'drive.google.com' || host === 'docs.google.com') {
+    const id = url.pathname.match(/\/file\/d\/([\w-]+)/)?.[1] ?? url.searchParams.get('id')
+    return id ? `https://drive.google.com/file/d/${id}/preview` : null
+  }
+  if (host === 'youtube.com' || host === 'youtu.be') {
+    const id =
+      host === 'youtu.be'
+        ? url.pathname.slice(1)
+        : (url.searchParams.get('v') ?? url.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]+)/)?.[1])
+    return id ? `https://www.youtube.com/embed/${id}` : null
+  }
+  if (host === 'vimeo.com') {
+    const id = url.pathname.match(/^\/(\d+)/)?.[1]
+    return id ? `https://player.vimeo.com/video/${id}` : null
+  }
+  return null
+}
+
+/**
  * Endereço oficial do sistema. O link vai sempre com ele, nunca com o endereço em que a equipe
  * está: os endereços de cada deploy da Vercel (singlehub-xxxx-single-hub.vercel.app) pedem login
  * da Vercel, e o cliente caía nessa tela.

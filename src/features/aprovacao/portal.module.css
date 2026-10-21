@@ -195,6 +195,17 @@
   border-radius: var(--radius-sm);
 }
 
+/* Player do Drive/YouTube/Vimeo: o iframe não tem altura própria; vertical, como os Reels */
+.videoIncorporado {
+  aspect-ratio: 9 / 16;
+  height: auto;
+  border: 0;
+}
+
+.videoIncorporado + .linkExterno {
+  margin-top: 10px;
+}
+
 .linkExterno {
   display: flex;
   align-items: center;

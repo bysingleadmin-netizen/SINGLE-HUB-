@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { supabase } from '@/lib/supabase'
 import type { ItemDeAprovacao, StatusAprovacao } from '@/types/database'
 import { Lightbox } from './Lightbox'
+import { videoIncorporado } from './aprovacao'
 import type { PedidoPublico, RespostaDoPortal } from './aprovacao'
 import styles from './portal.module.css'
 
@@ -337,12 +338,7 @@ function ItemDoPortal({
           </span>
         </button>
       )}
-      {item.tipo === 'video' && (
-        // #t=0.1 faz o navegador mostrar o primeiro quadro como capa, inclusive no iPhone
-        <video className={styles.video} src={`${item.valor}#t=0.1`} controls playsInline preload="metadata">
-          <a href={item.valor}>Abrir o vídeo</a>
-        </video>
-      )}
+      {item.tipo === 'video' && <Video endereco={item.valor} rotulo={rotulo} />}
       {item.tipo === 'link' && (
         <a className={styles.linkExterno} href={item.valor} target="_blank" rel="noopener noreferrer">
           <Icone nome="externo" tamanho={18} />
@@ -350,6 +346,34 @@ function ItemDoPortal({
         </a>
       )}
     </article>
+  )
+}
+
+function Video({ endereco, rotulo }: { endereco: string; rotulo: string }) {
+  const player = videoIncorporado(endereco)
+  if (!player) {
+    // #t=0.1 faz o navegador mostrar o primeiro quadro como capa, inclusive no iPhone
+    return (
+      <video className={styles.video} src={`${endereco}#t=0.1`} controls playsInline preload="metadata">
+        <a href={endereco}>Abrir o vídeo</a>
+      </video>
+    )
+  }
+  // Link do Drive, YouTube ou Vimeo: o player deles, com o link de saída se o arquivo não for público
+  return (
+    <>
+      <iframe
+        className={`${styles.video} ${styles.videoIncorporado}`}
+        src={player}
+        title={rotulo}
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowFullScreen
+      />
+      <a className={styles.linkExterno} href={endereco} target="_blank" rel="noopener noreferrer">
+        <Icone nome="externo" tamanho={18} />
+        <span>Abrir em {dominio(endereco)}</span>
+      </a>
+    </>
   )
 }
 

@@ -20,6 +20,7 @@ const PEDIDO: PedidoPublico = {
     { tipo: 'imagem', label: 'Arte do feed', valor: 'https://cdn.test/arte1.png' },
     { tipo: 'imagem', valor: 'https://cdn.test/arte2.png' },
     { tipo: 'video', label: 'Reels', valor: 'https://cdn.test/reels.mp4' },
+    { tipo: 'video', label: 'Vídeo do Drive', valor: 'https://drive.google.com/file/d/abc123/view?usp=sharing' },
     { tipo: 'link', label: 'Prévia no Figma', valor: 'https://www.figma.com/file/x' },
   ],
   comentario: null,
@@ -59,6 +60,13 @@ describe('portal de aprovação', () => {
     const video = screen.getByRole('article', { name: 'Reels' }).querySelector('video')!
     expect(video).toHaveAttribute('src', 'https://cdn.test/reels.mp4#t=0.1')
     expect(video).toHaveAttribute('playsinline')
+    // Link do Drive é uma página, não o arquivo: o vídeo toca no player do Drive dentro do card
+    const drive = within(screen.getByRole('article', { name: 'Vídeo do Drive' }))
+    expect(drive.getByTitle('Vídeo do Drive')).toHaveAttribute('src', 'https://drive.google.com/file/d/abc123/preview')
+    expect(drive.getByRole('link', { name: /Abrir em drive.google.com/ })).toHaveAttribute(
+      'href',
+      'https://drive.google.com/file/d/abc123/view?usp=sharing',
+    )
     expect(screen.getByRole('link', { name: 'figma.com' })).toHaveAttribute('href', 'https://www.figma.com/file/x')
   })
 

@@ -8,6 +8,7 @@ import {
   mensagemDoWhatsapp,
   problemaDosItens,
   ultimaPorCard,
+  videoIncorporado,
 } from './aprovacao'
 
 describe('problemaDosItens', () => {
@@ -87,5 +88,31 @@ describe('apoio', () => {
     expect(expirou({ expira_em: '2026-11-18T12:00:00Z' }, agora)).toBe(false)
     // Com a migration 0014, vale o prazo do link (24 horas), não o do pedido
     expect(expirou({ expira_em: '2026-11-18T12:00:00Z', link_expira_em: '2026-10-19T11:00:00Z' }, agora)).toBe(true)
+  })
+})
+
+describe('videoIncorporado', () => {
+  it('link do Google Drive vira o player do Drive', () => {
+    const preview = 'https://drive.google.com/file/d/1PHEzBDniJpO0tfc8q17FuQvsI1dNeV_r/preview'
+    expect(videoIncorporado('https://drive.google.com/file/d/1PHEzBDniJpO0tfc8q17FuQvsI1dNeV_r/view?usp=sharing')).toBe(
+      preview,
+    )
+    expect(videoIncorporado('https://drive.google.com/open?id=1PHEzBDniJpO0tfc8q17FuQvsI1dNeV_r')).toBe(preview)
+    expect(videoIncorporado('https://drive.google.com/uc?id=1PHEzBDniJpO0tfc8q17FuQvsI1dNeV_r&export=download')).toBe(
+      preview,
+    )
+  })
+
+  it('YouTube e Vimeo viram o player deles', () => {
+    expect(videoIncorporado('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ')
+    expect(videoIncorporado('https://youtu.be/dQw4w9WgXcQ?si=x')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ')
+    expect(videoIncorporado('https://youtube.com/shorts/dQw4w9WgXcQ')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ')
+    expect(videoIncorporado('https://vimeo.com/76979871')).toBe('https://player.vimeo.com/video/76979871')
+  })
+
+  it('arquivo de vídeo continua no player do navegador', () => {
+    expect(videoIncorporado('https://x.supabase.co/storage/v1/object/public/anexos/a/reels.mp4')).toBeNull()
+    expect(videoIncorporado('https://drive.google.com/drive/folders/abc')).toBeNull()
+    expect(videoIncorporado('não é link')).toBeNull()
   })
 })
